@@ -39,13 +39,21 @@ we support MAYA2017 and MAYA2018 on Windows, now.
 
 ## How to Build
 
-1. Install target maya version on your system. (ex. C:\Program Files\Autodesk\Maya2018 )
-2. Open solution file: /windows/glTFExporter/glTFExporter.sln
+- 1. Requirements: Visual studio 2017.
 
-3. Select target version from configuration and build it.
+- 2. Generate Draco solution: RUN externals/build_draco2017.bat
+
+- 3. Build draco project: Open externals/draco/build/draco.sln and build it.
+
+- 4. Install target maya version on your system. (ex. C:\Program Files\Autodesk\Maya2018 )
+
+- 5. Open solution file: /windows/glTFExporter/glTFExporter.sln
+
+- 6. Select target version from configuration and build it.
 
 
 ## Externals modules
+
 - draco: https://github.com/google/draco/
 
 - glm: https://github.com/g-truc/glm
