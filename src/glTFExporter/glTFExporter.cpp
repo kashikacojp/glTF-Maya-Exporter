@@ -786,30 +786,81 @@ bool getColorAttrib(MFnDependencyNode& node, MString& texpath, MColor& color)
 	MPlugArray connectedPlugs;
 	if (paramPlug.connectedTo(connectedPlugs, true, false, &status)
 		&& connectedPlugs.length()) {
-		if (connectedPlugs[0].node().apiType() != MFn::kFileTexture)
+		MFn::Type apiType = connectedPlugs[0].node().apiType();
+		if (apiType == MFn::kFileTexture) {
+			MFnDependencyNode texNode(connectedPlugs[0].node());
+			MPlug texturePlug = texNode.findPlug("fileTextureName", &status);
+			if (status == MS::kSuccess)
+			{
+				MString tpath;
+				texturePlug.getValue(tpath);
+				//MStringArray paths;
+				//tpath.split('/', paths);
+				//texpath = paths[paths.length() - 1];
+				texpath = tpath.asChar();
+
+				// if material has texture, set color(1,1,1)
+				color.r = 1.0f;
+				color.g = 1.0f;
+				color.b = 1.0f;
+				return true;
+			}
 			return false;
-
-		MFnDependencyNode texNode(connectedPlugs[0].node());
-		MPlug texturePlug = texNode.findPlug("fileTextureName", &status);
-		if (status == MS::kSuccess)
-		{
-			MString tpath;
-			texturePlug.getValue(tpath);
-			//MStringArray paths;
-			//tpath.split('/', paths);
-			//texpath = paths[paths.length() - 1];
-			texpath = tpath.asChar();
-
-			// if material has texture, set color(1,1,1)
-			color.r = 1.0f;
-			color.g = 1.0f;
-			color.b = 1.0f;
-			return true;
+		} else {
+			// other type node is not supported
+			return false;
 		}
 	}
 	paramPlug.child(0).getValue(color.r);
 	paramPlug.child(1).getValue(color.g);
 	paramPlug.child(2).getValue(color.b);
+	return true;
+}
+
+static bool getNormalAttrib(MFnDependencyNode& node, MString& normaltexpath, float& depth)
+{
+	depth = 0.0f;
+	normaltexpath = "";
+
+	MStatus status;
+	MPlug paramPlug;
+	paramPlug = node.findPlug("normalCamera", &status); // normalmap
+	if (status != MS::kSuccess)
+		return false;
+
+	MPlugArray connectedPlugs;
+	bool isConnectedPlug = paramPlug.connectedTo(connectedPlugs, true, false, &status) && connectedPlugs.length();
+	if (!isConnectedPlug)
+		return false;
+	if (connectedPlugs[0].node().apiType() != MFn::kBump)
+		return false;
+
+	MFnDependencyNode bumpNode(connectedPlugs[0].node());
+	MPlug bumpPlug = bumpNode.findPlug("bumpDepth", &status);
+	if (status != MS::kSuccess)
+		return false;
+	bumpPlug.getValue(depth);
+
+	paramPlug = bumpNode.findPlug("bumpValue", &status);
+	if (status != MS::kSuccess)
+		return false;
+
+	MString pn = paramPlug.name();
+	bool isConnectedTex = paramPlug.connectedTo(connectedPlugs, true, false, &status) && connectedPlugs.length();
+	if (!isConnectedTex)
+		return false;
+
+	if (connectedPlugs[0].node().apiType() != MFn::kFileTexture)
+		return false;
+
+	MFnDependencyNode texNode(connectedPlugs[0].node());
+	MString na = texNode.name();
+	MPlug texPlug = texNode.findPlug("fileTextureName", &status);
+	if (status != MS::kSuccess)
+		return false;
+
+	texPlug.getValue(normaltexpath);
+
 	return true;
 }
 
@@ -845,6 +896,7 @@ std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
 				std::string shadername = shader.name().asChar();
 
 				MString coltexpath;
+				MString normaltexpath;
 				MColor col;
 				if (getColorAttrib(node, coltexpath, col))
 				{
@@ -861,8 +913,20 @@ std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
 						mat->SetFloat("Diffuse.A", col.a);
 					}
 				}
+				
 				MColor tra = getColor(shader, "transparency");
 				mat->SetFloat("Diffuse.A", 1.0f - tra.r);
+
+				// Normal map
+				float depth;
+				if (getNormalAttrib(node, normaltexpath, depth))
+				{
+					std::string texName = normaltexpath.asChar();
+					if (!texName.empty())
+					{
+						mat->SetString("Normal", texName);
+					}
+				}
 			}
 		}
 

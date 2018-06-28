@@ -1306,6 +1306,18 @@ namespace kml
 					}
 					*/
 
+					std::string normal_texname = mat->GetTextureName("Normal");
+					if (!normal_texname.empty())
+					{
+						int nIndex = FindTextureIndex(texture_vec, normal_texname);
+						if (nIndex >= 0)
+						{
+							picojson::object normalTexture;
+							normalTexture["index"] = picojson::value((double)nIndex);
+							nd["normalTexture"] = picojson::value(normalTexture);
+						}
+					}
+
 
 					picojson::array colorFactor;
 					float R = mat->GetValue("Diffuse.R");
