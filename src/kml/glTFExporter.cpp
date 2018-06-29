@@ -1331,7 +1331,8 @@ namespace kml
 					colorFactor.push_back(picojson::value(A));
 					pbrMetallicRoughness["baseColorFactor"] = picojson::value(colorFactor);
 
-					pbrMetallicRoughness["metallicFactor"] = picojson::value(0.0);
+					pbrMetallicRoughness["metallicFactor"] = picojson::value(mat->GetFloat("metallicFactor"));
+					pbrMetallicRoughness["roughnessFactor"] = picojson::value(mat->GetFloat("roughnessFactor"));
 					nd["pbrMetallicRoughness"] = picojson::value(pbrMetallicRoughness);
 
 					if (A >= 1.0f)

@@ -64,6 +64,8 @@
 #include <maya/MObjectHandle.h>
 #include <maya/MItDependencyGraph.h>
 #include <maya/MFnLambertShader.h>
+#include <maya/MFnPhongEShader.h>
+
 
 #include <memory>
 #include <sstream>
@@ -832,36 +834,50 @@ static bool getNormalAttrib(MFnDependencyNode& node, MString& normaltexpath, flo
 	bool isConnectedPlug = paramPlug.connectedTo(connectedPlugs, true, false, &status) && connectedPlugs.length();
 	if (!isConnectedPlug)
 		return false;
-	if (connectedPlugs[0].node().apiType() != MFn::kBump)
+
+	MFn::Type apiType = connectedPlugs[0].node().apiType();
+	if (apiType == MFn::kBump) {
+		MFnDependencyNode bumpNode(connectedPlugs[0].node());
+		MPlug bumpPlug = bumpNode.findPlug("bumpDepth", &status);
+		if (status != MS::kSuccess)
+			return false;
+		bumpPlug.getValue(depth);
+
+		paramPlug = bumpNode.findPlug("bumpValue", &status);
+		if (status != MS::kSuccess)
+			return false;
+
+		MString pn = paramPlug.name();
+		bool isConnectedTex = paramPlug.connectedTo(connectedPlugs, true, false, &status) && connectedPlugs.length();
+		if (!isConnectedTex)
+			return false;
+
+		if (connectedPlugs[0].node().apiType() != MFn::kFileTexture)
+			return false;
+
+		MFnDependencyNode texNode(connectedPlugs[0].node());
+		MString na = texNode.name();
+		MPlug texPlug = texNode.findPlug("fileTextureName", &status);
+		if (status != MS::kSuccess)
+			return false;
+
+		texPlug.getValue(normaltexpath);
+
+		return true;
+	}
+	else if (apiType == MFn::kFileTexture) {
+		MFnDependencyNode texNode(connectedPlugs[0].node());
+		MPlug texturePlug = texNode.findPlug("fileTextureName", &status);
+		if (status != MS::kSuccess) {
+			return false;
+		}
+
+		texturePlug.getValue(normaltexpath);
+
+		return true;
+	} else {
 		return false;
-
-	MFnDependencyNode bumpNode(connectedPlugs[0].node());
-	MPlug bumpPlug = bumpNode.findPlug("bumpDepth", &status);
-	if (status != MS::kSuccess)
-		return false;
-	bumpPlug.getValue(depth);
-
-	paramPlug = bumpNode.findPlug("bumpValue", &status);
-	if (status != MS::kSuccess)
-		return false;
-
-	MString pn = paramPlug.name();
-	bool isConnectedTex = paramPlug.connectedTo(connectedPlugs, true, false, &status) && connectedPlugs.length();
-	if (!isConnectedTex)
-		return false;
-
-	if (connectedPlugs[0].node().apiType() != MFn::kFileTexture)
-		return false;
-
-	MFnDependencyNode texNode(connectedPlugs[0].node());
-	MString na = texNode.name();
-	MPlug texPlug = texNode.findPlug("fileTextureName", &status);
-	if (status != MS::kSuccess)
-		return false;
-
-	texPlug.getValue(normaltexpath);
-
-	return true;
+	}
 }
 
 static
@@ -890,11 +906,12 @@ std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
 			MFnDependencyNode node(mpa[k].node()); // get shader
 
 												  
-			if (mpa[k].node().hasFn(MFn::kLambert)) 
-			{
+			if (mpa[k].node().hasFn(MFn::kLambert)) { // All material(Lambert, phongE)
 				MFnLambertShader shader(mpa[k].node());
 				std::string shadername = shader.name().asChar();
 
+				mat->SetFloat("metallicFactor", 0.0f);
+				mat->SetFloat("roughnessFactor", 1.0);
 				MString coltexpath;
 				MString normaltexpath;
 				MColor col;
@@ -927,6 +944,23 @@ std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
 						mat->SetString("Normal", texName);
 					}
 				}
+			}
+
+			if (mpa[k].node().hasFn(MFn::kPhongExplorer)) { // PhongE only
+			
+				// default value
+				float roughness = 0.0f;
+				float metallic = 0.5f;
+
+				MFnPhongEShader pshader(mpa[k].node());
+				MStatus status;
+				MPlug roughnessPlug = pshader.findPlug("roughness", &status);
+				if (status == MS::kSuccess) {
+					roughnessPlug.getValue(roughness);
+				}
+
+				mat->SetFloat("metallicFactor", metallic);
+				mat->SetFloat("roughnessFactor", roughness);
 			}
 		}
 
