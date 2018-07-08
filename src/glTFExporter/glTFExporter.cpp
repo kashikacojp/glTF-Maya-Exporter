@@ -943,7 +943,7 @@ std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
 				MString coltexpath;
 				MString normaltexpath;
 				MColor col;
-				if (getColorAttrib(node, coltexpath, col))
+				if (getColorAttrib(shader, coltexpath, col))
 				{
 					std::string texName = coltexpath.asChar();
 					if (!texName.empty())
@@ -964,7 +964,7 @@ std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
 
 				// Normal map
 				float depth;
-				if (getNormalAttrib(node, normaltexpath, depth))
+				if (getNormalAttrib(shader, normaltexpath, depth))
 				{
 					std::string texName = normaltexpath.asChar();
 					if (!texName.empty())
