@@ -64,6 +64,9 @@
 #include <maya/MObjectHandle.h>
 #include <maya/MItDependencyGraph.h>
 #include <maya/MFnLambertShader.h>
+#include <maya/MFnPhongEShader.h>
+
+
 
 #include <memory>
 #include <sstream>
@@ -786,31 +789,122 @@ bool getColorAttrib(MFnDependencyNode& node, MString& texpath, MColor& color)
 	MPlugArray connectedPlugs;
 	if (paramPlug.connectedTo(connectedPlugs, true, false, &status)
 		&& connectedPlugs.length()) {
-		if (connectedPlugs[0].node().apiType() != MFn::kFileTexture)
+		MFn::Type apiType = connectedPlugs[0].node().apiType();
+		if (apiType == MFn::kFileTexture) {
+			MFnDependencyNode texNode(connectedPlugs[0].node());
+			MPlug texturePlug = texNode.findPlug("fileTextureName", &status);
+			if (status == MS::kSuccess)
+			{
+				MString tpath;
+				texturePlug.getValue(tpath);
+				//MStringArray paths;
+				//tpath.split('/', paths);
+				//texpath = paths[paths.length() - 1];
+				texpath = tpath.asChar();
+
+				// if material has texture, set color(1,1,1)
+				color.r = 1.0f;
+				color.g = 1.0f;
+				color.b = 1.0f;
+				return true;
+			}
 			return false;
-
-		MFnDependencyNode texNode(connectedPlugs[0].node());
-		MPlug texturePlug = texNode.findPlug("fileTextureName", &status);
-		if (status == MS::kSuccess)
-		{
-			MString tpath;
-			texturePlug.getValue(tpath);
-			//MStringArray paths;
-			//tpath.split('/', paths);
-			//texpath = paths[paths.length() - 1];
-			texpath = tpath.asChar();
-
-			// if material has texture, set color(1,1,1)
-			color.r = 1.0f;
-			color.g = 1.0f;
-			color.b = 1.0f;
-			return true;
+		} else {
+			// other type node is not supported
+			return false;
 		}
 	}
 	paramPlug.child(0).getValue(color.r);
 	paramPlug.child(1).getValue(color.g);
 	paramPlug.child(2).getValue(color.b);
 	return true;
+}
+
+static bool getNormalAttrib(MFnDependencyNode& node, MString& normaltexpath, float& depth)
+{
+	depth = 0.0f;
+	normaltexpath = "";
+
+	MStatus status;
+	MPlug paramPlug;
+	paramPlug = node.findPlug("normalCamera", &status); // normalmap
+	if (status != MS::kSuccess)
+		return false;
+
+	MPlugArray connectedPlugs;
+	bool isConnectedPlug = paramPlug.connectedTo(connectedPlugs, true, false, &status) && connectedPlugs.length();
+	if (!isConnectedPlug)
+		return false;
+
+	MFn::Type apiType = connectedPlugs[0].node().apiType();
+	if (apiType == MFn::kBump) {
+		MFnDependencyNode bumpNode(connectedPlugs[0].node());
+		MPlug bumpPlug = bumpNode.findPlug("bumpDepth", &status);
+		if (status != MS::kSuccess)
+			return false;
+		bumpPlug.getValue(depth);
+
+		paramPlug = bumpNode.findPlug("bumpValue", &status);
+		if (status != MS::kSuccess)
+			return false;
+
+		MString pn = paramPlug.name();
+		bool isConnectedTex = paramPlug.connectedTo(connectedPlugs, true, false, &status) && connectedPlugs.length();
+		if (!isConnectedTex)
+			return false;
+
+		if (connectedPlugs[0].node().apiType() != MFn::kFileTexture)
+			return false;
+
+		MFnDependencyNode texNode(connectedPlugs[0].node());
+		MString na = texNode.name();
+		MPlug texPlug = texNode.findPlug("fileTextureName", &status);
+		if (status != MS::kSuccess)
+			return false;
+
+		texPlug.getValue(normaltexpath);
+
+		return true;
+	}
+	else if (apiType == MFn::kFileTexture) {
+		MFnDependencyNode texNode(connectedPlugs[0].node());
+		MPlug texturePlug = texNode.findPlug("fileTextureName", &status);
+		if (status != MS::kSuccess) {
+			return false;
+		}
+
+		texturePlug.getValue(normaltexpath);
+
+		return true;
+	} else {
+		return false;
+	}
+}
+
+static bool isStingrayPBS(MFnDependencyNode materialDependencyNode)
+{
+	MString graphAttribute("graph");
+	if (materialDependencyNode.hasAttribute(graphAttribute))
+	{
+		MString graphValue;
+		MPlug plug = materialDependencyNode.findPlug(graphAttribute);
+		plug.getValue(graphValue);
+		MString stingrayStr("stingray");
+		return graphValue == stingrayStr;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+static bool isAiStandardSurfaceShader(MFnDependencyNode materialDependencyNode)
+{
+	return materialDependencyNode.hasAttribute("baseColor") &&
+		materialDependencyNode.hasAttribute("metalness") &&
+		materialDependencyNode.hasAttribute("normalCamera") &&
+		materialDependencyNode.hasAttribute("specularRoughness") &&
+		materialDependencyNode.hasAttribute("emissionColor");
 }
 
 static
@@ -829,24 +923,27 @@ std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
 		MPlugArray mpa;
 		MFnDependencyNode node(shaderObject);
 
-		mp = node.findPlug("surfaceShader");// shader Group
-											
-
+		mp = node.findPlug("aiSurfaceShader"); // first check aiSurfaceShader
 		mp.connectedTo(mpa, true, false);
-		const int ksz = mpa.length();
-		for (int k = 0; k < ksz; k++) 
-		{
-			MFnDependencyNode node(mpa[k].node()); // get shader
 
-												  
-			if (mpa[k].node().hasFn(MFn::kLambert)) 
-			{
+		if (mpa.length() == 0) {
+			mp = node.findPlug("surfaceShader");// next check, shader Group
+			mp.connectedTo(mpa, true, false);
+		}
+
+		const int ksz = mpa.length();
+		for (int k = 0; k < ksz; k++)
+		{
+			if (mpa[k].node().hasFn(MFn::kLambert)) { // All material(Lambert, phongE)
 				MFnLambertShader shader(mpa[k].node());
 				std::string shadername = shader.name().asChar();
 
+				mat->SetFloat("metallicFactor", 0.0f);
+				mat->SetFloat("roughnessFactor", 1.0);
 				MString coltexpath;
+				MString normaltexpath;
 				MColor col;
-				if (getColorAttrib(node, coltexpath, col))
+				if (getColorAttrib(shader, coltexpath, col))
 				{
 					std::string texName = coltexpath.asChar();
 					if (!texName.empty())
@@ -861,8 +958,93 @@ std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
 						mat->SetFloat("Diffuse.A", col.a);
 					}
 				}
+
 				MColor tra = getColor(shader, "transparency");
 				mat->SetFloat("Diffuse.A", 1.0f - tra.r);
+
+				// Normal map
+				float depth;
+				if (getNormalAttrib(shader, normaltexpath, depth))
+				{
+					std::string texName = normaltexpath.asChar();
+					if (!texName.empty())
+					{
+						mat->SetString("Normal", texName);
+					}
+				}
+			}
+
+			if (mpa[k].node().hasFn(MFn::kPhongExplorer)) { // PhongE only
+
+				// default value
+				float roughness = 0.0f;
+				float metallic = 0.5f;
+
+				MFnPhongEShader pshader(mpa[k].node());
+				MStatus status;
+				MPlug roughnessPlug = pshader.findPlug("roughness", &status);
+				if (status == MS::kSuccess) {
+					roughnessPlug.getValue(roughness);
+				}
+
+				mat->SetFloat("metallicFactor", metallic);
+				mat->SetFloat("roughnessFactor", roughness);
+			}
+
+			if (isStingrayPBS(mpa[k].node())) {
+				
+				// TODO:
+
+			}
+
+			if (isAiStandardSurfaceShader(mpa[k].node())) {
+				
+				MFnDependencyNode ainode = mpa[k].node();
+				float baseWeight = ainode.findPlug("base").asFloat();
+				float baseColorR = ainode.findPlug("baseColorR").asFloat();
+				float baseColorG = ainode.findPlug("baseColorG").asFloat();
+				float baseColorB = ainode.findPlug("baseColorB").asFloat();
+				float transmission = ainode.findPlug("transmission").asFloat();
+				mat->SetFloat("Diffuse.R", baseColorR);
+				mat->SetFloat("Diffuse.G", baseColorG);
+				mat->SetFloat("Diffuse.B", baseColorB);
+				mat->SetFloat("Diffuse.A", transmission);
+
+				float metallic = ainode.findPlug("metalness").asFloat();
+				float roughness = ainode.findPlug("specularRoughness").asFloat();
+				mat->SetFloat("metallicFactor", metallic);
+				mat->SetFloat("roughnessFactor", roughness);
+
+
+				// Emissive
+				//float emissionWeight = ainode.findPlug("emission").asFloatProperty;
+				//babylonMaterial.emissive = ainode.findPlug("emissionColor").asFloatArray().Multiply(emissionWeight);
+				
+				// --- Textures ---
+
+				// Base color & alpha
+				/*if (materialDuplicationData.isArnoldTransparent())
+				{
+					MFnDependencyNode baseColorTextureDependencyNode = getTextureDependencyNode(materialDependencyNode, "baseColor");
+					MFnDependencyNode opacityTextureDependencyNode = getTextureDependencyNode(materialDependencyNode, "opacity");
+					if (baseColorTextureDependencyNode != null && opacityTextureDependencyNode != null &&
+						getSourcePathFromFileTexture(baseColorTextureDependencyNode) == getSourcePathFromFileTexture(opacityTextureDependencyNode))
+					{
+						// If the same file is used for base color and opacity
+						// Base color and alpha are already merged into a single file
+						babylonMaterial.baseTexture = ExportTexture(baseColorTextureDependencyNode, babylonScene, false, true);
+					}
+					else
+					{
+						// Base color and alpha files need to be merged into a single file
+						Color _baseColor = Color.FromArgb((int)baseColor[0] * 255, (int)baseColor[1] * 255, (int)baseColor[2] * 255);
+						babylonMaterial.baseTexture = ExportBaseColorAlphaTexture(baseColorTextureDependencyNode, opacityTextureDependencyNode, babylonScene, name, _baseColor, babylonMaterial.alpha);
+					}
+				}*/
+
+
+
+
 			}
 		}
 

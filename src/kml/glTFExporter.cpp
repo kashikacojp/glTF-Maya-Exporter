@@ -1306,6 +1306,18 @@ namespace kml
 					}
 					*/
 
+					std::string normal_texname = mat->GetTextureName("Normal");
+					if (!normal_texname.empty())
+					{
+						int nIndex = FindTextureIndex(texture_vec, normal_texname);
+						if (nIndex >= 0)
+						{
+							picojson::object normalTexture;
+							normalTexture["index"] = picojson::value((double)nIndex);
+							nd["normalTexture"] = picojson::value(normalTexture);
+						}
+					}
+
 
 					picojson::array colorFactor;
 					float R = mat->GetValue("Diffuse.R");
@@ -1319,7 +1331,8 @@ namespace kml
 					colorFactor.push_back(picojson::value(A));
 					pbrMetallicRoughness["baseColorFactor"] = picojson::value(colorFactor);
 
-					pbrMetallicRoughness["metallicFactor"] = picojson::value(0.0);
+					pbrMetallicRoughness["metallicFactor"] = picojson::value(mat->GetFloat("metallicFactor"));
+					pbrMetallicRoughness["roughnessFactor"] = picojson::value(mat->GetFloat("roughnessFactor"));
 					nd["pbrMetallicRoughness"] = picojson::value(pbrMetallicRoughness);
 
 					if (A >= 1.0f)
