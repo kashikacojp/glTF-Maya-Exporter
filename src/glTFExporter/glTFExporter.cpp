@@ -67,6 +67,7 @@
 #include <maya/MFnPhongEShader.h>
 
 
+
 #include <memory>
 #include <sstream>
 #include <fstream>
@@ -880,6 +881,32 @@ static bool getNormalAttrib(MFnDependencyNode& node, MString& normaltexpath, flo
 	}
 }
 
+static bool isStingrayPBS(MFnDependencyNode materialDependencyNode)
+{
+	MString graphAttribute("graph");
+	if (materialDependencyNode.hasAttribute(graphAttribute))
+	{
+		MString graphValue;
+		MPlug plug = materialDependencyNode.findPlug(graphAttribute);
+		plug.getValue(graphValue);
+		MString stingrayStr("stingray");
+		return graphValue == stingrayStr;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+static bool isAiStandardSurfaceShader(MFnDependencyNode materialDependencyNode)
+{
+	return materialDependencyNode.hasAttribute("baseColor") &&
+		materialDependencyNode.hasAttribute("metalness") &&
+		materialDependencyNode.hasAttribute("normalCamera") &&
+		materialDependencyNode.hasAttribute("specularRoughness") &&
+		materialDependencyNode.hasAttribute("emissionColor");
+}
+
 static
 std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
 {
@@ -896,16 +923,17 @@ std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
 		MPlugArray mpa;
 		MFnDependencyNode node(shaderObject);
 
-		mp = node.findPlug("surfaceShader");// shader Group
-											
-
+		mp = node.findPlug("aiSurfaceShader"); // first check aiSurfaceShader
 		mp.connectedTo(mpa, true, false);
-		const int ksz = mpa.length();
-		for (int k = 0; k < ksz; k++) 
-		{
-			MFnDependencyNode node(mpa[k].node()); // get shader
 
-												  
+		if (mpa.length() == 0) {
+			mp = node.findPlug("surfaceShader");// next check, shader Group
+			mp.connectedTo(mpa, true, false);
+		}
+
+		const int ksz = mpa.length();
+		for (int k = 0; k < ksz; k++)
+		{
 			if (mpa[k].node().hasFn(MFn::kLambert)) { // All material(Lambert, phongE)
 				MFnLambertShader shader(mpa[k].node());
 				std::string shadername = shader.name().asChar();
@@ -930,7 +958,7 @@ std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
 						mat->SetFloat("Diffuse.A", col.a);
 					}
 				}
-				
+
 				MColor tra = getColor(shader, "transparency");
 				mat->SetFloat("Diffuse.A", 1.0f - tra.r);
 
@@ -947,7 +975,7 @@ std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
 			}
 
 			if (mpa[k].node().hasFn(MFn::kPhongExplorer)) { // PhongE only
-			
+
 				// default value
 				float roughness = 0.0f;
 				float metallic = 0.5f;
@@ -961,6 +989,62 @@ std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
 
 				mat->SetFloat("metallicFactor", metallic);
 				mat->SetFloat("roughnessFactor", roughness);
+			}
+
+			if (isStingrayPBS(mpa[k].node())) {
+				
+				// TODO:
+
+			}
+
+			if (isAiStandardSurfaceShader(mpa[k].node())) {
+				
+				MFnDependencyNode ainode = mpa[k].node();
+				float baseWeight = ainode.findPlug("base").asFloat();
+				float baseColorR = ainode.findPlug("baseColorR").asFloat();
+				float baseColorG = ainode.findPlug("baseColorG").asFloat();
+				float baseColorB = ainode.findPlug("baseColorB").asFloat();
+				float transmission = ainode.findPlug("transmission").asFloat();
+				mat->SetFloat("Diffuse.R", baseColorR);
+				mat->SetFloat("Diffuse.G", baseColorG);
+				mat->SetFloat("Diffuse.B", baseColorB);
+				mat->SetFloat("Diffuse.A", transmission);
+
+				float metallic = ainode.findPlug("metalness").asFloat();
+				float roughness = ainode.findPlug("specularRoughness").asFloat();
+				mat->SetFloat("metallicFactor", metallic);
+				mat->SetFloat("roughnessFactor", roughness);
+
+
+				// Emissive
+				//float emissionWeight = ainode.findPlug("emission").asFloatProperty;
+				//babylonMaterial.emissive = ainode.findPlug("emissionColor").asFloatArray().Multiply(emissionWeight);
+				
+				// --- Textures ---
+
+				// Base color & alpha
+				/*if (materialDuplicationData.isArnoldTransparent())
+				{
+					MFnDependencyNode baseColorTextureDependencyNode = getTextureDependencyNode(materialDependencyNode, "baseColor");
+					MFnDependencyNode opacityTextureDependencyNode = getTextureDependencyNode(materialDependencyNode, "opacity");
+					if (baseColorTextureDependencyNode != null && opacityTextureDependencyNode != null &&
+						getSourcePathFromFileTexture(baseColorTextureDependencyNode) == getSourcePathFromFileTexture(opacityTextureDependencyNode))
+					{
+						// If the same file is used for base color and opacity
+						// Base color and alpha are already merged into a single file
+						babylonMaterial.baseTexture = ExportTexture(baseColorTextureDependencyNode, babylonScene, false, true);
+					}
+					else
+					{
+						// Base color and alpha files need to be merged into a single file
+						Color _baseColor = Color.FromArgb((int)baseColor[0] * 255, (int)baseColor[1] * 255, (int)baseColor[2] * 255);
+						babylonMaterial.baseTexture = ExportBaseColorAlphaTexture(baseColorTextureDependencyNode, opacityTextureDependencyNode, babylonScene, name, _baseColor, babylonMaterial.alpha);
+					}
+				}*/
+
+
+
+
 			}
 		}
 
