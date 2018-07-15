@@ -85,11 +85,15 @@ add_library( kil STATIC
     ./src/kil/ResizeTextureFile.cpp
 )
 
+if(WIN32)
+set(Compatibility ./src/kml/Compatibility.cpp)
+endif()
+
 add_library( kml STATIC
     ./src/kml/Bound.cpp
     ./src/kml/CalculateBound.cpp
     ./src/kml/CalculateNormalsMesh.cpp
-    ./src/kml/Compatibility.cpp
+    ${Compatibility}
     ./src/kml/FlatIndicesMesh.cpp
     ./src/kml/GLTF2GLB.cpp
     ./src/kml/glTFExporter.cpp

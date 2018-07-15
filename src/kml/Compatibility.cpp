@@ -1,5 +1,7 @@
 #include "Compatibility.h"
 
+// for MSC compatibility functions
+
 #ifdef _MSC_VER
 
 namespace std
