@@ -5,8 +5,16 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 project("glTF-Maya-Exporter")
 
-option(GLTF_MAYA_EXPORTER_BUILD_WITH_DRACO "Build with Draco" ON)
+# -- options ----------------------------------------------------
+option(GLTF_MAYA_EXPORTER_BUILD_WITH_DRACO    "Build with Draco" ON)
+option(GLTF_MAYA_EXPORTER_BUILD_MAYAEXPORTER      "Build Maya Exporter" ON)
+option(GLTF_MAYA_EXPORTER_BUILD_CPP_INTERFACE "Build cpp interface and test" OFF)
 
+SET(GLTF_MAYA_EXPORTER_MAYA_PATH "C:/Program Files/Autodesk/Maya2018" CACHE PATH "Installed Maya Directory")
+
+# ===============================================================
+
+# -- draco setting ---------------------------------------------- 
 if(GLTF_MAYA_EXPORTER_BUILD_WITH_DRACO)
     # DRACO setting
     add_subdirectory(externals/draco)
@@ -45,39 +53,42 @@ if(GLTF_MAYA_EXPORTER_BUILD_WITH_DRACO)
 
     set(DRACO_LIB draco)
     add_definitions(-DENABLE_BUILD_WITH_DRACO)
+
+    set(DRACO_SRC_PATH externals/draco/src/)
 endif()
 
+
+
+if(GLTF_MAYA_EXPORTER_BUILD_MAYAEXPORTER)
+    
+    SET(MAYA_INCLUDE_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/include/)
+    SET(MAYA_LIBRARY_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/lib/)
+
+    set(BUILD_DIR ${CMAKE_BINARY_DIR})
+    message(BUILD_DIR: "${BUILD_DIR}")
+    message(MAYA_INCLUDE_PATH: "${MAYA_INCLUDE_PATH}")
+    message(MAYA_INCLUDE_PATH: "${MAYA_LIBRARY_PATH}")
+
+endif()
+
+# -- compile options, include and libraries -----------------
+
 add_definitions(-std=c++11)
-
-SET(GLTF_MAYA_EXPORTER_MAYA_PATH "C:/Program Files/Autodesk/Maya2018" CACHE PATH "Installed Maya Directory")
-
-SET(MAYA_INCLUDE_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/include/)
-SET(MAYA_LIBRARY_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/lib/)
-
-set(BUILD_DIR ${CMAKE_BINARY_DIR})
-message(BUILD_DIR: "${BUILD_DIR}")
-message(MAYA_INCLUDE_PATH: "${MAYA_INCLUDE_PATH}")
-message(MAYA_INCLUDE_PATH: "${MAYA_LIBRARY_PATH}")
 
 include_directories(
     externals/glm/
     externals/
-    externals/draco/src/
     src/
     ${BUILD_DIR}/
+    ${DRACO_SRC_PATH}
     ${MAYA_INCLUDE_PATH}
 )
 
 link_directories(${MAYA_LIBRARY_PATH})
 
-add_library( glTFExporter SHARED
-    ./src/glTFExporter/glTFExporter.cpp
-    ./src/glTFExporter/glTFExporterRegist.cpp
-    ./src/glTFExporter/glTFTranslator.cpp
-    ./src/glTFExporter/murmur3.c
-    ./src/glTFExporter/ProgressWindow.cpp
-)
+# -----------------------------------------------------------
 
+# -- KIL lib ------------------------------------
 add_library( kil STATIC
     ./src/kil/CopyTextureFile.cpp
     ./src/kil/CopyTextureFile_GdiPlus.cpp
@@ -85,8 +96,9 @@ add_library( kil STATIC
     ./src/kil/ResizeTextureFile.cpp
 )
 
+# -- KML lib ------------------------------------
 if(WIN32)
-set(Compatibility ./src/kml/Compatibility.cpp)
+    set(Compatibility ./src/kml/Compatibility.cpp)
 endif()
 
 add_library( kml STATIC
@@ -111,12 +123,48 @@ add_library( kml STATIC
 target_link_libraries( kml 
                        kil
                        ${DRACO_LIB})
-                       
-target_link_libraries( glTFExporter
-                       kml
-                       OpenMaya
-                       Foundation
-)
 
-SET_TARGET_PROPERTIES(glTFExporter PROPERTIES PREFIX "")
-SET_TARGET_PROPERTIES(glTFExporter PROPERTIES SUFFIX ".mll")
+
+# -- glTF Exporter for maya --------------------
+if (GLTF_MAYA_EXPORTER_BUILD_MAYAEXPORTER)
+
+    add_library( glTFExporter SHARED
+        ./src/glTFExporter/glTFExporter.cpp
+        ./src/glTFExporter/glTFExporterRegist.cpp
+        ./src/glTFExporter/glTFTranslator.cpp
+        ./src/glTFExporter/murmur3.c
+        ./src/glTFExporter/ProgressWindow.cpp
+    )
+
+    target_link_libraries( glTFExporter
+                        kml
+                        OpenMaya
+                        Foundation
+    )
+    SET_TARGET_PROPERTIES(glTFExporter PROPERTIES PREFIX "")
+    SET_TARGET_PROPERTIES(glTFExporter PROPERTIES SUFFIX ".mll")
+
+endif()
+
+# -- cpp interface and test -----------------------------
+
+if (GLTF_MAYA_EXPORTER_BUILD_CPP_INTERFACE)
+
+    # -- dll interface --
+    add_library( glTFCppExporterLib SHARED
+        ./src/cppexporter/main.cpp
+    )
+    target_link_libraries( glTFCppExporterLib
+                           kml
+    )
+
+    # -- interface test ---
+    add_executable( glTFCppExporterLibTest
+        ./src/cppexporter/test/test.cpp
+    )
+    target_link_libraries( glTFCppExporterLibTest
+                           glTFCppExporterLib
+    )
+
+
+endif()
