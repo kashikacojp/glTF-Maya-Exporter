@@ -201,7 +201,7 @@ namespace kml
 			auto& buff_obj = buff_array[0].get<object>();
 			std::string uri = dir_path + buff_obj["uri"].get<std::string>();
 			{
-				auto& iter = buff_obj.find("uri");
+				const auto iter = buff_obj.find("uri");
 				if (iter != buff_obj.end())
 				{
 					buff_obj.erase(iter);
@@ -230,7 +230,7 @@ namespace kml
 						img["bufferView"] = value((double)index);
 						img["mimeType"] = value(mimeType);
 						{
-							auto& iter = img.find("uri");
+							const auto iter = img.find("uri");
 							if (iter != img.end())
 							{
 								img.erase(iter);
