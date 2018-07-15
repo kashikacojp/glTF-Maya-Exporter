@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <sstream>
 
-#include "compatibility.h"
+#include "Compatibility.h"
 #include <glm/mat4x4.hpp>
 
 namespace kml

@@ -15,14 +15,19 @@
 #include <set>
 #include <fstream>
 
-#define TINYGLTF_LOADER_IMPLEMENTATION
-#define STB_IMAGE_IMPLEMENTATION
-#include <tinygltf/tiny_gltf.h>
+#include "gltfConstants.h"
 
 #include <picojson/picojson.h>
 
 
-
+namespace {
+	enum ImageFormat {
+		FORMAT_JPEG = 0,
+		FORMAT_PNG,
+		FORMAT_BMP,
+		FORMAT_GIF
+	};
+}
 
 namespace kml
 {
@@ -140,21 +145,21 @@ namespace kml
 		std::string ext = GetExt(path);
 		if (ext == ".jpg" || ext == ".jpeg")
 		{
-			return TINYGLTF_IMAGE_FORMAT_JPEG;
+			return FORMAT_JPEG;
 		}
 		else if (ext == ".png")
 		{
-			return TINYGLTF_IMAGE_FORMAT_PNG;
+			return FORMAT_PNG;
 		}
 		else if (ext == ".bmp")
 		{
-			return TINYGLTF_IMAGE_FORMAT_BMP;
+			return FORMAT_BMP;
 		}
 		else if (ext == ".gif")
 		{
-			return TINYGLTF_IMAGE_FORMAT_GIF;
+			return FORMAT_GIF;
 		}
-		return TINYGLTF_IMAGE_FORMAT_JPEG;
+		return FORMAT_JPEG;
 	}
 
 	namespace gltf
@@ -333,7 +338,7 @@ namespace kml
 			Mesh(const std::string& name, int index)
 				:name_(name), index_(index)
 			{
-				mode_ = TINYGLTF_MODE_TRIANGLES;
+				mode_ = GLTF_MODE_TRIANGLES;
 			}
 			const std::string& GetName()const
 			{
@@ -538,7 +543,7 @@ namespace kml
 					acc->SetBufferView(bufferView);
 					acc->Set("count", picojson::value((double)(indices.size())));
 					acc->Set("type", picojson::value("SCALAR"));
-					acc->Set("componentType", picojson::value((double)TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT));//5125
+					acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_UNSIGNED_INT));//5125
 					acc->Set("byteOffset", picojson::value((double)0));
 					//acc->Set("byteStride", picojson::value((double)sizeof(unsigned int)));
 
@@ -562,7 +567,7 @@ namespace kml
 					acc->SetBufferView(bufferView);
 					acc->Set("count", picojson::value((double)(normals.size() / 3)));
 					acc->Set("type", picojson::value("VEC3"));
-					acc->Set("componentType", picojson::value((double)TINYGLTF_COMPONENT_TYPE_FLOAT));//5126
+					acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
 					acc->Set("byteOffset", picojson::value((double)0));
 					//acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
 
@@ -586,7 +591,7 @@ namespace kml
 					acc->SetBufferView(bufferView);
 					acc->Set("count", picojson::value((double)(positions.size() / 3)));
 					acc->Set("type", picojson::value("VEC3"));
-					acc->Set("componentType", picojson::value((double)TINYGLTF_COMPONENT_TYPE_FLOAT));//5126
+					acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
 					acc->Set("byteOffset", picojson::value((double)0));
 					//acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
 
@@ -608,7 +613,7 @@ namespace kml
 					acc->SetBufferView(bufferView);
 					acc->Set("count", picojson::value((double)(texcoords.size() / 2)));
 					acc->Set("type", picojson::value("VEC2"));
-					acc->Set("componentType", picojson::value((double)TINYGLTF_COMPONENT_TYPE_FLOAT));//5126
+					acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
 					acc->Set("byteOffset", picojson::value((double)0));
 					//acc->Set("byteStride", picojson::value((double)2 * sizeof(float)));
 
@@ -722,7 +727,7 @@ namespace kml
 					//acc->SetBufferView(bufferView);
 					acc->Set("count", picojson::value((double)(indices.size())));
 					acc->Set("type", picojson::value("SCALAR"));
-					acc->Set("componentType", picojson::value((double)TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT));//5125
+					acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_UNSIGNED_INT));//5125
 					//acc->Set("byteOffset", picojson::value((double)0));
 					//acc->Set("byteStride", picojson::value((double)sizeof(unsigned int)));
 
@@ -745,7 +750,7 @@ namespace kml
 					//acc->SetBufferView(bufferView);
 					acc->Set("count", picojson::value((double)(normals.size() / 3)));
 					acc->Set("type", picojson::value("VEC3"));
-					acc->Set("componentType", picojson::value((double)TINYGLTF_COMPONENT_TYPE_FLOAT));//5126
+					acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
 					//acc->Set("byteOffset", picojson::value((double)0));
 					//acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
 
@@ -768,7 +773,7 @@ namespace kml
 					//acc->SetBufferView(bufferView);
 					acc->Set("count", picojson::value((double)(positions.size() / 3)));
 					acc->Set("type", picojson::value("VEC3"));
-					acc->Set("componentType", picojson::value((double)TINYGLTF_COMPONENT_TYPE_FLOAT));//5126
+					acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
 					//acc->Set("byteOffset", picojson::value((double)0));
 					//acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
 
@@ -789,7 +794,7 @@ namespace kml
 					//acc->SetBufferView(bufferView);
 					acc->Set("count", picojson::value((double)(texcoords.size() / 2)));
 					acc->Set("type", picojson::value("VEC2"));
-					acc->Set("componentType", picojson::value((double)TINYGLTF_COMPONENT_TYPE_FLOAT));//5126
+					acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
 					//acc->Set("byteOffset", picojson::value((double)0));
 					//acc->Set("byteStride", picojson::value((double)2 * sizeof(float)));
 
@@ -859,7 +864,7 @@ namespace kml
 				bufferView->SetByteOffset(offset);
 				bufferView->SetByteLength(length);
 				bufferView->SetBuffer(buffers_[0]);
-				bufferView->SetTarget(TINYGLTF_TARGET_ARRAY_BUFFER);
+				bufferView->SetTarget(GLTF_TARGET_ARRAY_BUFFER);
 				bufferViews_.push_back(bufferView);
 				return bufferViews_.back();
 			}
@@ -876,7 +881,7 @@ namespace kml
 				bufferView->SetByteOffset(offset);
 				bufferView->SetByteLength(length);
 				bufferView->SetBuffer(buffer);
-				bufferView->SetTarget(TINYGLTF_TARGET_ELEMENT_ARRAY_BUFFER);
+				bufferView->SetTarget(GLTF_TARGET_ELEMENT_ARRAY_BUFFER);
 				bufferViews_.push_back(bufferView);
 				return bufferViews_.back();
 			}
@@ -890,7 +895,7 @@ namespace kml
 				bufferView->SetByteOffset(offset);
 				bufferView->SetByteLength(length);
 				bufferView->SetBuffer(buffer);
-				bufferView->SetTarget(TINYGLTF_TARGET_ARRAY_BUFFER);
+				bufferView->SetTarget(GLTF_TARGET_ARRAY_BUFFER);
 				bufferViews_.push_back(bufferView);
 				return bufferViews_.back();
 			}
@@ -982,10 +987,10 @@ namespace kml
 		{
 			{
 				picojson::object sampler;
-				sampler["magFilter"] = picojson::value((double)TINYGLTF_TEXTURE_FILTER_LINEAR);//WebGLConstants.LINEAR
-				sampler["minFilter"] = picojson::value((double)TINYGLTF_TEXTURE_FILTER_LINEAR);//WebGLConstants.NEAREST_MIPMAP_LINEAR
-				sampler["wrapS"] = picojson::value((double)TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE);
-				sampler["wrapT"] = picojson::value((double)TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE);
+				sampler["magFilter"] = picojson::value((double)GLTF_TEXTURE_FILTER_LINEAR);//WebGLConstants.LINEAR
+				sampler["minFilter"] = picojson::value((double)GLTF_TEXTURE_FILTER_LINEAR);//WebGLConstants.NEAREST_MIPMAP_LINEAR
+				sampler["wrapS"] = picojson::value((double)GLTF_TEXTURE_WRAP_CLAMP_TO_EDGE);
+				sampler["wrapT"] = picojson::value((double)GLTF_TEXTURE_WRAP_CLAMP_TO_EDGE);
 				picojson::array samplers;
 				samplers.push_back(picojson::value(sampler));
 				root["samplers"] = picojson::value(samplers);
@@ -1051,8 +1056,8 @@ namespace kml
 					texture["internalFormat"] = picojson::value((double)nFormat); //image.format;
 					texture["sampler"] = picojson::value((double)0);
 					texture["source"] = picojson::value((double)i);   //imageId;
-					texture["target"] = picojson::value((double)TINYGLTF_TEXTURE_TARGET_TEXTURE2D); //WebGLConstants.TEXTURE_2D;
-					texture["type"] = picojson::value((double)TINYGLTF_TEXTURE_TYPE_UNSIGNED_BYTE); //WebGLConstants.UNSIGNED_BYTE
+					texture["target"] = picojson::value((double)GLTF_TEXTURE_TARGET_TEXTURE2D); //WebGLConstants.TEXTURE_2D;
+					texture["type"] = picojson::value((double)GLTF_TEXTURE_TYPE_UNSIGNED_BYTE); //WebGLConstants.UNSIGNED_BYTE
 
 					textures.push_back(picojson::value(texture));
 				}
