@@ -154,8 +154,14 @@ if (GLTF_MAYA_EXPORTER_BUILD_CPP_INTERFACE)
     add_library( glTFCppExporterLib SHARED
         ./src/cppexporter/main.cpp
     )
+    if (ANDROID)
+        set(androidlibs
+            log
+            m)
+    endif()
     target_link_libraries( glTFCppExporterLib
                            kml
+                           ${androidlibs}
     )
 
     # -- interface test ---
