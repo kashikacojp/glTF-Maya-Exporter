@@ -39,6 +39,7 @@ namespace kml
 		void SetBound(const std::shared_ptr<Bound>& bound);
 		void AddMaterial(const std::shared_ptr <Material>& material);
 		void AddChild(const std::shared_ptr<Node>& child);
+		void ClearChildren();
 	public:
 		bool IsLeaf()const;
 		bool HasShape()const;

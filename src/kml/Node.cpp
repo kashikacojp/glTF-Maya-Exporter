@@ -98,4 +98,9 @@ namespace kml
 		return this->mesh.get() != NULL;
 	}
 
+	void Node::ClearChildren()
+	{
+		this->children.clear();
+	}
+
 }

@@ -68,6 +68,10 @@
 
 
 
+#include <maya/MMatrix.h>
+#include <maya/MTransformationMatrix.h>
+#include <maya/MStreamUtils.h>
+
 #include <memory>
 #include <sstream>
 #include <fstream>
@@ -76,6 +80,10 @@
 
 #include <string.h> 
 #include <sys/types.h>
+
+#define GLM_ENABLE_EXPERIMENTAL 1
+#include <glm/glm.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -456,6 +464,7 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	int make_preload_texture = 0;	//0:off, 1:on
 	int output_buffer = 1;			//0:bin, 1:draco, 2:bin/draco
 	int convert_texture_format = 0; //0:no convert, 1:jpeg, 2:png
+	int transform_space = 1;		//0:world_space, 1:local_space
 
 	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
 	opts->SetInt("recalc_normals", recalc_normals);
@@ -464,6 +473,7 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	opts->SetInt("make_preload_texture", make_preload_texture);
 	opts->SetInt("output_buffer", output_buffer);
 	opts->SetInt("convert_texture_format", convert_texture_format);
+	opts->SetInt("transform_space", transform_space);
 	
     
 	if (options.length() > 0)
@@ -498,6 +508,9 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 			if (theOption[0] == MString("convert_texture_format") && theOption.length() > 1) {
 				convert_texture_format = theOption[1].asInt();
 			}
+			if (theOption[0] == MString("transform_space") && theOption.length() > 1) {
+				transform_space = theOption[1].asInt();
+			}
 		}
 	}
 
@@ -513,6 +526,7 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	opts->SetInt("make_preload_texture", make_preload_texture);
 	opts->SetInt("output_buffer", output_buffer);
 	opts->SetInt("convert_texture_format", convert_texture_format);
+	opts->SetInt("transform_space", transform_space);
 	
 
     /* print current linear units used as a comment in the obj file */
@@ -536,15 +550,87 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 //////////////////////////////////////////////////////////////
 
 static
+std::vector<std::string> SplitPath(const std::string& str, const std::string& delim)
+{
+	std::vector<std::string> tokens;
+	size_t prev = 0, pos = 0;
+	do
+	{
+		pos = str.find(delim, prev);
+		if (pos == std::string::npos) pos = str.length();
+		std::string token = str.substr(prev, pos - prev);
+		if (!token.empty()) tokens.push_back(token);
+		prev = pos + delim.length();
+	} while (pos < str.length() && prev < str.length());
+	return tokens;
+}
+
+
+static
+std::vector<MDagPath> GetDagPathList(const MDagPath& mdagPath)
+{
+	std::vector<MDagPath> pathList;
+	std::vector<std::string> tokens = SplitPath((mdagPath.fullPathName().asChar())+1, "|");
+
+	std::vector<std::string> paths;
+	for (int i = 0; i < tokens.size(); i++)
+	{
+		std::string path = "";
+		for (int j = 0; j <= i; j++)
+		{
+			path += "|";
+			path += tokens[j];
+		}
+		paths.push_back(path);
+	}
+
+	MSelectionList selectionList;
+	for (int i = 0; i < paths.size(); i++)
+	{
+		selectionList.add(MString(paths[i].c_str()));
+	}
+	MItSelectionList iterator = MItSelectionList(selectionList, MFn::kDagNode);
+	while (!iterator.isDone())
+	{
+		MDagPath path;
+		iterator.getDagPath(path);
+		pathList.push_back(path);
+		iterator.next();
+	}
+
+	return pathList;
+}
+
+static
+std::shared_ptr<kml::Node> ConvertGlobalToLocalMatrix(std::shared_ptr<kml::Node>& node, const glm::mat4& parent_mat = glm::mat4(1.0f))
+{
+	glm::mat4 gm = node->GetTransform()->GetMatrix();
+	glm::mat4 lm = glm::inverse(parent_mat) * gm;
+	node->GetTransform()->SetMatrix(lm);
+	for (size_t i = 0; i < node->GetChildren().size(); i++)
+	{
+		auto n = node->GetChildren()[i];
+		ConvertGlobalToLocalMatrix(n, gm);
+	}
+	return node;
+}
+
+static
 std::shared_ptr<kml::Node> OutputPolygons( 
-        MDagPath& mdagPath,
-        MObject&  mComponent
+       const MDagPath& mdagPath, MObject&  mComponent
 )
 {
 	MStatus status = MS::kSuccess;
 	
+	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
+	int transform_space = opts->GetInt("transform_space");
+
 	MSpace::Space space = MSpace::kWorld;
-	//int i;
+	if (transform_space == 1)
+	{
+		space = MSpace::kObject;
+	}
+	
 
 	MFnMesh fnMesh( mdagPath, &status );
 	if ( MS::kSuccess != status) {
@@ -640,34 +726,6 @@ std::shared_ptr<kml::Node> OutputPolygons(
 	std::vector<unsigned char> facenums;
 	for ( ; !polyIter.isDone(); polyIter.next() )
 	{
-        // Write out the smoothing group that this polygon belongs to
-        // We only write out the smoothing group if it is different
-        // from the last polygon.
-        //
-		/*
-        if ( smoothing ) {
-           	int compIdx = polyIter.index();
-            int smoothingGroup = polySmoothingGroups[ compIdx ];
-            
-            if ( lastSmoothingGroup != smoothingGroup ) {
-                if ( NO_SMOOTHING_GROUP == smoothingGroup ) {
-                    fprintf(fp,"s off\n");
-                }
-                else {
-                    fprintf(fp,"s %d\n", smoothingGroup );
-                }
-                lastSmoothingGroup = smoothingGroup;
-            }
-        }
-		*/
-		/*
-        // Write out all the sets that this polygon belongs to
-        //
-		if ((groups || materials) && (objectIdx >= 0)) {
-			int compIdx = polyIter.index();
-			outputSetsAndGroups( mdagPath, compIdx, false, objectIdx );
-		}
-		*/
                 
         // Write out vertex/uv/normal index information
         //
@@ -703,6 +761,7 @@ std::shared_ptr<kml::Node> OutputPolygons(
 		materials[i] = 0;
 	}
 
+
 	std::shared_ptr < kml::Mesh > mesh(new kml::Mesh());
 	mesh->facenums.swap(facenums);
 	mesh->pos_indices.swap(pos_indices);
@@ -712,12 +771,85 @@ std::shared_ptr<kml::Node> OutputPolygons(
 	mesh->texcoords.swap(texcoords);
 	mesh->normals.swap(normals);
 	mesh->materials.swap(materials);
+	mesh->SetName(mdagPath.partialPathName().asChar());
 
 	std::shared_ptr < kml::Node > node(new kml::Node());
-	node->SetName(mdagPath.fullPathName().asChar());
-	node->GetTransform()->SetMatrix(glm::mat4(1.0f));
+	
+	if (transform_space == 0)
+	{
+		node->GetTransform()->SetMatrix(glm::mat4(1.0f));
+	}
+	else if (transform_space == 1)
+	{
+		MMatrix mmat = mdagPath.inclusiveMatrix();
+		double dest[4][4];
+		mmat.get(dest);
+		glm::mat4 mat(
+			dest[0][0], dest[0][1], dest[0][2], dest[0][3],
+			dest[1][0], dest[1][1], dest[1][2], dest[1][3],
+			dest[2][0], dest[2][1], dest[2][2], dest[2][3],
+			dest[3][0], dest[3][1], dest[3][2], dest[3][3]
+		);
+		node->GetTransform()->SetMatrix(mat);
+		//std::cout << glm::to_string(mat) << std::endl;
+	}
 	node->SetMesh(mesh);
 	node->SetBound(kml::CalculateBound(mesh));
+
+	if (transform_space == 0)
+	{
+		std::vector<MDagPath> dagPathList = GetDagPathList(mdagPath);
+		dagPathList.pop_back();//shape
+		MDagPath transPath = dagPathList.back();
+		node->SetName(transPath.partialPathName().asChar());
+		node->SetPath(transPath.fullPathName().asChar());
+
+		return node;
+	}
+	else
+	{
+		std::vector<MDagPath> dagPathList = GetDagPathList(mdagPath);
+		dagPathList.pop_back();//shape
+		MDagPath transPath = dagPathList.back();
+		node->SetName(transPath.partialPathName().asChar());
+		node->SetPath(transPath.fullPathName().asChar());
+
+		dagPathList.pop_back();//transform
+		if (dagPathList.size() > 0)
+		{
+			std::vector< std::shared_ptr<kml::Node> > nodes;
+			for (size_t i = 0; i < dagPathList.size(); i++)
+			{
+				MDagPath path = dagPathList[i];
+				std::shared_ptr < kml::Node > n(new kml::Node());
+				n->SetName(path.partialPathName().asChar());
+				n->SetPath(path.fullPathName().asChar());
+				MMatrix mmat = path.inclusiveMatrix();
+				double dest[4][4];
+				mmat.get(dest);
+				glm::mat4 mat(
+					dest[0][0], dest[0][1], dest[0][2], dest[0][3],
+					dest[1][0], dest[1][1], dest[1][2], dest[1][3],
+					dest[2][0], dest[2][1], dest[2][2], dest[2][3],
+					dest[3][0], dest[3][1], dest[3][2], dest[3][3]
+				);
+				n->GetTransform()->SetMatrix(mat);
+				nodes.push_back(n);
+			}
+
+			for (size_t i = 0; i < nodes.size() - 1; i++)
+			{
+				nodes[i]->AddChild(nodes[i + 1]);
+			}
+			nodes.back()->AddChild(node);
+			nodes[0] = ConvertGlobalToLocalMatrix(nodes[0]);//
+			return nodes[0];
+		}
+		else
+		{
+			return node;
+		}
+	}
 
 	return node;
 }
@@ -1383,25 +1515,72 @@ private:
 typedef std::map<int, std::shared_ptr<kml::Material> > ShaderMapType;
 
 static
-MStatus WriteLodGLTF(
+std::shared_ptr<kml::Node> GetLeafNode(const std::shared_ptr<kml::Node>& node)
+{
+	if (node->GetChildren().size() > 0)
+	{
+		return GetLeafNode(node->GetChildren()[0]);
+	}
+	else
+	{
+		return node;
+	}
+}
+
+static
+std::shared_ptr<kml::Node> GetParentNode(const std::shared_ptr<kml::Node>& root_node, const std::shared_ptr<kml::Node>& node)
+{
+	if (root_node->GetChildren().size() > 0)
+	{
+		for (size_t i = 0; i < root_node->GetChildren().size(); i++)
+		{
+			if (root_node->GetChildren()[i].get() == node.get())
+			{
+				return root_node;
+			}
+		}
+
+		for (size_t i = 0; i < root_node->GetChildren().size(); i++)
+		{
+			auto n = GetParentNode(root_node->GetChildren()[i], node);
+			if (n.get() != NULL)
+			{
+				return n;
+			}
+		}
+	}
+	return std::shared_ptr<kml::Node>();
+}
+
+static
+glm::mat4 GetRootNodeGlobalMatrix(const std::shared_ptr<kml::Node>& node, const glm::mat4& mat = glm::mat4(1.0))
+{
+	glm::mat4 m = mat * node->GetTransform()->GetMatrix();
+	if (node->GetChildren().size() > 0)
+	{
+		return GetRootNodeGlobalMatrix(node->GetChildren()[0], m);
+	}
+	return m;
+}
+
+static
+MStatus WriteGLTF(
 	TexturePathManager& texManager,
 	std::map<int, std::shared_ptr<kml::Material> >& materials,
 	std::vector< std::shared_ptr<kml::Node> >& nodes,
-	const MString& dirname, MDagPath& dagPath, MObject& component)
+	const MString& dirname, const MDagPath& dagPath, MObject& component)
 {
 	MStatus status = MS::kSuccess;
-	std::shared_ptr<kml::Node> node = OutputPolygons(dagPath, component);
-	if (status != MS::kSuccess)
-	{
-		fprintf(stderr, "Error: exporting geom failed, check your selection.\n");
-		return MS::kFailure;
-	}
+
+	std::shared_ptr<kml::Node> root_node = OutputPolygons(dagPath, component);
+	std::shared_ptr<kml::Node> node = GetLeafNode(root_node);
 
 	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
 	bool onefile = opts->GetInt("output_onefile") > 0;
 	bool recalc_normals = opts->GetInt("recalc_normals") > 0;
 	bool make_preload_texture = opts->GetInt("make_preload_texture") > 0;
 
+	glm::mat4 global_matrix = GetRootNodeGlobalMatrix(root_node);
 
 	{
 		std::vector<MObject> shaders;
@@ -1552,69 +1731,77 @@ MStatus WriteLodGLTF(
 	{
 		tnodes = kml::SplitNodeByMaterialID(node);
 	}
-	int k = 0;
-	for (int i = 0; i < tnodes.size(); i++)
+
 	{
-		if (tnodes[i]->GetMesh()->facenums.empty())
+		std::vector< std::shared_ptr<kml::Node> > tnodes2;
+		for (int i = 0; i < tnodes.size(); i++)
 		{
-			continue;
-		}
-		if (!kml::FlatIndicesMesh(tnodes[i]->GetMesh()))
-		{
-			return MS::kFailure;
-		}
-
-		if (2 <= tnodes.size())
-		{
-			tnodes[i]->SetBound(kml::CalculateBound(tnodes[i]->GetMesh()));
-		}
-
-
-		if (!onefile)
-		{
-			char buffer[32] = {};
-			sprintf(buffer, "%d", k + 1);
-			std::string number = buffer;
-
-			std::string base_path = dirname.asChar();
-			std::string node_path = MakeDirectoryPath(dagPath.fullPathName().asChar()) + std::string("_") + number;
-			std::string dir_path = base_path + "/" + node_path;
-			std::string gltf_path = MakeDirectoryPath(std::string(dagPath.partialPathName().asChar())) + ".gltf";
-
-			std::string gltfFullPath = dir_path + "/" + gltf_path;
-			std::string gltfAbsPath = node_path + "/" + gltf_path;
-			node->SetPath(gltfAbsPath);
-
-			MakeDirectory(dir_path);
-			//cerr << "Wrinting Internal Files into " << gltfFullPath << std::endl;
-
-			kml::glTFExporter exporter;
-			if (!exporter.Export(gltfFullPath, tnodes[i], kml::Options::GetGlobalOptions()))
+			if (tnodes[i]->GetMesh()->facenums.empty())
+			{
+				continue;
+			}
+			if (!kml::FlatIndicesMesh(tnodes[i]->GetMesh()))
 			{
 				return MS::kFailure;
 			}
-			tnodes[i]->SetMesh(std::shared_ptr<kml::Mesh>());//Clear Mesh
+
+			tnodes[i]->SetBound(kml::CalculateBound(tnodes[i]->GetMesh(), global_matrix));
+
+			tnodes2.push_back(tnodes[i]);
 		}
 
-		nodes.push_back(tnodes[i]);
-		k++;
+		tnodes.swap(tnodes2);
+	}
+
+	if (root_node == node)
+	{
+		for (int i = 0; i < tnodes.size(); i++)
+		{
+			if (!onefile)
+			{
+				char buffer[32] = {};
+				sprintf(buffer, "%d", i + 1);
+				std::string number = buffer;
+
+				std::string base_path = dirname.asChar();
+				std::string node_path = MakeDirectoryPath(dagPath.fullPathName().asChar()) + std::string("_") + number;
+				std::string dir_path = base_path + "/" + node_path;
+				std::string gltf_path = MakeDirectoryPath(std::string(dagPath.partialPathName().asChar())) + ".gltf";
+
+				std::string gltfFullPath = dir_path + "/" + gltf_path;
+				std::string gltfAbsPath = node_path + "/" + gltf_path;
+				node->SetPath(gltfAbsPath);
+
+				MakeDirectory(dir_path);
+				//cerr << "Wrinting Internal Files into " << gltfFullPath << std::endl;
+
+				kml::glTFExporter exporter;
+				if (!exporter.Export(gltfFullPath, tnodes[i], kml::Options::GetGlobalOptions()))
+				{
+					return MS::kFailure;
+				}
+				tnodes[i]->SetMesh(std::shared_ptr<kml::Mesh>());//Clear Mesh
+			}
+			nodes.push_back(tnodes[i]);
+		}
+	}
+	else
+	{
+		auto parent = GetParentNode(root_node, node);
+		if (parent.get())
+		{
+			parent->ClearChildren();
+		}
+		for (int i = 0; i < tnodes.size(); i++)
+		{
+			parent->AddChild(tnodes[i]);
+		}
+		nodes.push_back(root_node);
 	}
 
 	return status;
 }
 
-static
-MStatus WriteLodGLTFThread(
-	TexturePathManager& texManager,
-	std::map<int, std::shared_ptr<kml::Material> >& materials,
-	std::vector< std::shared_ptr<kml::Node> >& nodes,
-	const MString& dirname, MDagPath& dagPath, MObject& component)
-{
-	MStatus status;
-	std::thread th([&] { status = WriteLodGLTF(texManager, materials, nodes, dirname, dagPath, component) ; });
-	th.join();
-	return status;
-}
 
 static
 void NodeToJson(picojson::object& item, const std::shared_ptr<kml::Node>& node)
@@ -1699,36 +1886,197 @@ void CopyTextureFiles(const TexturePathManager& texManager)
 	}
 }
 
+
+static
+void GetMeshNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const std::shared_ptr<kml::Node>& node)
+{
+	if (node->GetChildren().size() > 0)
+	{
+		for (size_t i = 0; i < node->GetChildren().size(); i++)
+		{
+			GetMeshNodes(nodes, node->GetChildren()[i]);
+		}
+	}
+	{
+		auto mesh = node->GetMesh();
+		if (mesh.get())
+		{
+			nodes.push_back(node);
+		}
+	}
+}
+
+static
+void GetAllNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const std::shared_ptr<kml::Node>& node)
+{
+	if (node->GetChildren().size() > 0)
+	{
+		for (size_t i = 0; i < node->GetChildren().size(); i++)
+		{
+			GetAllNodes(nodes, node->GetChildren()[i]);
+		}
+	}
+	{
+		nodes.push_back(node);
+	}
+}
+
+static
+std::shared_ptr<kml::Bound> ExpandBound(std::shared_ptr<kml::Node>& node)
+{
+	if (!node->GetBound().get())
+	{
+		std::vector< std::shared_ptr<kml::Bound> > bounds;
+		for (size_t i = 0; i < node->GetChildren().size(); i++)
+		{
+			auto n = node->GetChildren()[i];
+			bounds.push_back( ExpandBound( n ) );
+		}
+
+		static float MIN_ = -std::numeric_limits<float>::max();
+		static float MAX_ = +std::numeric_limits<float>::max();
+		glm::vec3 m0(MAX_, MAX_, MAX_);
+		glm::vec3 m1(MIN_, MIN_, MIN_);
+		for (size_t i = 0; i < bounds.size(); i++)
+		{
+			glm::vec3 c0 = bounds[i]->GetMin();
+			glm::vec3 c1 = bounds[i]->GetMax();
+			for (int j = 0; j < 3; j++)
+			{
+				m0[j] = std::min(c0[j], m0[j]);
+				m1[j] = std::max(c1[j], m1[j]);
+			}
+		}
+		node->SetBound(std::shared_ptr<kml::Bound>(new kml::Bound(m0, m1)));
+	}
+	return node->GetBound();
+}
+
+static
+void AddChildUnique(std::shared_ptr<kml::Node>& parent, std::shared_ptr<kml::Node>& child)
+{
+	auto children = parent->GetChildren();
+	bool hasChild = false;
+	for (size_t i = 0; i < children.size(); i++)
+	{
+		if (children[i].get() == child.get())
+		{
+			hasChild = true;
+			break;
+		}
+	}
+	if (!hasChild)
+	{
+		parent->AddChild(child);
+	}
+}
+
+
 static
 std::shared_ptr<kml::Node> CombineNodes(const std::vector< std::shared_ptr<kml::Node> >& nodes)
 {
+	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
+	int transform_space = opts->GetInt("transform_space");
+
 	std::shared_ptr<kml::Node> node(new kml::Node());
-
-	//node->SetName(mdagPath.fullPathName().asChar());
 	node->GetTransform()->SetMatrix(glm::mat4(1.0f));
-	//node->SetMesh(mesh);
-	
-	for (size_t i = 0; i < nodes.size(); i++)
-	{
-		node->AddChild(nodes[i]);
-	}
 
-	glm::vec3 min = nodes[0]->GetBound()->GetMin();
-	glm::vec3 max = nodes[0]->GetBound()->GetMax();
-
-	for (size_t i = 1; i < nodes.size(); i++)
 	{
-		glm::vec3 cmin = nodes[i]->GetBound()->GetMin();
-		glm::vec3 cmax = nodes[i]->GetBound()->GetMax();
-		for (int j = 0; j < 3; j++)
+		//Local space
+		typedef std::map<std::string, std::shared_ptr<kml::Node> > PathMap;
+		std::vector<PathMap> pathMapList;
+		std::vector< std::vector<std::string> > pathList;
+		for (size_t i = 0; i < nodes.size(); i++)
 		{
-			min[j] = std::min(min[j], cmin[j]);
-			max[j] = std::max(max[j], cmax[j]);
+			auto& node = nodes[i];
+			std::string path = node->GetPath();
+			std::vector<std::string> pathvec = SplitPath(path, "|");
+			if (pathvec.front() == "")
+			{
+				std::vector<std::string> tvec(std::next(pathvec.begin()), pathvec.end());
+				pathvec.swap(tvec);
+			}
+
+			pathList.push_back(pathvec);
 		}
+
+		for (size_t i = 0; i < pathList.size(); i++)
+		{
+			const auto& pathvec = pathList[i];
+			int sz = pathvec.size();
+
+			for (size_t j = 0; j < pathvec.size(); j++)
+			{
+				if (pathMapList.size() <= j)
+				{
+					pathMapList.push_back(PathMap());
+				}
+			}
+			
+			pathMapList[sz - 1][pathvec[sz - 1]] = nodes[i];
+		}
+
+		for (size_t i = 0; i < pathList.size(); i++)
+		{
+			const auto& pathvec = pathList[i];
+			for (size_t j = 0; j < pathvec.size(); j++)
+			{
+				auto iter = pathMapList[j].find(pathvec[j]);
+				if (iter == pathMapList[j].end())
+				{
+					pathMapList[j][pathvec[j]] = std::shared_ptr<kml::Node>(new kml::Node());
+				}
+			}
+		}
+
+		for (size_t i = 0; i < pathList.size(); i++)
+		{
+			const auto& pathvec = pathList[i];
+			int sz = pathvec.size();
+			for (int j = 0; j < sz; j++)
+			{
+				pathMapList[j][pathvec[j]]->ClearChildren();
+			}
+		}
+
+		for (size_t i = 0; i < pathList.size(); i++)
+		{
+			const auto& pathvec = pathList[i];
+			int sz = pathvec.size();
+			for (int j = 1; j < sz; j++)
+			{
+				AddChildUnique(pathMapList[j - 1][pathvec[j - 1]], pathMapList[j][pathvec[j]]);
+			}
+		}
+
+		{
+			PathMap& m = pathMapList[0];
+			for (PathMap::iterator it = m.begin(); it != m.end(); it++)
+			{
+				node->AddChild(it->second);
+			}
+		}
+		ExpandBound(node);
 	}
-	node->SetBound( std::shared_ptr<kml::Bound>( new kml::Bound(min, max)));
+	
 
 	return node;
+}
+
+
+static
+std::string GetExportDirectory(const std::string& fname)
+{
+	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
+	bool glb = opts->GetInt("output_glb") > 0;
+	if (glb)
+	{
+		return GetTempDirectory();
+	}
+	else
+	{
+		return RemoveExt(fname);
+	}
 }
 
 MStatus glTFExporter::exportSelected(const MString& fname)
@@ -1800,15 +2148,10 @@ MStatus glTFExporter::exportSelected(const MString& fname)
 				else if ((dagPath.hasFn(MFn::kMesh)) &&
 					(dagPath.hasFn(MFn::kTransform)))
 				{
-					// We want only the shape, 
-					// not the transform-extended-to-shape.
 					continue;
 				}
 				else if (dagPath.hasFn(MFn::kMesh))
 				{
-					// Build a lookup table so we can determine which 
-					// polygons belong to a particular edge as well as
-					// smoothing information
 					dagPaths.push_back(dagPath);
 				}
 			}
@@ -1855,7 +2198,6 @@ MStatus glTFExporter::exportAll     (const MString& fname)
 			(  dagPath.hasFn(MFn::kTransform)))
 		{
 			status = MS::kSuccess;
-			fprintf(stderr,"Warning: skipping Nurbs Surface.\n");
 		}
 		else if ((  dagPath.hasFn(MFn::kMesh)) &&
 				 (  dagPath.hasFn(MFn::kTransform)))
@@ -1869,21 +2211,6 @@ MStatus glTFExporter::exportAll     (const MString& fname)
 	}
 
 	return exportProcess(fname, dagPaths);
-}
-
-static
-std::string GetExportDirectory(const std::string& fname)
-{
-	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
-	bool glb = opts->GetInt("output_glb") > 0;
-	if (glb)
-	{
-		return GetTempDirectory();
-	}
-	else
-	{
-		return RemoveExt(fname);
-	}
 }
 
 MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDagPath >& dagPaths)
@@ -1917,7 +2244,7 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
 				}
 				MObject  component = MObject::kNullObj;
 				MDagPath dagPath = dagPaths[i];
-				status = WriteLodGLTFThread(texManager, materials, nodes, MString(dir_path.c_str()), dagPath, component);
+				status = WriteGLTF(texManager, materials, nodes, MString(dir_path.c_str()), dagPath, component);
 				progWindow->setProgress(prog * (i + 1));
 			}
 		}
@@ -1935,25 +2262,43 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
 	//write files when "output_onefile"
 	if (onefile)
 	{
-		int index = 0;
-		for (ShaderMapType::iterator it = materials.begin(); it != materials.end(); it++)
 		{
-			auto& mat = it->second;
-			mat->SetInteger("_Index", index);//
-			index++;
+			int index = 0;
+			for (ShaderMapType::iterator it = materials.begin(); it != materials.end(); it++)
+			{
+				auto& mat = it->second;
+				mat->SetInteger("_Index", index);//
+				index++;
+			}
 		}
+		{
+			NodeVecType mesh_nodes;
+			for (NodeVecType::iterator it = nodes.begin(); it != nodes.end(); it++)
+			{
+				auto& node = *it;
+				GetMeshNodes(mesh_nodes, node);
+			}
+			for (NodeVecType::iterator it = mesh_nodes.begin(); it != mesh_nodes.end(); it++)
+			{
+				auto& node = *it;
+				auto& mesh = node->GetMesh();
+				auto&  mat = node->GetMaterials()[0];
+				int index = mat->GetInteger("_Index");
+				for (int j = 0; j < mesh->materials.size(); j++)
+				{
+					mesh->materials[j] = index;
+				}
+			}
+		}
+
+		NodeVecType all_nodes;
 		for (NodeVecType::iterator it = nodes.begin(); it != nodes.end(); it++)
 		{
 			auto& node = *it;
-			auto& mesh = node->GetMesh();
-			auto&  mat = node->GetMaterials()[0];
-			int index = mat->GetInteger("_Index");
-			for (int j = 0; j < mesh->materials.size(); j++)
-			{
-				mesh->materials[j] = index;
-			}
+			GetAllNodes(all_nodes, node);
 		}
-		std::shared_ptr<kml::Node> node = CombineNodes(nodes);
+
+		std::shared_ptr<kml::Node> node = CombineNodes(all_nodes);
 		node->SetName(GetFileName(std::string(fname.asChar())));
 		for (ShaderMapType::iterator it = materials.begin(); it != materials.end(); it++)
 		{
@@ -1972,15 +2317,6 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
 				return MS::kFailure;
 			}
 		}
-		/*
-		{
-			std::string json_path = dir_path + "/" + GetFileName(fname.asChar()) + ".json";
-			picojson::object root;
-			NodeToJson(root, node);//!nodes
-			std::ofstream ofs(json_path);
-			picojson::value(root).serialize(std::ostream_iterator<char>(ofs), true);
-		}
-		*/
 	}
 	else
 	{
