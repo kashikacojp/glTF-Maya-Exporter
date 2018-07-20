@@ -14,9 +14,6 @@ namespace kml
 	public:
 		Mesh();
 	public:
-		void SetName(const std::string& name);
-		std::string GetName() const;
-	public:
 		std::string name;
 		std::vector<unsigned char>			facenums;
 		std::vector<int>					pos_indices;

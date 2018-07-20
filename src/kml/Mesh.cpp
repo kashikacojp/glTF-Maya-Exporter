@@ -6,14 +6,4 @@ namespace kml
 	{
 		;//
 	}
-
-	void Mesh::SetName(const std::string& name)
-	{
-		this->name = name;
-	}
-
-	std::string Mesh::GetName() const
-	{
-		return this->name;
-	}
 }

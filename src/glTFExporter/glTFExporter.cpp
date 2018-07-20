@@ -771,7 +771,7 @@ std::shared_ptr<kml::Node> OutputPolygons(
 	mesh->texcoords.swap(texcoords);
 	mesh->normals.swap(normals);
 	mesh->materials.swap(materials);
-	mesh->SetName(mdagPath.partialPathName().asChar());
+	mesh->name = mdagPath.partialPathName().asChar();
 
 	std::shared_ptr < kml::Node > node(new kml::Node());
 	
@@ -1580,6 +1580,8 @@ MStatus WriteGLTF(
 	bool recalc_normals = opts->GetInt("recalc_normals") > 0;
 	bool make_preload_texture = opts->GetInt("make_preload_texture") > 0;
 
+	std::string mesh_name = node->GetMesh()->name;
+
 	glm::mat4 global_matrix = GetRootNodeGlobalMatrix(root_node);
 
 	{
@@ -1751,6 +1753,13 @@ MStatus WriteGLTF(
 		}
 
 		tnodes.swap(tnodes2);
+	}
+
+	{
+		for (int i = 0; i < tnodes.size(); i++)
+		{
+			tnodes[i]->GetMesh()->name = mesh_name;
+		}
 	}
 
 	if (root_node == node)
