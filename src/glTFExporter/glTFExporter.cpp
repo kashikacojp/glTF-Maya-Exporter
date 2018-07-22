@@ -1076,6 +1076,7 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, MFn
 			mat->SetString("ai_subsurfaceRadius", texName);
 		}
 	}
+	mat->SetFloat("ai_subsurface", subsurfaceWeight);
 	mat->SetFloat("ai_subsurfaceColorR", subsurfaceColorR);
 	mat->SetFloat("ai_subsurfaceColorG", subsurfaceColorG);
 	mat->SetFloat("ai_subsurfaceColorB", subsurfaceColorB);
