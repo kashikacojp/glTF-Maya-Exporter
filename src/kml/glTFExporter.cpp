@@ -977,6 +977,107 @@ namespace kml
 		}
 
 		static
+		picojson::value createLTE_pbr_material(const std::shared_ptr<kml::Material> mat) {
+			picojson::object LTE_pbr_material;
+			
+			// base
+			picojson::array baseColorFactor;
+			baseColorFactor.push_back(picojson::value(mat->GetFloat("ai_baseColorR")));
+			baseColorFactor.push_back(picojson::value(mat->GetFloat("ai_baseColorG")));
+			baseColorFactor.push_back(picojson::value(mat->GetFloat("ai_baseColorB")));
+			LTE_pbr_material["baseWeight"]       = picojson::value(mat->GetFloat("ai_baseWeight"));
+			LTE_pbr_material["baseColor"]        = picojson::value(baseColorFactor);
+			LTE_pbr_material["diffuseRoughness"] = picojson::value(mat->GetFloat("ai_diffuseRoughness"));
+			LTE_pbr_material["metalness"]        = picojson::value(mat->GetFloat("ai_metalness"));
+			if (mat->GetTextureName("ai_baseColor").size() > 0) {
+				picojson::object baseColorTexture;
+				// TODO: use images node.
+				baseColorTexture["uri"] = picojson::value(mat->GetTextureName("ai_baseColor").c_str());
+				LTE_pbr_material["baseColorTexture"] = picojson::value(baseColorTexture);
+			}
+
+			// specular
+			picojson::array specularColorFactor;
+			specularColorFactor.push_back(picojson::value(mat->GetFloat("ai_specularColorR")));
+			specularColorFactor.push_back(picojson::value(mat->GetFloat("ai_specularColorG")));
+			specularColorFactor.push_back(picojson::value(mat->GetFloat("ai_specularColorB")));
+			LTE_pbr_material["specularWeight"]     = picojson::value(mat->GetFloat("ai_specularWeight"));
+			LTE_pbr_material["specularColor"]      = picojson::value(specularColorFactor);
+			LTE_pbr_material["specularRoughness"]  = picojson::value(mat->GetFloat("ai_specularRoughness"));
+			LTE_pbr_material["specularIOR"]        = picojson::value(mat->GetFloat("ai_specularIOR"));
+			LTE_pbr_material["specularRotation"]   = picojson::value(mat->GetFloat("ai_specularRotation"));
+			LTE_pbr_material["specularAnisotropy"] = picojson::value(mat->GetFloat("ai_specularAnisotropy"));
+			
+			// transmission
+			picojson::array transmissionColorFactor;
+			transmissionColorFactor.push_back(picojson::value(mat->GetFloat("ai_transmissionColorR")));
+			transmissionColorFactor.push_back(picojson::value(mat->GetFloat("ai_transmissionColorG")));
+			transmissionColorFactor.push_back(picojson::value(mat->GetFloat("ai_transmissionColorB")));
+			picojson::array transmissionScatter;
+			transmissionScatter.push_back(picojson::value(mat->GetFloat("ai_transmissionScatterR")));
+			transmissionScatter.push_back(picojson::value(mat->GetFloat("ai_transmissionScatterG")));
+			transmissionScatter.push_back(picojson::value(mat->GetFloat("ai_transmissionScatterB")));
+			LTE_pbr_material["transmission"] = picojson::value(mat->GetFloat("ai_transmission"));
+			LTE_pbr_material["transmissionColor"] = picojson::value(specularColorFactor);
+			LTE_pbr_material["transmissionDepth"] = picojson::value(mat->GetFloat("ai_transmissionDepth"));
+			LTE_pbr_material["transmissionScatter"] = picojson::value(transmissionScatter);
+			LTE_pbr_material["transmissionScatterAnisotropy"] = picojson::value(mat->GetFloat("ai_transmissionScatterAnisotropy"));
+			LTE_pbr_material["transmissionExtraRoughness"] = picojson::value(mat->GetFloat("ai_transmissionExtraRoughness"));
+			LTE_pbr_material["ransmissionDispersion"] = picojson::value(mat->GetFloat("ai_transmissionDispersion"));
+			LTE_pbr_material["transmissionAovs"] = picojson::value(mat->GetFloat("ai_transmissionAovs"));
+
+
+			// subsurface
+			picojson::array subsurfaceColorFactor;
+			subsurfaceColorFactor.push_back(picojson::value(mat->GetFloat("ai_subsurfaceColorR")));
+			subsurfaceColorFactor.push_back(picojson::value(mat->GetFloat("ai_subsurfaceColorG")));
+			subsurfaceColorFactor.push_back(picojson::value(mat->GetFloat("ai_subsurfaceColorB")));
+			picojson::array subsurfaceRadius;
+			subsurfaceRadius.push_back(picojson::value(mat->GetFloat("ai_subsurfaceRadiusR")));
+			subsurfaceRadius.push_back(picojson::value(mat->GetFloat("ai_subsurfaceRadiusG")));
+			subsurfaceRadius.push_back(picojson::value(mat->GetFloat("ai_subsurfaceRadiusB")));
+			static const std::string stype[] = {
+				std::string("diffusion"),
+				std::string("randomwalk")
+			};
+			LTE_pbr_material["subsurface"] = picojson::value(mat->GetFloat("ai_subsurface"));
+			LTE_pbr_material["subsurfaceColor"] = picojson::value(subsurfaceColorFactor);
+			LTE_pbr_material["subsurfaceRadius"] = picojson::value(subsurfaceRadius);
+			LTE_pbr_material["subsurfaceType"] = picojson::value(stype[mat->GetInteger("ai_subsurfaceType")]);
+			LTE_pbr_material["subsurfaceScale"] = picojson::value(mat->GetFloat("ai_subsurfaceScale"));
+			LTE_pbr_material["subsurfaceAnisotropy"] = picojson::value(mat->GetFloat("ai_subsurfaceAnisotropy"));
+
+		
+			// Coat
+			picojson::array coatColor;
+			coatColor.push_back(picojson::value(mat->GetFloat("ai_coatColorR")));
+			coatColor.push_back(picojson::value(mat->GetFloat("ai_coatColorG")));
+			coatColor.push_back(picojson::value(mat->GetFloat("ai_coatColorB")));
+			picojson::array coatNormal;
+			coatNormal.push_back(picojson::value(mat->GetFloat("ai_coatNormalX")));
+			coatNormal.push_back(picojson::value(mat->GetFloat("ai_coatNormalY")));
+			coatNormal.push_back(picojson::value(mat->GetFloat("ai_coatNormalZ")));
+			LTE_pbr_material["coatWeight"] = picojson::value(mat->GetFloat("ai_coatWeight"));
+			LTE_pbr_material["emissionColor"] = picojson::value(coatColor);
+			LTE_pbr_material["coatRoughness"] = picojson::value(mat->GetFloat("ai_coatRoughness"));
+			LTE_pbr_material["coatIOR"] = picojson::value(mat->GetFloat("ai_coatIOR"));
+			LTE_pbr_material["coatNormal"] = picojson::value(coatNormal);
+
+			// Emissive
+			picojson::array emissiveColor;
+			emissiveColor.push_back(picojson::value(mat->GetFloat("ai_emissionColorR")));
+			emissiveColor.push_back(picojson::value(mat->GetFloat("ai_emissionColorG")));
+			emissiveColor.push_back(picojson::value(mat->GetFloat("ai_emissionColorB")));
+			LTE_pbr_material["emissionWeight"] = picojson::value(mat->GetFloat("ai_emissionWeight"));
+			LTE_pbr_material["emissionColor"] = picojson::value(emissiveColor);
+			
+			// Output LTE_PBR_material
+			picojson::object extensions;
+			extensions["LTE_PBR_material"] = picojson::value(LTE_pbr_material);
+			return picojson::value(extensions);
+		}
+
+		static
 		bool NodeToGLTF(
 			picojson::object& root, 
 			ObjectRegister& reg, 
@@ -1349,6 +1450,9 @@ namespace kml
 						nd["alphaMode"] = picojson::value("BLEND");
 					}
 
+					// LTE extenstion
+					nd["extensions"] = createLTE_pbr_material(mat);
+					
 					ar.push_back(picojson::value(nd));
 				}
 				root["materials"] = picojson::value(ar);
@@ -1412,6 +1516,10 @@ namespace kml
 				extensionsUsed.push_back(picojson::value("KSK_preloadUri"));
 				extensionsRequired.push_back(picojson::value("KSK_preloadUri"));
 			}
+
+			// LTE extention
+			extensionsUsed.push_back(picojson::value("LTE_PBR_material"));
+
 			root_object["extensionsUsed"] = picojson::value(extensionsUsed);
 			root_object["extensionsRequired"] = picojson::value(extensionsRequired);
 		}
