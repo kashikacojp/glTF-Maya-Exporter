@@ -3,7 +3,9 @@
 #endif
 
 #ifdef _MSC_VER
-#pragma comment( lib, "OpenMayaUI" ) 
+#pragma comment( lib, "OpenMaya" )
+#pragma comment( lib, "OpenMayaAnim" ) 
+#pragma comment( lib, "OpenMayaUI" )
 #pragma comment( lib, "Shell32.lib" )
 #endif
 
@@ -71,6 +73,7 @@
 #include <maya/MMatrix.h>
 #include <maya/MTransformationMatrix.h>
 #include <maya/MStreamUtils.h>
+#include <maya/MFnSkinCluster.h>
 
 #include <memory>
 #include <sstream>
@@ -616,63 +619,45 @@ std::shared_ptr<kml::Node> ConvertGlobalToLocalMatrix(std::shared_ptr<kml::Node>
 }
 
 static
-std::shared_ptr<kml::Node> OutputPolygons( 
-       const MDagPath& mdagPath, MObject&  mComponent
-)
+MObject GetOriginalMesh(const MDagPath& dagpath)
+{
+	MFnDependencyNode node(dagpath.node());
+	MPlugArray mpa;
+	MPlug mp = node.findPlug("inMesh");
+	mp.connectedTo(mpa, true, false);
+
+	MObject vtxobj = MObject::kNullObj;
+	int isz = mpa.length();
+	if (isz < 1)
+		return vtxobj;
+
+	MFnDependencyNode dnode(mpa[0].node());
+	if (dnode.typeName() == "skinCluster")
+	{
+		MFnSkinCluster skinC(mpa[0].node());
+		skinC.findPlug("input").elementByLogicalIndex(skinC.indexForOutputShape(dagpath.node())).child(0).getValue(vtxobj);
+	}
+	return vtxobj;
+}
+
+static
+std::shared_ptr<kml::Mesh> CreateMesh(const MFnMesh& fnMesh, const MSpace::Space& space)
 {
 	MStatus status = MS::kSuccess;
-	
-	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
-	int transform_space = opts->GetInt("transform_space");
 
-	MSpace::Space space = MSpace::kWorld;
-	if (transform_space == 1)
-	{
-		space = MSpace::kObject;
-	}
-	
+	MItMeshPolygon polyIter(fnMesh.object());
+	MItMeshVertex  vtxIter(fnMesh.object());
 
-	MFnMesh fnMesh( mdagPath, &status );
-	if ( MS::kSuccess != status) {
-		fprintf(stderr,"Failure in MFnMesh initialization.\n");
-		return std::shared_ptr<kml::Node>();
-	}
-
-	MItMeshPolygon polyIter( mdagPath, mComponent, &status );
-	if ( MS::kSuccess != status) {
-		fprintf(stderr,"Failure in MItMeshPolygon initialization.\n");
-		return std::shared_ptr<kml::Node>();
-	}
-	MItMeshVertex vtxIter( mdagPath, mComponent, &status );
-	if ( MS::kSuccess != status) {
-		fprintf(stderr,"Failure in MItMeshVertex initialization.\n");
-		return std::shared_ptr<kml::Node>();
-	}
-
-	/*
-	int objectIdx = -1, length;
-	MString mdagPathNodeName = fnMesh.name();
-	// Find i such that objectGroupsTablePtr[i] corresponds to the
-	// object node pointed to by mdagPath
-	length = objectNodeNamesArray.length();
-	for( i=0; i<length; i++ ) {
-		if( objectNodeNamesArray[i] == mdagPathNodeName ) {
-			objectIdx = i;
-			break;
-		}
-	}
-	*/
-
-    // Write out the vertex table
-    //
+	// Write out the vertex table
+	//
 	std::vector<glm::vec3> positions;
-	for ( ; !vtxIter.isDone(); vtxIter.next() ) 
+	for (; !vtxIter.isDone(); vtxIter.next())
 	{
-		MPoint p = vtxIter.position( space );
+		MPoint p = vtxIter.position(space);
 		/*
 		if (ptgroups && groups && (objectIdx >= 0)) {
-			int compIdx = vtxIter.index();
-		    outputSetsAndGroups( mdagPath, compIdx, true, objectIdx );
+		int compIdx = vtxIter.index();
+		outputSetsAndGroups( mdagPath, compIdx, true, objectIdx );
 		}
 		*/
 		// convert from internal units to the current ui units
@@ -683,72 +668,72 @@ std::shared_ptr<kml::Node> OutputPolygons(
 		positions.push_back(glm::vec3(p.x, p.y, p.z));
 	}
 
-    // Write out the uv table
-    //
+	// Write out the uv table
+	//
 	std::vector<glm::vec2> texcoords;
 	MFloatArray uArray, vArray;
-	fnMesh.getUVs( uArray, vArray );
-    int uvLength = uArray.length();
-	for (int x = 0; x < uvLength; x++ )
+	fnMesh.getUVs(uArray, vArray);
+	int uvLength = uArray.length();
+	for (int x = 0; x < uvLength; x++)
 	{
 		float u = uArray[x];
 		float v = 1.0f - vArray[x];
 		texcoords.push_back(glm::vec2(u, v));
 	}
 
-    // Write out the normal table
-    //
+	// Write out the normal table
+	//
 	std::vector<glm::vec3> normals;
 	{
-	    MFloatVectorArray norms;
-	    MStatus stat = fnMesh.getNormals( norms, space );
-		if(stat == MStatus::kSuccess)
+		MFloatVectorArray norms;
+		MStatus stat = fnMesh.getNormals(norms, space);
+		if (stat == MStatus::kSuccess)
 		{
 			int normsLength = norms.length();
-			for ( int t=0; t<normsLength; t++ ) 
+			for (int t = 0; t<normsLength; t++)
 			{
-	    		MFloatVector tmpf = norms[t];
+				MFloatVector tmpf = norms[t];
 				normals.push_back(glm::vec3(tmpf.x, tmpf.y, tmpf.z));
 			}
 		}
-    }
+	}
 
-    // For each polygon, write out: 
-    //    s  smoothing_group
-    //    sets/groups the polygon belongs to 
-    //    f  vertex_index/uvIndex/normalIndex
-    //
-    //int lastSmoothingGroup = INITIALIZE_SMOOTHING;
+	// For each polygon, write out: 
+	//    s  smoothing_group
+	//    sets/groups the polygon belongs to 
+	//    f  vertex_index/uvIndex/normalIndex
+	//
+	//int lastSmoothingGroup = INITIALIZE_SMOOTHING;
 
 	std::vector<int> pos_indices;
 	std::vector<int> tex_indices;
 	std::vector<int> nor_indices;
 	std::vector<unsigned char> facenums;
-	for ( ; !polyIter.isDone(); polyIter.next() )
+	for (; !polyIter.isDone(); polyIter.next())
 	{
-                
-        // Write out vertex/uv/normal index information
-        //
-        int polyVertexCount = polyIter.polygonVertexCount();
+
+		// Write out vertex/uv/normal index information
+		//
+		int polyVertexCount = polyIter.polygonVertexCount();
 		facenums.push_back(polyVertexCount);
-		for ( int vtx=0; vtx < polyVertexCount; vtx++ ) 
+		for (int vtx = 0; vtx < polyVertexCount; vtx++)
 		{
-			int pidx = polyIter.vertexIndex( vtx );
+			int pidx = polyIter.vertexIndex(vtx);
 			int tidx = -1;
 			int nidx = -1;
-			if ( fnMesh.numUVs() > 0 ) 
+			if (fnMesh.numUVs() > 0)
 			{
-    			int uvIndex;
-    			if ( polyIter.getUVIndex(vtx, uvIndex) )
+				int uvIndex;
+				if (polyIter.getUVIndex(vtx, uvIndex))
 				{
 					tidx = uvIndex;
-                }
+				}
 			}
-            
-			if ( fnMesh.numNormals() > 0 ) 
+
+			if (fnMesh.numNormals() > 0)
 			{
-				nidx = polyIter.normalIndex( vtx );
-            }
+				nidx = polyIter.normalIndex(vtx);
+			}
 			pos_indices.push_back(pidx);
 			tex_indices.push_back(tidx);
 			nor_indices.push_back(nidx);
@@ -771,6 +756,72 @@ std::shared_ptr<kml::Node> OutputPolygons(
 	mesh->texcoords.swap(texcoords);
 	mesh->normals.swap(normals);
 	mesh->materials.swap(materials);
+	//mesh->name = mdagPath.partialPathName().asChar();
+
+	return mesh;
+}
+
+static
+std::shared_ptr<kml::Mesh> GetOriginalVertices(std::shared_ptr<kml::Mesh>& mesh, MObject& orgMeshObj)
+{
+	MFnMesh fnMesh(orgMeshObj);
+	MPointArray vtx_pos;
+	fnMesh.getPoints(vtx_pos, MSpace::kObject);
+	MFloatVectorArray norm;
+	fnMesh.getNormals(norm, MSpace::kObject);
+
+	std::vector<glm::vec3> positions;
+	for(int i = 0; i < vtx_pos.length(); i++)
+	{
+		MPoint p = vtx_pos[i];
+
+		p.x = MDistance::internalToUI(p.x);
+		p.y = MDistance::internalToUI(p.y);
+		p.z = MDistance::internalToUI(p.z);
+
+		positions.push_back(glm::vec3(p.x, p.y, p.z));
+	}
+
+	std::vector<glm::vec3> normals;
+	for (int i = 0; i < norm.length(); i++)
+	{
+		MFloatVector n = norm[i];
+		normals.push_back(glm::vec3(n.x, n.y, n.z));
+	}
+
+	mesh->positions.swap(positions);
+	mesh->normals.swap(normals);
+
+	return mesh;
+}
+
+static
+std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
+{
+	MStatus status = MS::kSuccess;
+	
+	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
+	int transform_space = opts->GetInt("transform_space");
+
+	MSpace::Space space = MSpace::kWorld;
+	if (transform_space == 1)
+	{
+		space = MSpace::kObject;
+	}
+	
+	MFnMesh fnMesh(mdagPath);
+	std::shared_ptr<kml::Mesh> mesh = CreateMesh(fnMesh, space);
+
+	if (!mesh.get())
+	{
+		return std::shared_ptr<kml::Node>();
+	}
+
+	MObject orgMeshObj = GetOriginalMesh(mdagPath);//T-pose
+	if (orgMeshObj.hasFn(MFn::kMesh))
+	{
+		mesh = GetOriginalVertices(mesh, orgMeshObj);//dynamic
+	}
 	mesh->name = mdagPath.partialPathName().asChar();
 
 	std::shared_ptr < kml::Node > node(new kml::Node());
@@ -1568,11 +1619,11 @@ MStatus WriteGLTF(
 	TexturePathManager& texManager,
 	std::map<int, std::shared_ptr<kml::Material> >& materials,
 	std::vector< std::shared_ptr<kml::Node> >& nodes,
-	const MString& dirname, const MDagPath& dagPath, MObject& component)
+	const MString& dirname, const MDagPath& dagPath)
 {
 	MStatus status = MS::kSuccess;
 
-	std::shared_ptr<kml::Node> root_node = OutputPolygons(dagPath, component);
+	std::shared_ptr<kml::Node> root_node = CreateMeshNode(dagPath);
 	std::shared_ptr<kml::Node> node = GetLeafNode(root_node);
 
 	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
@@ -2134,7 +2185,8 @@ MStatus glTFExporter::exportSelected(const MString& fname)
 			MDagPath dagPath;
 			status = dagIterator.getPath(dagPath);
 
-			if (!status) {
+			if (!status) 
+			{
 				fprintf(stderr, "Failure getting DAG path.\n");
 				return MS::kFailure;
 			}
@@ -2149,13 +2201,13 @@ MStatus glTFExporter::exportSelected(const MString& fname)
 					continue;
 				}
 
-				if (dagPath.hasFn(MFn::kNurbsSurface))
+				if ((dagPath.hasFn(MFn::kNurbsSurface)) &&
+					(dagPath.hasFn(MFn::kTransform)))
 				{
-					status = MS::kSuccess;
-					fprintf(stderr, "Warning: skipping Nurbs Surface.\n");
+					continue;
 				}
 				else if ((dagPath.hasFn(MFn::kMesh)) &&
-					(dagPath.hasFn(MFn::kTransform)))
+					     (dagPath.hasFn(MFn::kTransform)))
 				{
 					continue;
 				}
@@ -2203,17 +2255,17 @@ MStatus glTFExporter::exportAll     (const MString& fname)
 			continue;
 		}
 
-		if ((  dagPath.hasFn(MFn::kNurbsSurface)) &&
-			(  dagPath.hasFn(MFn::kTransform)))
-		{
-			status = MS::kSuccess;
-		}
-		else if ((  dagPath.hasFn(MFn::kMesh)) &&
-				 (  dagPath.hasFn(MFn::kTransform)))
+		if ((dagPath.hasFn(MFn::kNurbsSurface)) &&
+			(dagPath.hasFn(MFn::kTransform)))
 		{
 			continue;
 		}
-		else if (  dagPath.hasFn(MFn::kMesh))
+		else if ((dagPath.hasFn(MFn::kMesh)) &&
+				 (dagPath.hasFn(MFn::kTransform)))
+		{
+			continue;
+		}
+		else if (dagPath.hasFn(MFn::kMesh))
 		{
 			dagPaths.push_back(dagPath);
 		}
@@ -2251,9 +2303,12 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
 				{
 					return MS::kFailure;
 				}
-				MObject  component = MObject::kNullObj;
+
 				MDagPath dagPath = dagPaths[i];
-				status = WriteGLTF(texManager, materials, nodes, MString(dir_path.c_str()), dagPath, component);
+				if (dagPath.hasFn(MFn::kMesh))
+				{
+					status = WriteGLTF(texManager, materials, nodes, MString(dir_path.c_str()), dagPath);
+				}
 				progWindow->setProgress(prog * (i + 1));
 			}
 		}
