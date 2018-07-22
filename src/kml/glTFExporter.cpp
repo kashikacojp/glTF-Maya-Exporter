@@ -1023,7 +1023,7 @@ namespace kml
 			LTE_pbr_material["transmissionScatter"] = picojson::value(transmissionScatter);
 			LTE_pbr_material["transmissionScatterAnisotropy"] = picojson::value(mat->GetFloat("ai_transmissionScatterAnisotropy"));
 			LTE_pbr_material["transmissionExtraRoughness"] = picojson::value(mat->GetFloat("ai_transmissionExtraRoughness"));
-			LTE_pbr_material["ransmissionDispersion"] = picojson::value(mat->GetFloat("ai_transmissionDispersion"));
+			LTE_pbr_material["transmissionDispersion"] = picojson::value(mat->GetFloat("ai_transmissionDispersion"));
 			LTE_pbr_material["transmissionAovs"] = picojson::value(mat->GetFloat("ai_transmissionAovs"));
 
 
