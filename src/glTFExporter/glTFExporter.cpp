@@ -1088,7 +1088,7 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, MFn
 	mat->SetFloat("ai_subsurfaceAnisotropy", subsurfaceAnisotropy);
 
 	// Coat
-	const float coatWeight = ainode.findPlug("coatWeight").asFloat();
+	const float coatWeight = ainode.findPlug("coat").asFloat();
 	const float coatColorR = ainode.findPlug("coatColorR").asFloat();
 	const float coatColorG = ainode.findPlug("coatColorG").asFloat();
 	const float coatColorB = ainode.findPlug("coatColorB").asFloat();
