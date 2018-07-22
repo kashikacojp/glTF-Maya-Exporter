@@ -2,6 +2,9 @@
 #include "CopyTextureFile.h"
 
 #include <algorithm>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -112,10 +115,10 @@ namespace kil
 		DWORD nsz = ::GetTempPathA((DWORD)_MAX_PATH, bufDir);
 		bufDir[nsz] = 0;
 		return std::string(bufDir) + std::string("tmp.png");
-#else
-#error "not implemented"
+#else // Linux and macOS
+		const char* tmpdir = getenv("TMPDIR");
+		return std::string(tmpdir) + std::string("tmp.png");
 #endif
-		return "";
 	}
 
 	static
@@ -123,8 +126,8 @@ namespace kil
 	{
 #ifdef _WIN32 
 		::DeleteFileA(path.c_str());
-#else
-#error "not implemented"
+#else // Linux and macOS
+		 remove(path.c_str());
 #endif
 	}
 

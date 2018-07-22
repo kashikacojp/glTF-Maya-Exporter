@@ -8,7 +8,7 @@ namespace kml
 
 	Material::Material()
 	{
-
+		name_ = std::string("defaultMaterial");
 	}
 
 	void        Material::SetInteger(const std::string& key, int val)

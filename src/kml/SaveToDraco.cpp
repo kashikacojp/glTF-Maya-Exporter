@@ -2,12 +2,14 @@
 
 #include <glm/glm.hpp>
 
+#ifdef ENABLE_BUILD_WITH_DRACO
 #include <draco/mesh/mesh.h>
 #include <draco/compression/encode.h>
 #include <draco/core/cycle_timer.h>
 #include <draco/io/mesh_io.h>
 #include <draco/io/point_cloud_io.h>
 #include <draco/io/obj_decoder.h>
+#endif
 
 #include <fstream>
 #include <sstream>
@@ -196,6 +198,7 @@ namespace kml
 		}
 	}
 
+#ifdef ENABLE_BUILD_WITH_DRACO
 	static
 	int EncodeMeshToFile(std::ostream& os, const draco::Mesh &mesh, draco::Encoder *encoder)
 	{
@@ -283,11 +286,12 @@ namespace kml
 
 		return true;
 	}
-
-	bool SaveToDraco(const std::string& strPath, const std::shared_ptr<Mesh>& mesh)
+#else
+	bool SaveToDraco(std::vector<unsigned char>& bytes, const std::shared_ptr<Mesh>& m)
 	{
-
-		return true;
+		// Disable ENABLE_BUILD_WITH_DRACO option
+		return false;
 	}
+#endif
 }
 
