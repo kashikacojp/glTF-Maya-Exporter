@@ -937,7 +937,8 @@ std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
 			if (mpa[k].node().hasFn(MFn::kLambert)) { // All material(Lambert, phongE)
 				MFnLambertShader shader(mpa[k].node());
 				std::string shadername = shader.name().asChar();
-
+				
+				mat->SetName(shadername);
 				mat->SetFloat("metallicFactor", 0.0f);
 				mat->SetFloat("roughnessFactor", 1.0);
 				MString coltexpath;

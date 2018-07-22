@@ -29,10 +29,19 @@ namespace kml
 		{
 			return GetString(key);
 		}
+		std::string GetName() const
+		{
+			return name_;
+		}
+		void SetName(const std::string& name)
+		{
+			name_ = name;
+		}
 	protected:
 		std::map<std::string, int>         imap;
 		std::map<std::string, float>       fmap;
 		std::map<std::string, std::string> smap;
+		std::string name_;
 	};
 }
 

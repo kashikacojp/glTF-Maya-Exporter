@@ -1277,7 +1277,7 @@ namespace kml
 				{
 					const auto& mat = materials[i];
 					picojson::object nd;
-					nd["name"] = picojson::value("blinn3-fx");
+					nd["name"] = picojson::value(mat->GetName());
 					picojson::array emissiveFactor;
 					emissiveFactor.push_back(picojson::value(0.0));
 					emissiveFactor.push_back(picojson::value(0.0));
