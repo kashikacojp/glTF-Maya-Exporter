@@ -1286,10 +1286,10 @@ namespace kml
 
 					picojson::object pbrMetallicRoughness;
 
-					std::string diffuse_texname = mat->GetTextureName("Diffuse");
-					if (!diffuse_texname.empty())
+					std::string basecolor_texname = mat->GetTextureName("BaseColor");
+					if (!basecolor_texname.empty())
 					{
-						int nIndex = FindTextureIndex(texture_vec, diffuse_texname);
+						int nIndex = FindTextureIndex(texture_vec, basecolor_texname);
 						if (nIndex >= 0)
 						{
 							picojson::object baseColorTexture;
@@ -1297,19 +1297,7 @@ namespace kml
 							pbrMetallicRoughness["baseColorTexture"] = picojson::value(baseColorTexture);
 						}
 					}
-					/*
-					std::string diffuse_cache_texname = mat->GetTextureName("DiffuseS0");
-					if (!diffuse_cache_texname.empty())
-					{
-						int nIndex = FindTextureIndex(texture_vec, diffuse_cache_texname);
-						if (nIndex >= 0)
-						{
-							picojson::object baseColorTexture;
-							baseColorTexture["index"] = picojson::value((double)nIndex);
-							pbrMetallicRoughness["baseColorTexture"] = picojson::value(baseColorTexture);
-						}
-					}
-					*/
+					
 
 					std::string normal_texname = mat->GetTextureName("Normal");
 					if (!normal_texname.empty())
@@ -1325,10 +1313,10 @@ namespace kml
 
 
 					picojson::array colorFactor;
-					float R = mat->GetValue("Diffuse.R");
-					float G = mat->GetValue("Diffuse.G");
-					float B = mat->GetValue("Diffuse.B");
-					float A = mat->GetValue("Diffuse.A");
+					float R = mat->GetValue("BaseColor.R");
+					float G = mat->GetValue("BaseColor.G");
+					float B = mat->GetValue("BaseColor.B");
+					float A = mat->GetValue("BaseColor.A");
 
 					colorFactor.push_back(picojson::value(R));
 					colorFactor.push_back(picojson::value(G));

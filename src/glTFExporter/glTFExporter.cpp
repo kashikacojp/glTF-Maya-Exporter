@@ -1147,12 +1147,12 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, MFn
 	}
 
 	// --- store glTF standard material ---
-	mat->SetFloat("Diffuse.R", baseCol.r * baseWeight);
-	mat->SetFloat("Diffuse.G", baseCol.g * baseWeight);
-	mat->SetFloat("Diffuse.B", baseCol.b * baseWeight);
-	mat->SetFloat("Diffuse.A", transmission);
-	if (baseColorTex.length() == 0) {
-		mat->SetString("Diffuse", baseColorTex.asChar());
+	mat->SetFloat("BaseColor.R", baseCol.r * baseWeight);
+	mat->SetFloat("BaseColor.G", baseCol.g * baseWeight);
+	mat->SetFloat("BaseColor.B", baseCol.b * baseWeight);
+	mat->SetFloat("BaseColor.A", transmission);
+	if (baseColorTex.length() != 0) {
+		mat->SetString("BaseColor", baseColorTex.asChar());
 	}
 	mat->SetFloat("metallicFactor", metallic);
 	mat->SetFloat("roughnessFactor", specularRoughness);
@@ -1160,7 +1160,7 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, MFn
 	mat->SetFloat("Emission.R", emissionColorR * emissionWeight);
 	mat->SetFloat("Emission.G", emissionColorG * emissionWeight);
 	mat->SetFloat("Emission.B", emissionColorB * emissionWeight);
-	if (emissionColorTex.length() == 0) {
+	if (emissionColorTex.length() != 0) {
 		mat->SetString("Emission", emissionColorTex.asChar());
 	}
 	return true;
@@ -1171,10 +1171,10 @@ std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
 {
 	std::shared_ptr<kml::Material> mat = std::shared_ptr<kml::Material>(new kml::Material());
 
-	mat->SetFloat("Diffuse.R", 1.0f);
-	mat->SetFloat("Diffuse.G", 1.0f);
-	mat->SetFloat("Diffuse.B", 1.0f);
-	mat->SetFloat("Diffuse.A", 1.0f);
+	mat->SetFloat("BaseColor.R", 1.0f);
+	mat->SetFloat("BaseColor.G", 1.0f);
+	mat->SetFloat("BaseColor.B", 1.0f);
+	mat->SetFloat("BaseColor.A", 1.0f);
 
 	//color
 	{
@@ -1208,19 +1208,19 @@ std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
 					std::string texName = coltexpath.asChar();
 					if (!texName.empty())
 					{
-						mat->SetString("Diffuse", texName);
+						mat->SetString("BaseColor", texName);
 					}
 					else
 					{
-						mat->SetFloat("Diffuse.R", col.r);
-						mat->SetFloat("Diffuse.G", col.g);
-						mat->SetFloat("Diffuse.B", col.b);
-						mat->SetFloat("Diffuse.A", col.a);
+						mat->SetFloat("BaseColor.R", col.r);
+						mat->SetFloat("BaseColor.G", col.g);
+						mat->SetFloat("BaseColor.B", col.b);
+						mat->SetFloat("BaseColor.A", col.a);
 					}
 				}
 
 				MColor tra = getColor(shader, "transparency");
-				mat->SetFloat("Diffuse.A", 1.0f - tra.r);
+				mat->SetFloat("BaseColor.A", 1.0f - tra.r);
 
 				// Normal map
 				float depth;

@@ -14,8 +14,8 @@
 
 #include "glTFTranslator.h"
 
-#define VENDOR_NAME "KASHIKA K.K."
-#define PLUGIN_VERSION "1.0"
+#define VENDOR_NAME "KASHIKA,Inc."
+#define PLUGIN_VERSION "1.0.2"
 
 const char *const gltfOptionScript = "glTFExporterOptions";
 const char *const gltfDefaultOptions =
