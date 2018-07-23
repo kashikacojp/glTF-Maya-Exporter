@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.2.3)
 #Use solution folders.
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-project("glTF-Maya-Exporter")
+project("glTF-Maya-Exporter-LTE")
 
 # -- options ----------------------------------------------------
 option(GLTF_MAYA_EXPORTER_BUILD_WITH_DRACO    "Build with Draco" ON)
@@ -126,7 +126,7 @@ target_link_libraries( kml
 # -- glTF Exporter for maya --------------------
 if (GLTF_MAYA_EXPORTER_BUILD_MAYAEXPORTER)
 
-    add_library( glTFExporter SHARED
+    add_library( glTFExporterLTE SHARED
         ./src/glTFExporter/glTFExporter.cpp
         ./src/glTFExporter/glTFExporterRegist.cpp
         ./src/glTFExporter/glTFTranslator.cpp
@@ -134,13 +134,13 @@ if (GLTF_MAYA_EXPORTER_BUILD_MAYAEXPORTER)
         ./src/glTFExporter/ProgressWindow.cpp
     )
 
-    target_link_libraries( glTFExporter
+    target_link_libraries( glTFExporterLTE
                         kml
                         OpenMaya
                         Foundation
     )
-    SET_TARGET_PROPERTIES(glTFExporter PROPERTIES PREFIX "")
-    SET_TARGET_PROPERTIES(glTFExporter PROPERTIES SUFFIX ".mll")
+    SET_TARGET_PROPERTIES(glTFExporterLTE PROPERTIES PREFIX "")
+    SET_TARGET_PROPERTIES(glTFExporterLTE PROPERTIES SUFFIX ".mll")
 
 endif()
 
