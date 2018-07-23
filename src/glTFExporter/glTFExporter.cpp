@@ -1151,7 +1151,7 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, MFn
 	mat->SetFloat("Diffuse.G", baseCol.g * baseWeight);
 	mat->SetFloat("Diffuse.B", baseCol.b * baseWeight);
 	mat->SetFloat("Diffuse.A", transmission);
-	if (baseColorTex.length() == 0) {
+	if (baseColorTex.length() != 0) {
 		mat->SetString("Diffuse", baseColorTex.asChar());
 	}
 	mat->SetFloat("metallicFactor", metallic);
@@ -1160,7 +1160,7 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, MFn
 	mat->SetFloat("Emission.R", emissionColorR * emissionWeight);
 	mat->SetFloat("Emission.G", emissionColorG * emissionWeight);
 	mat->SetFloat("Emission.B", emissionColorB * emissionWeight);
-	if (emissionColorTex.length() == 0) {
+	if (emissionColorTex.length() != 0) {
 		mat->SetString("Emission", emissionColorTex.asChar());
 	}
 	return true;
