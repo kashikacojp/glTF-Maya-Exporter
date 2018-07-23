@@ -14,7 +14,7 @@
 
 #include "glTFTranslator.h"
 
-#define VENDOR_NAME "KASHIKA,Inc."
+#define VENDOR_NAME "Light Transport Entertainment, Inc."
 #define PLUGIN_VERSION "1.0.2"
 
 const char *const gltfOptionScript = "glTFExporterOptions";
@@ -41,8 +41,8 @@ static
 void ShowLicense()
 {
 	std::string showText;
-	showText += "glTF-Maya-Exporter";
-	showText += " ";
+	showText += "glTF-Maya-Exporter-LTE";
+	showText += " based on glTF-Maya-Exporter by Kashika, Inc.";
 	showText += "ver ";
 	showText += PLUGIN_VERSION;
 
