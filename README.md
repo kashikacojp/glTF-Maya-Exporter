@@ -49,7 +49,7 @@ we support MAYA2017 and MAYA2018 on Windows and macOS, now.
 
 - 3: Create project `$cmake ..`
 
-- 4: Make it..  `$make`
+- 4: Make it..  `$cmake --build .`
 
 ### Use Visual Studio (deprecated)
 
