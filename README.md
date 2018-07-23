@@ -15,7 +15,7 @@ This repositry contains mel scripts and C++ source codes.
 
 ## Support Maya version
 
-we support MAYA2017 and MAYA2018 on Windows, now.
+we support MAYA2017 and MAYA2018 on Windows and macOS, now.
 
 
 ## Support features
@@ -25,6 +25,8 @@ we support MAYA2017 and MAYA2018 on Windows, now.
 - [x] Material baseColor, Roughness
 
 - [x] Transform/Skeleton
+
+- [x] Mac support
 
 - [ ] Linux support
 
@@ -38,6 +40,18 @@ we support MAYA2017 and MAYA2018 on Windows, now.
 
 
 ## How to Build
+
+### Generate project file by CMake
+
+- 1: Create build directory. `$mkdir build`
+
+- 2: Move Currenct directory `$cd build`
+
+- 3: Create project `$cmake ..`
+
+- 4: Make it..  `$make`
+
+### Use Visual Studio (deprecated)
 
 - 1: Requirements: Visual studio 2017.
 
@@ -59,8 +73,6 @@ we support MAYA2017 and MAYA2018 on Windows, now.
 - glm: https://github.com/g-truc/glm
 
 - picojson: https://github.com/kazuho/picojson/
-
-- tinygltf: https://github.com/syoyo/tinygltf/
 
 
 ## License
