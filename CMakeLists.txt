@@ -71,7 +71,7 @@ endif()
 
 # -- compile options, include and libraries -----------------
 
-add_definitions(-std=c++11)
+set (CMAKE_CXX_STANDARD 11)
 
 include_directories(
     externals/glm/
@@ -125,6 +125,15 @@ target_link_libraries( kml
 
 # -- glTF Exporter for maya --------------------
 if (GLTF_MAYA_EXPORTER_BUILD_MAYAEXPORTER)
+
+    # force define for maya header ifdef condition (building for makefile project)
+    if (WIN32)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_WIN32")
+    elseif(APPLE)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOSMac_")
+    elseif(UNIX)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Dlinux")
+    endif()
 
     add_library( glTFExporter SHARED
         ./src/glTFExporter/glTFExporter.cpp

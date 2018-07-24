@@ -14,6 +14,8 @@
 #define strcasecmp _stricmp
 #endif
 #define _CRT_SECURE_NO_WARNINGS
+#else // linux / macOS
+#include <libgen.h>
 #endif
 
 #include <picojson/picojson.h>
@@ -80,7 +82,6 @@
 #include <sstream>
 #include <fstream>
 #include <set>
-#include <filesystem>
 
 #include <string.h> 
 #include <sys/types.h>
@@ -103,8 +104,15 @@
 #if defined (_WIN32)
 //#define strcasecmp stricmp
 #elif defined  (OSMac_)
-extern "C" int strcasecmp (const char *, const char *);
-extern "C" Boolean createMacFile (const char *fileName, FSRef *fsRef, long creator, long type);
+#if defined(MAC_CONVERT_FILE)
+#include <sys/param.h>
+#	if USING_MAC_CORE_LIB
+#		include <Files.h>
+#		include <CFURL.h>
+		extern "C" int strcasecmp (const char *, const char *);
+		extern "C" Boolean createMacFile (const char *fileName, FSRef *fsRef, long creator, long type);
+#	endif
+#endif
 #endif
 
 #define NO_SMOOTHING_GROUP      -1
@@ -331,9 +339,9 @@ std::string GetTempDirectory()
 	RemoveFile(dir2);
 
 	return RemoveExt(dir2);
-#else
-#error "Not implemented"
-	return "";
+#else // Linux and macOS
+	const char* tmpdir = getenv("TMPDIR");
+	return std::string(tmpdir);
 #endif
 }
 
@@ -357,8 +365,7 @@ MStatus glTFExporter::reader ( const MFileObject& file,
 }
 
 //////////////////////////////////////////////////////////////
-#if defined (OSMac_)
-
+#if defined (OSMac_) && defined(MAC_CONVERT_FILE)
 // Convert file system representations
 // Possible styles: kCFURLHFSPathStyle, kCFURLPOSIXPathStyle
 // kCFURLHFSPathStyle = Emerald:aw:Maya:projects:default:scenes:eagle.ma
@@ -396,7 +403,6 @@ convertFileRepresentation (char *fileName, short inStyle, short outStyle)
 	strcpy (fileName, newPath);
 	return (true);
 }
-
 #endif
 
 //////////////////////////////////////////////////////////////
@@ -448,7 +454,7 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
     MStatus status;
 	MString mname = file.fullName(), unitName;
     
-#if defined (OSMac_)
+#if defined (OSMac_) && defined (MAC_CONVERT_FILE)
 	char fname[MAXPATHLEN];
 	strcpy (fname, file.fullName().asChar());
 	FSRef notUsed;
@@ -1051,7 +1057,7 @@ MColor getColor(MFnDependencyNode& node, const char* name)
 
 
 static
-bool getTextureAndColor(MFnDependencyNode& node, MString& name, MString& texpath, MColor& color)
+bool getTextureAndColor(const MFnDependencyNode& node, const MString& name, MString& texpath, MColor& color)
 {
 	color = MColor(1.0, 1.0, 1.0, 1.0);
 	texpath = "";
@@ -1091,52 +1097,8 @@ bool getTextureAndColor(MFnDependencyNode& node, MString& name, MString& texpath
 	paramPlug.child(2).getValue(color.b);
 	return true;
 }
-/*
-static
-bool getColorAttrib(MFnDependencyNode& node, MString& texpath, MColor& color)
-{
-	color = MColor(1.0, 1.0, 1.0, 1.0);
-	texpath = "";
-	MStatus status;
-	MPlug paramPlug = node.findPlug("color", &status);
-	if (status != MS::kSuccess)
-		return false;
 
-	MPlugArray connectedPlugs;
-	if (paramPlug.connectedTo(connectedPlugs, true, false, &status)
-		&& connectedPlugs.length()) {
-		MFn::Type apiType = connectedPlugs[0].node().apiType();
-		if (apiType == MFn::kFileTexture) {
-			MFnDependencyNode texNode(connectedPlugs[0].node());
-			MPlug texturePlug = texNode.findPlug("fileTextureName", &status);
-			if (status == MS::kSuccess)
-			{
-				MString tpath;
-				texturePlug.getValue(tpath);
-				//MStringArray paths;
-				//tpath.split('/', paths);
-				//texpath = paths[paths.length() - 1];
-				texpath = tpath.asChar();
-
-				// if material has texture, set color(1,1,1)
-				color.r = 1.0f;
-				color.g = 1.0f;
-				color.b = 1.0f;
-				return true;
-			}
-			return false;
-		} else {
-			// other type node is not supported
-			return false;
-		}
-	}
-	paramPlug.child(0).getValue(color.r);
-	paramPlug.child(1).getValue(color.g);
-	paramPlug.child(2).getValue(color.b);
-	return true;
-}*/
-
-static bool getNormalAttrib(MFnDependencyNode& node, MString& normaltexpath, float& depth)
+static bool getNormalAttrib(const MFnDependencyNode& node, MString& normaltexpath, float& depth)
 {
 	depth = 0.0f;
 	normaltexpath = "";
@@ -1197,7 +1159,7 @@ static bool getNormalAttrib(MFnDependencyNode& node, MString& normaltexpath, flo
 	}
 }
 
-static bool isStingrayPBS(MFnDependencyNode materialDependencyNode)
+static bool isStingrayPBS(const MFnDependencyNode& materialDependencyNode)
 {
 	MString graphAttribute("graph");
 	if (materialDependencyNode.hasAttribute(graphAttribute))
@@ -1213,13 +1175,13 @@ static bool isStingrayPBS(MFnDependencyNode materialDependencyNode)
 		return false;
 	}
 }
-static bool storeStingrayPBS(std::shared_ptr<kml::Material> mat, MFnDependencyNode materialDependencyNode)
+static bool storeStingrayPBS(std::shared_ptr<kml::Material> mat, const MFnDependencyNode& materialDependencyNode)
 {
 	// TODO
 	return false;
 }
 
-static bool isAiStandardSurfaceShader(MFnDependencyNode materialDependencyNode)
+static bool isAiStandardSurfaceShader(const MFnDependencyNode& materialDependencyNode)
 {
 	return materialDependencyNode.hasAttribute("baseColor") &&
 		materialDependencyNode.hasAttribute("metalness") &&
@@ -1228,7 +1190,7 @@ static bool isAiStandardSurfaceShader(MFnDependencyNode materialDependencyNode)
 		materialDependencyNode.hasAttribute("emissionColor");
 }
 
-static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, MFnDependencyNode ainode)
+static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, const MFnDependencyNode& ainode)
 {
 	// base
 	const float baseWeight = ainode.findPlug("base").asFloat();
@@ -1559,6 +1521,13 @@ std::string GetCacheTexturePath(const std::string& path)
 	{
 		strRet += szExt;
 	}
+	return strRet;
+#else 
+	//std::string tmp = GetTempDirectory();
+	std::string strRet;
+	strRet += dirname(const_cast<char*>(path.c_str()));  // force const cast for error of : it would lose const qualifier
+	strRet += basename(const_cast<char*>(path.c_str())); // force const cast for error of : it would lose const qualifier
+	strRet += std::string("_s0.jpg");
 	return strRet;
 #endif
 }
