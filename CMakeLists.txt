@@ -153,6 +153,12 @@ if (GLTF_MAYA_EXPORTER_BUILD_MAYAEXPORTER)
     SET_TARGET_PROPERTIES(glTFExporter PROPERTIES PREFIX "")
     SET_TARGET_PROPERTIES(glTFExporter PROPERTIES SUFFIX ".mll")
 
+    # [VisualStudio] default startup
+    if (WIN32)
+    if (CMAKE_VERSION VERSION_GREATER 3.6.0)
+        set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT glTFExporter)
+    endif()
+    endif()
 endif()
 
 # -- cpp interface and test -----------------------------
@@ -181,5 +187,10 @@ if (GLTF_MAYA_EXPORTER_BUILD_CPP_INTERFACE)
                            glTFCppExporterLib
     )
 
-
+    # [VisualStudio] default startup
+    if (WIN32)
+    if (CMAKE_VERSION VERSION_GREATER 3.6.0)
+        set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT glTFCppExporterLibTest)
+    endif()
+    endif()
 endif()
