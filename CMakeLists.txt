@@ -14,6 +14,8 @@ SET(GLTF_MAYA_EXPORTER_MAYA_PATH "C:/Program Files/Autodesk/Maya2018" CACHE PATH
 
 # ===============================================================
 
+set(CMAKE_POSITION_INDEPENDENT_CODE On)
+
 # -- draco setting ---------------------------------------------- 
 if(GLTF_MAYA_EXPORTER_BUILD_WITH_DRACO)
     # DRACO setting
@@ -119,7 +121,7 @@ add_library( kml STATIC
 )
 
 target_link_libraries( kml 
-                       kil
+                       kil 
                        ${DRACO_LIB})
 
 
