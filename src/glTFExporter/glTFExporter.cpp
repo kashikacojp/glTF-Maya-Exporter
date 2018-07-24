@@ -970,7 +970,7 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
 	mat->SetFloat("ai_specularAnisotropy", specularAnisotropy);
 
 	// transmission
-	const float transmission = ainode.findPlug("transmission").asFloat();
+	const float transmissionWeight = ainode.findPlug("transmission").asFloat();
 	const float transmissionColorR = ainode.findPlug("transmissionColorR").asFloat();
 	const float transmissionColorG = ainode.findPlug("transmissionColorG").asFloat();
 	const float transmissionColorB = ainode.findPlug("transmissionColorB").asFloat();
@@ -987,7 +987,7 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
 	if (getTextureAndColor(ainode, MString("transmissionColor"), transmissionTex, transmissionCol)) {
 		const std::string texName = transmissionTex.asChar();
 		if (!texName.empty()) {
-			mat->SetString("ai_specularColor", texName);
+			mat->SetString("ai_transmissionColor", texName);
 		}
 	}
 	MString transmissionScatterTex;
@@ -998,7 +998,7 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
 			mat->SetString("ai_transmissionScatter", texName);
 		}
 	}
-	mat->SetFloat("ai_transmission", transmission);
+	mat->SetFloat("ai_transmissionWeight", transmissionWeight);
 	mat->SetFloat("ai_transmissionColorR", transmissionColorR);
 	mat->SetFloat("ai_transmissionColorG", transmissionColorG);
 	mat->SetFloat("ai_transmissionColorB", transmissionColorB);
@@ -1038,7 +1038,7 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
 			mat->SetString("ai_subsurfaceRadius", texName);
 		}
 	}
-	mat->SetFloat("ai_subsurface", subsurfaceWeight);
+	mat->SetFloat("ai_subsurfaceWeight", subsurfaceWeight);
 	mat->SetFloat("ai_subsurfaceColorR", subsurfaceColorR);
 	mat->SetFloat("ai_subsurfaceColorG", subsurfaceColorG);
 	mat->SetFloat("ai_subsurfaceColorB", subsurfaceColorB);
@@ -1112,16 +1112,16 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
 	mat->SetFloat("BaseColor.R", baseCol.r * baseWeight);
 	mat->SetFloat("BaseColor.G", baseCol.g * baseWeight);
 	mat->SetFloat("BaseColor.B", baseCol.b * baseWeight);
-	mat->SetFloat("BaseColor.A", transmission);
+	mat->SetFloat("BaseColor.A", transmissionWeight);
 	if (baseColorTex.length() != 0) {
 		mat->SetString("BaseColor", baseColorTex.asChar());
 	}
 	mat->SetFloat("metallicFactor", metallic);
 	mat->SetFloat("roughnessFactor", specularRoughness);
 
-	mat->SetFloat("Emission.R", emissionColorR * emissionWeight);
-	mat->SetFloat("Emission.G", emissionColorG * emissionWeight);
-	mat->SetFloat("Emission.B", emissionColorB * emissionWeight);
+	mat->SetFloat("Emission.R", emissionCol.r * emissionWeight);
+	mat->SetFloat("Emission.G", emissionCol.g * emissionWeight);
+	mat->SetFloat("Emission.B", emissionCol.b * emissionWeight);
 	if (emissionColorTex.length() != 0) {
 		mat->SetString("Emission", emissionColorTex.asChar());
 	}
