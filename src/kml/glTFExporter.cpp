@@ -1017,8 +1017,8 @@ namespace kml
 			transmissionScatter.push_back(picojson::value(mat->GetFloat("ai_transmissionScatterR")));
 			transmissionScatter.push_back(picojson::value(mat->GetFloat("ai_transmissionScatterG")));
 			transmissionScatter.push_back(picojson::value(mat->GetFloat("ai_transmissionScatterB")));
-			LTE_pbr_material["transmission"] = picojson::value(mat->GetFloat("ai_transmission"));
-			LTE_pbr_material["transmissionColor"] = picojson::value(specularColorFactor);
+			LTE_pbr_material["transmissionWeight"] = picojson::value(mat->GetFloat("ai_transmission"));
+			LTE_pbr_material["transmissionColor"] = picojson::value(transmissionColorFactor);
 			LTE_pbr_material["transmissionDepth"] = picojson::value(mat->GetFloat("ai_transmissionDepth"));
 			LTE_pbr_material["transmissionScatter"] = picojson::value(transmissionScatter);
 			LTE_pbr_material["transmissionScatterAnisotropy"] = picojson::value(mat->GetFloat("ai_transmissionScatterAnisotropy"));
@@ -1040,7 +1040,7 @@ namespace kml
 				std::string("diffusion"),
 				std::string("randomwalk")
 			};
-			LTE_pbr_material["subsurface"] = picojson::value(mat->GetFloat("ai_subsurface"));
+			LTE_pbr_material["subsurfaceWeight"] = picojson::value(mat->GetFloat("ai_subsurface"));
 			LTE_pbr_material["subsurfaceColor"] = picojson::value(subsurfaceColorFactor);
 			LTE_pbr_material["subsurfaceRadius"] = picojson::value(subsurfaceRadius);
 			LTE_pbr_material["subsurfaceType"] = picojson::value(stype[mat->GetInteger("ai_subsurfaceType")]);
