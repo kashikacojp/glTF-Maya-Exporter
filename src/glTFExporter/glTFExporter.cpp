@@ -1384,7 +1384,7 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
 	mat->SetFloat("BaseColor.R", baseCol.r * baseWeight);
 	mat->SetFloat("BaseColor.G", baseCol.g * baseWeight);
 	mat->SetFloat("BaseColor.B", baseCol.b * baseWeight);
-	mat->SetFloat("BaseColor.A", transmissionWeight);
+	mat->SetFloat("BaseColor.A", 1.0 - transmissionWeight);
 	if (baseColorTex.length() != 0) {
 		mat->SetString("BaseColor", baseColorTex.asChar());
 	}
