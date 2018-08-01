@@ -134,7 +134,7 @@ if (GLTF_MAYA_EXPORTER_BUILD_MAYAEXPORTER)
     elseif(APPLE)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOSMac_")
     elseif(UNIX)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Dlinux")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Dlinux -m64 -g -pthread -pipe -D_BOOL -DLINUX -DLINUX_64 -DREQUIRE_IOSTREAM -fPIC -Wno-deprecated -fno-gnu-keywords")
     endif()
 
     add_library( glTFExporterLTE SHARED
@@ -151,7 +151,15 @@ if (GLTF_MAYA_EXPORTER_BUILD_MAYAEXPORTER)
                         Foundation
     )
     SET_TARGET_PROPERTIES(glTFExporterLTE PROPERTIES PREFIX "")
-    SET_TARGET_PROPERTIES(glTFExporterLTE PROPERTIES SUFFIX ".mll")
+    if(WIN32)
+      SET_TARGET_PROPERTIES(glTFExporterLTE PROPERTIES SUFFIX ".mll")
+    elseif(APPLE)
+      SET_TARGET_PROPERTIES(glTFExporterLTE PROPERTIES SUFFIX ".bundle")
+    else()
+      SET_TARGET_PROPERTIES(glTFExporterLTE PROPERTIES SUFFIX ".so")
+      SET_TARGET_PROPERTIES(glTFExporterLTE PROPERTIES LINK_FLAGS "-shared -m64 -g -pthread -pipe -D_BOOL -DLINUX -DLINUX_64 -DREQUIRE_IOSTREAM -fPIC -Wno-deprecated -fno-gnu-keywords -Wl,-Bsymbolic")
+    endif()
+
 
     # [VisualStudio] default startup
     if (WIN32)
