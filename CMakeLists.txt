@@ -134,7 +134,7 @@ if (GLTF_MAYA_EXPORTER_BUILD_MAYAEXPORTER)
     elseif(APPLE)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOSMac_")
     elseif(UNIX)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Dlinux -m64 -g -pthread -pipe -D_BOOL -DLINUX -DLINUX_64 -DREQUIRE_IOSTREAM -fPIC -Wno-deprecated -fno-gnu-keywords")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Dlinux -m64 -g -pthread -D_BOOL -DLINUX -DLINUX_64 -DFUNCPROTO -DREQUIRE_IOSTREAM -fPIC -Wno-deprecated -fno-gnu-keywords")
     endif()
 
     add_library( glTFExporterLTE SHARED
@@ -148,6 +148,7 @@ if (GLTF_MAYA_EXPORTER_BUILD_MAYAEXPORTER)
     target_link_libraries( glTFExporterLTE
                         kml
                         OpenMaya
+                        OpenMayaUI
                         Foundation
     )
     SET_TARGET_PROPERTIES(glTFExporterLTE PROPERTIES PREFIX "")
@@ -157,7 +158,7 @@ if (GLTF_MAYA_EXPORTER_BUILD_MAYAEXPORTER)
       SET_TARGET_PROPERTIES(glTFExporterLTE PROPERTIES SUFFIX ".bundle")
     else()
       SET_TARGET_PROPERTIES(glTFExporterLTE PROPERTIES SUFFIX ".so")
-      SET_TARGET_PROPERTIES(glTFExporterLTE PROPERTIES LINK_FLAGS "-shared -m64 -g -pthread -pipe -D_BOOL -DLINUX -DLINUX_64 -DREQUIRE_IOSTREAM -fPIC -Wno-deprecated -fno-gnu-keywords -Wl,-Bsymbolic")
+      SET_TARGET_PROPERTIES(glTFExporterLTE PROPERTIES LINK_FLAGS "-shared -m64 -g -pthread -pipe -D_BOOL -DLINUX -DLINUX_64 -DFUNCPROTO -DREQUIRE_IOSTREAM -fPIC -Wno-deprecated -fno-gnu-keywords -Wl,-Bsymbolic")
     endif()
 
 

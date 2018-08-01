@@ -1594,7 +1594,7 @@ namespace kml
 			std::ofstream ofs(path.c_str());
 			if (!ofs)
 			{
-				std::cerr << "Could't write outputfile" << std::endl;
+				std::cerr << "Couldn't write glTF outputfile : " << path << std::endl;
 				return false;
 			}
 
@@ -1610,7 +1610,7 @@ namespace kml
 				std::ofstream ofs(binfile.c_str(), std::ofstream::binary);
 				if (!ofs)
 				{
-					std::cerr << "Could't write outputfile" << std::endl;
+					std::cerr << "Couldn't write bin outputfile : " << binfile << std::endl;
 					return false;
 				}
 				ofs.write((const char*)buffer->GetBytesPtr(), buffer->GetByteLength());
@@ -1628,7 +1628,7 @@ namespace kml
 				std::ofstream ofs(binfile.c_str(), std::ofstream::binary);
 				if (!ofs)
 				{
-					std::cerr << "Could't write outputfile" << std::endl;
+					std::cerr << "Couldn't write Draco bin outputfile :" << binfile << std::endl;
 					return -1;
 				}
 				ofs.write((const char*)buffer->GetBytesPtr(), buffer->GetByteLength());
