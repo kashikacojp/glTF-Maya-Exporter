@@ -273,6 +273,14 @@ void MakeDirectory(const std::string& path)
 {
 #ifdef _WIN32
 	::CreateDirectoryA(path.c_str(), NULL);
+#else
+  mode_t mode = 0755;
+  int ret = mkdir(path.c_str(), mode);
+  if (ret == 0) {
+    // ok
+    return;
+  }
+  std::cerr << "Directory creation error : " << path << std::endl;
 #endif
 }
 
