@@ -119,5 +119,8 @@
     <ClInclude Include="..\..\..\..\src\kml\Skeleton.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\src\kml\SkinWeights.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

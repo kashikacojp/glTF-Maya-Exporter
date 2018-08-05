@@ -163,6 +163,7 @@
     <ClInclude Include="..\..\..\..\src\kml\Options.h" />
     <ClInclude Include="..\..\..\..\src\kml\SaveToDraco.h" />
     <ClInclude Include="..\..\..\..\src\kml\Skeleton.h" />
+    <ClInclude Include="..\..\..\..\src\kml\SkinWeights.h" />
     <ClInclude Include="..\..\..\..\src\kml\SplitNodeByMaterialID.h" />
     <ClInclude Include="..\..\..\..\src\kml\Transform.h" />
     <ClInclude Include="..\..\..\..\src\kml\TriangulateMesh.h" />

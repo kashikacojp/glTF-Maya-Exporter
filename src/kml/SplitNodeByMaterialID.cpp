@@ -201,7 +201,12 @@ namespace kml
 			for (size_t i = 0; i < materials.size(); i++)
 			{
 				meshes.push_back( std::shared_ptr<kml::Mesh>(new kml::Mesh()) );
+				if (mesh->skin_weights.get())
+				{
+					meshes[i]->skin_weights = std::shared_ptr<kml::SkinWeights>( new kml::SkinWeights() );
+				}
 			}
+
 			int offset = 0;
 			for (size_t i = 0; i < mesh->materials.size(); i++)
 			{
@@ -231,6 +236,12 @@ namespace kml
 				meshes[i]->texcoords = mesh->texcoords;
 				meshes[i]->normals   = mesh->normals;
 				meshes[i]->name = mesh->name;
+
+				if (mesh->skin_weights.get())
+				{
+					meshes[i]->skin_weights->joint_names = mesh->skin_weights->joint_names;
+					meshes[i]->skin_weights->vertices = mesh->skin_weights->vertices;
+				}
 
 				std::shared_ptr<kml::Node> tnode = std::shared_ptr<kml::Node>(new kml::Node());
 				tnode->SetMesh(meshes[i]);

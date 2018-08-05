@@ -1,5 +1,6 @@
 #include "FlatIndicesMesh.h"
 #include "CalculateNormalsMesh.h"
+#include "SkinWeights.h"
 #include <map>
 #include <vector>
 #include <glm/glm.hpp> // vec3 normalize cross
@@ -35,17 +36,28 @@ namespace kml
 			}
 			std::vector<glm::vec3> positions;
 			std::vector<int>       new_indices(vsz);
+
+			std::vector<kml::SkinWeights::WeightVertex> weight_vertices;
+
 			size_t offset = 0;
 			for (size_t i = 0; i < vsz; i++)
 			{
 				if (counts[i])
 				{
 					positions.push_back(mesh->positions[i]);
+					if (mesh->skin_weights.get())
+					{
+						weight_vertices.push_back(mesh->skin_weights->vertices[i]);
+					}
 				}
 				new_indices[i] = offset;
 				offset += counts[i];
 			}
 			mesh->positions.swap(positions);
+			if (mesh->skin_weights.get())
+			{
+				mesh->skin_weights->vertices = weight_vertices;
+			}
 			for (size_t i = 0; i < mesh->pos_indices.size(); i++)
 			{
 				int idx = mesh->pos_indices[i];
@@ -379,6 +391,9 @@ namespace kml
 		std::vector<glm::vec2> texcoords(sz);
 		std::vector<glm::vec3> normals(sz);
 
+		std::vector<kml::SkinWeights::WeightVertex> weight_vertices(sz);
+
+
 		for (size_t i = 0; i < mesh->tex_indices.size(); i++)
 		{
 			int vidx = mesh->pos_indices[i];
@@ -388,6 +403,11 @@ namespace kml
 			IndexMap::iterator it = imap.find(pair);
 			int index = it->second;
 			positions[index] = mesh->positions[vidx];
+			if (mesh->skin_weights.get())
+			{
+				weight_vertices[index] = mesh->skin_weights->vertices[vidx];
+			}
+
 			if (tidx >= 0)
 			{
 				texcoords[index] = mesh->texcoords[tidx];
@@ -416,6 +436,11 @@ namespace kml
 		mesh->positions.swap(positions);
 		mesh->texcoords.swap(texcoords);
 		mesh->normals.swap(normals);
+
+		if (mesh->skin_weights.get())
+		{
+			mesh->skin_weights->vertices.swap(weight_vertices);
+		}
 
 		return true;
 	}

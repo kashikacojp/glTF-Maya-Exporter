@@ -74,6 +74,7 @@
 #include <maya/MTransformationMatrix.h>
 #include <maya/MStreamUtils.h>
 #include <maya/MFnSkinCluster.h>
+#include <maya/MItGeometry.h>
 
 #include <memory>
 #include <sstream>
@@ -570,10 +571,10 @@ std::vector<std::string> SplitPath(const std::string& str, const std::string& de
 
 
 static
-std::vector<MDagPath> GetDagPathList(const MDagPath& mdagPath)
+std::vector<MDagPath> GetDagPathList(const std::string& fullPathNameh)
 {
 	std::vector<MDagPath> pathList;
-	std::vector<std::string> tokens = SplitPath((mdagPath.fullPathName().asChar())+1, "|");
+	std::vector<std::string> tokens = SplitPath(fullPathNameh.c_str() + 1, "|");
 
 	std::vector<std::string> paths;
 	for (int i = 0; i < tokens.size(); i++)
@@ -603,6 +604,15 @@ std::vector<MDagPath> GetDagPathList(const MDagPath& mdagPath)
 
 	return pathList;
 }
+
+
+static
+std::vector<MDagPath> GetDagPathList(const MDagPath& mdagPath)
+{
+	return GetDagPathList(mdagPath.fullPathName().asChar());
+}
+
+
 
 static
 std::shared_ptr<kml::Node> ConvertGlobalToLocalMatrix(std::shared_ptr<kml::Node>& node, const glm::mat4& parent_mat = glm::mat4(1.0f))
@@ -796,6 +806,84 @@ std::shared_ptr<kml::Mesh> GetOriginalVertices(std::shared_ptr<kml::Mesh>& mesh,
 }
 
 static
+std::shared_ptr<kml::Mesh> GetSkinWeights(std::shared_ptr<kml::Mesh>& mesh, const MDagPath& dagpath)
+{
+	MFnDependencyNode node(dagpath.node());
+	MPlugArray mpa;
+	MPlug mp = node.findPlug("inMesh");
+	mp.connectedTo(mpa, true, false);
+
+	MObject vtxobj = MObject::kNullObj;
+	int isz = mpa.length();
+	if (isz < 1)
+	{
+		return mesh;
+	}
+
+	MFnDependencyNode dnode(mpa[0].node());
+	if (dnode.typeName() != "skinCluster")
+	{
+		return mesh;
+	}
+
+	MFnSkinCluster skinC(mpa[0].node());
+	skinC.findPlug("input").elementByLogicalIndex(skinC.indexForOutputShape(dagpath.node())).child(0).getValue(vtxobj);
+
+	std::shared_ptr<kml::SkinWeights> skin_weights(new kml::SkinWeights());
+	skin_weights->vertices.resize(mesh->positions.size());
+	MDagPathArray dpa;
+	MStatus stat;
+	int jsz = skinC.influenceObjects(dpa, &stat);
+	int ksz = skinC.numOutputConnections();
+	//assert(ksz == 1); // maybe 1 only
+	ksz = std::min<int>(ksz, 1);//TODO
+	for (int k = 0; k < ksz; k++)
+	{
+		const unsigned int index = skinC.indexForOutputConnection(k);
+
+		MDagPath dp;
+		skinC.getPathAtIndex(index, dp);
+
+		std::string weight_table_name = dp.partialPathName().asChar();
+
+		std::vector<std::string> joint_names;
+		for (int j = 0; j < jsz; j++)
+		{
+			std::string joint_name = dpa[j].fullPathName().asChar();
+			joint_names.push_back(joint_name);
+		}
+
+		skin_weights->joint_names = joint_names;
+
+		{
+			MItGeometry geoit(dagpath);
+			int weightVnum = geoit.count();
+
+			while (!geoit.isDone())
+			{
+				MObject cp = geoit.component(); // per vertex
+				MFloatArray ws;
+				unsigned int lsz;
+				skinC.getWeights(dp, cp, ws, lsz);
+				if (lsz != 0)
+				{
+					unsigned int index = geoit.index();
+					for (int l = 0; l < lsz; l++)
+					{
+						skin_weights->vertices[index][joint_names[l]] = ws[l];
+					}
+				}
+				geoit.next();
+			}
+		}
+	}
+
+	mesh->skin_weights = skin_weights;
+
+	return mesh;
+}
+
+static
 std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
 {
 	MStatus status = MS::kSuccess;
@@ -820,7 +908,8 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
 	MObject orgMeshObj = GetOriginalMesh(mdagPath);//T-pose
 	if (orgMeshObj.hasFn(MFn::kMesh))
 	{
-		mesh = GetOriginalVertices(mesh, orgMeshObj);//dynamic
+		mesh = GetOriginalVertices(mesh, orgMeshObj);	//dynamic
+		mesh = GetSkinWeights(mesh, mdagPath);			//dynamic
 	}
 	mesh->name = mdagPath.partialPathName().asChar();
 
@@ -1859,6 +1948,7 @@ MStatus WriteGLTF(
 		nodes.push_back(root_node);
 	}
 
+
 	return status;
 }
 
@@ -2274,6 +2364,67 @@ MStatus glTFExporter::exportAll     (const MString& fname)
 	return exportProcess(fname, dagPaths);
 }
 
+static
+std::vector< std::shared_ptr < kml::Node > > GetJointNodes(const std::vector< std::shared_ptr < kml::Node > >& skinned_nodes)
+{
+	//create nodes from skin weights' name
+	std::vector<std::string> joint_names;
+	for (size_t i = 0; i < skinned_nodes.size(); i++)
+	{
+		auto mesh = skinned_nodes[i]->GetMesh();
+		if (mesh.get())
+		{
+			if (mesh->skin_weights.get())
+			{
+				auto& skin_weights = mesh->skin_weights;
+				for (size_t j = 0; j < skin_weights->joint_names.size(); j++)
+				{
+					joint_names.push_back(skin_weights->joint_names[j]);
+				}
+			}
+		}
+	}
+
+	std::sort(joint_names.begin(), joint_names.end());
+	joint_names.erase(std::unique(joint_names.begin(), joint_names.end()), joint_names.end());
+
+	std::vector< std::shared_ptr < kml::Node > > tnodes;
+	for (size_t i = 0; i < joint_names.size(); i++)
+	{
+		std::vector<MDagPath> dagPathList = GetDagPathList(joint_names[i]);
+		std::vector< std::shared_ptr<kml::Node> > nodes;
+		for (size_t i = 0; i < dagPathList.size(); i++)
+		{
+			MDagPath path = dagPathList[i];
+			std::shared_ptr < kml::Node > n(new kml::Node());
+			n->SetName(path.partialPathName().asChar());
+			n->SetPath(path.fullPathName().asChar());
+			MMatrix mmat = path.inclusiveMatrix();
+			double dest[4][4];
+			mmat.get(dest);
+			glm::mat4 mat(
+				dest[0][0], dest[0][1], dest[0][2], dest[0][3],
+				dest[1][0], dest[1][1], dest[1][2], dest[1][3],
+				dest[2][0], dest[2][1], dest[2][2], dest[2][3],
+				dest[3][0], dest[3][1], dest[3][2], dest[3][3]
+			);
+			n->GetTransform()->SetMatrix(mat);
+			nodes.push_back(n);
+		}
+
+		for (size_t i = 0; i < nodes.size() - 1; i++)
+		{
+			nodes[i]->AddChild(nodes[i + 1]);
+		}
+
+		for (size_t i = 0; i < nodes.size(); i++)
+		{
+			tnodes.push_back(nodes[i]);
+		}
+	}
+	return tnodes;
+}
+
 MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDagPath >& dagPaths)
 {
 	MStatus status = MS::kSuccess;
@@ -2317,6 +2468,14 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
 	if (nodes.empty())
 	{
 		return MStatus::kSuccess;
+	}
+
+	{
+		std::vector< std::shared_ptr < kml::Node > > joint_nodes = GetJointNodes(nodes);
+		for (size_t i = 0; i < joint_nodes.size(); i++)
+		{
+			nodes.push_back(joint_nodes[i]);
+		}
 	}
 
 	//texture copy
