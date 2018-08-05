@@ -482,7 +482,7 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	int make_preload_texture = 0;	//0:off, 1:on
 	int output_buffer = 1;			//0:bin, 1:draco, 2:bin/draco
 	int convert_texture_format = 0; //0:no convert, 1:jpeg, 2:png
-	int transform_space = 1;		//0:world_space, 1:local_space
+	int transform_space = 0;		//0:world_space, 1:local_space
 
 	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
 	opts->SetInt("recalc_normals", recalc_normals);
@@ -919,12 +919,16 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
 		return std::shared_ptr<kml::Node>();
 	}
 
-	MObject orgMeshObj = GetOriginalMesh(mdagPath);//T-pose
-	if (orgMeshObj.hasFn(MFn::kMesh))
+	if (transform_space == 1)
 	{
-		mesh = GetOriginalVertices(mesh, orgMeshObj);	//dynamic
-		mesh = GetSkinWeights(mesh, mdagPath);			//dynamic
+		MObject orgMeshObj = GetOriginalMesh(mdagPath);//T-pose
+		if (orgMeshObj.hasFn(MFn::kMesh))
+		{
+			mesh = GetOriginalVertices(mesh, orgMeshObj);	//dynamic
+			mesh = GetSkinWeights(mesh, mdagPath);			//dynamic
+		}
 	}
+
 	mesh->name = mdagPath.partialPathName().asChar();
 
 	std::shared_ptr < kml::Node > node(new kml::Node());
