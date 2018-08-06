@@ -33,6 +33,7 @@
 #include <kml/SplitNodeByMaterialID.h>
 #include <kml/Options.h>
 #include <kml/GLTF2GLB.h>
+#include <kml/Texture.h>
 
 #include <kil/CopyTextureFile.h>
 #include <kil/ResizeTextureFile.h>
@@ -1216,7 +1217,9 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
 	if (getTextureAndColor(ainode, MString("baseColor"), baseColorTex, baseCol)) {
 		const std::string texName = baseColorTex.asChar();
 		if (!texName.empty()) {
-			mat->SetString("ai_baseColor", texName);
+			std::shared_ptr<kml::Texture> tex(new kml::Texture());
+			tex->SetFilePath(texName);
+			mat->SetTexture("ai_baseColor", tex);
 		}
 	}
 	
@@ -1241,7 +1244,9 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
 	if (getTextureAndColor(ainode, MString("specularColor"), specularTex, specularCol)) {
 		const std::string texName = specularTex.asChar();
 		if (!texName.empty()) {
-			mat->SetString("ai_specularColor", texName);
+			std::shared_ptr<kml::Texture> tex(new kml::Texture());
+			tex->SetFilePath(texName);
+			mat->SetTexture("ai_specularColor", tex);
 		}
 	}
 	mat->SetFloat("ai_specularWeight", specularWeight);
@@ -1271,7 +1276,9 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
 	if (getTextureAndColor(ainode, MString("transmissionColor"), transmissionTex, transmissionCol)) {
 		const std::string texName = transmissionTex.asChar();
 		if (!texName.empty()) {
-			mat->SetString("ai_transmissionColor", texName);
+			std::shared_ptr<kml::Texture> tex(new kml::Texture());
+			tex->SetFilePath(texName);
+			mat->SetTexture("ai_transmissionColor", tex);
 		}
 	}
 	MString transmissionScatterTex;
@@ -1279,7 +1286,9 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
 	if (getTextureAndColor(ainode, MString("transmissionScatter"), transmissionScatterTex, transmissionScatterCol)) {
 		const std::string texName = transmissionScatterTex.asChar();
 		if (!texName.empty()) {
-			mat->SetString("ai_transmissionScatter", texName);
+			std::shared_ptr<kml::Texture> tex(new kml::Texture());
+			tex->SetFilePath(texName);
+			mat->SetTexture("ai_transmissionScatter", tex);
 		}
 	}
 	mat->SetFloat("ai_transmissionWeight", transmissionWeight);
@@ -1311,7 +1320,9 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
 	if (getTextureAndColor(ainode, MString("subsurfaceColor"), subsurfaceTex, subsurfaceCol)) {
 		const std::string texName = subsurfaceTex.asChar();
 		if (!texName.empty()) {
-			mat->SetString("ai_subsurfaceColor", texName);
+			std::shared_ptr<kml::Texture> tex(new kml::Texture());
+			tex->SetFilePath(texName);
+			mat->SetTexture("ai_subsurfaceColor", tex);
 		}
 	}
 	MString subsurfaceRadiusTex;
@@ -1319,7 +1330,9 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
 	if (getTextureAndColor(ainode, MString("subsurfaceRadius"), subsurfaceRadiusTex, subsurfaceRadiusCol)) {
 		const std::string texName = subsurfaceRadiusTex.asChar();
 		if (!texName.empty()) {
-			mat->SetString("ai_subsurfaceRadius", texName);
+			std::shared_ptr<kml::Texture> tex(new kml::Texture());
+			tex->SetFilePath(texName);
+			mat->SetTexture("ai_subsurfaceRadius", tex);
 		}
 	}
 	mat->SetFloat("ai_subsurfaceWeight", subsurfaceWeight);
@@ -1348,7 +1361,9 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
 	if (getTextureAndColor(ainode, MString("coatColor"), coatColorTex, coatCol)) {
 		const std::string texName = coatColorTex.asChar();
 		if (!texName.empty()) {
-			mat->SetString("ai_coatColor", texName);
+			std::shared_ptr<kml::Texture> tex(new kml::Texture());
+			tex->SetFilePath(texName);
+			mat->SetTexture("ai_coatColor", tex);
 		}
 	}
 	mat->SetFloat("ai_coatWeight", coatWeight);
@@ -1371,7 +1386,9 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
 	if (getTextureAndColor(ainode, MString("emissionColor"), emissionColorTex, emissionCol)) {
 		const std::string texName = emissionColorTex.asChar();
 		if (!texName.empty()) {
-			mat->SetString("ai_emissionColor", texName);
+			std::shared_ptr<kml::Texture> tex(new kml::Texture());
+			tex->SetFilePath(texName);
+			mat->SetTexture("ai_emissionColor", tex);
 		}
 	}
 	mat->SetFloat("ai_emissionWeight", emissionWeight);
@@ -1388,7 +1405,9 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
 		std::string texName = normaltexpath.asChar();
 		if (!texName.empty())
 		{
-			mat->SetString("Normal", texName);
+			std::shared_ptr<kml::Texture> tex(new kml::Texture());
+			tex->SetFilePath(texName);
+			mat->SetTexture("Normal", tex);
 		}
 	}
 
@@ -1398,7 +1417,9 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
 	mat->SetFloat("BaseColor.B", baseCol.b * baseWeight);
 	mat->SetFloat("BaseColor.A", 1.0 - transmissionWeight);
 	if (baseColorTex.length() != 0) {
-		mat->SetString("BaseColor", baseColorTex.asChar());
+		std::shared_ptr<kml::Texture> tex(new kml::Texture());
+		tex->SetFilePath(baseColorTex.asChar());
+		mat->SetTexture("BaseColor", tex);
 	}
 	mat->SetFloat("metallicFactor", metallic);
 	mat->SetFloat("roughnessFactor", specularRoughness);
@@ -1407,7 +1428,9 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
 	mat->SetFloat("Emission.G", emissionCol.g * emissionWeight);
 	mat->SetFloat("Emission.B", emissionCol.b * emissionWeight);
 	if (emissionColorTex.length() != 0) {
-		mat->SetString("Emission", emissionColorTex.asChar());
+		std::shared_ptr<kml::Texture> tex(new kml::Texture());
+		tex->SetFilePath(emissionColorTex.asChar());
+		mat->SetTexture("Emission", tex);
 	}
 	return true;
 }
@@ -1454,7 +1477,9 @@ std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
 					std::string texName = coltexpath.asChar();
 					if (!texName.empty())
 					{
-						mat->SetString("BaseColor", texName);
+						std::shared_ptr<kml::Texture> tex(new kml::Texture());
+						tex->SetFilePath(texName);
+						mat->SetTexture("BaseColor", tex);
 					}
 					else
 					{
@@ -1475,7 +1500,9 @@ std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
 					std::string texName = normaltexpath.asChar();
 					if (!texName.empty())
 					{
-						mat->SetString("Normal", texName);
+						std::shared_ptr<kml::Texture> tex(new kml::Texture());
+						tex->SetFilePath(texName);
+						mat->SetTexture("Normal", tex);
 					}
 				}
 			}
@@ -1724,11 +1751,12 @@ MStatus WriteGLTF(
 				{
 					std::shared_ptr<kml::Material> mat = ConvertMaterial(shaders[i]);
 					{
-						auto keys = mat->GetStringKeys();
+						auto keys = mat->GetTextureKeys();
 						for (size_t j = 0; j < keys.size(); j++)
 						{
 							std::string key = keys[j];
-							std::string orgPath    = mat->GetString(key);
+							std::shared_ptr<kml::Texture> tex = mat->GetTexture(key);
+							std::string orgPath = tex->GetFilePath();
 							std::string copiedPath = MakeConvertTexturePath(texManager.GetCopiedPath(orgPath));
 							if (!texManager.HasOriginalPath(orgPath))
 							{
@@ -1746,12 +1774,17 @@ MStatus WriteGLTF(
 								dstPath += "../";
 							}
 							dstPath += GetFileExtName(copiedPath);
-							mat->SetString(key, dstPath);
+
+							std::shared_ptr<kml::Texture> dstTex(new kml::Texture());
+							tex->SetFilePath(dstPath);
+							mat->SetTexture(key, dstTex);
 
 							if (make_preload_texture)
 							{
 								std::string cachePath = GetCacheTexturePath(dstPath);
-								mat->SetString(key + "S0", cachePath);
+								std::shared_ptr<kml::Texture> cacheTex(new kml::Texture());
+								cacheTex->SetFilePath(cachePath);
+								mat->SetTexture(key + "S0", cacheTex);
 							}
 							
 						}

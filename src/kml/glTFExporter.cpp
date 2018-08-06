@@ -126,10 +126,11 @@ namespace kml
 		for (size_t j = 0; j < materials.size(); j++)
 		{
 			const auto& mat = materials[j];
-			auto keys = mat->GetStringKeys();
+			auto keys = mat->GetTextureKeys();
 			for (int i = 0; i < keys.size(); i++)
 			{
-				std::string texpath = mat->GetTextureName(keys[i]);
+				std::shared_ptr<kml::Texture> tex = mat->GetTexture(keys[i]);
+				std::string texpath = tex->GetFilePath();
 				texture_set.insert(texpath);
 			}
 		}
@@ -1352,7 +1353,9 @@ namespace kml
 
 					picojson::object pbrMetallicRoughness;
 
-					std::string basecolor_texname = mat->GetTextureName("BaseColor");
+					std::shared_ptr<kml::Texture> tex = mat->GetTexture("BaseColor");
+					std::string basecolor_texname = tex->GetFilePath();
+					
 					if (!basecolor_texname.empty())
 					{
 						int nIndex = FindTextureIndex(texture_vec, basecolor_texname);
@@ -1363,9 +1366,9 @@ namespace kml
 							pbrMetallicRoughness["baseColorTexture"] = picojson::value(baseColorTexture);
 						}
 					}
-
-
-					std::string normal_texname = mat->GetTextureName("Normal");
+					
+					std::shared_ptr<kml::Texture> normaltex = mat->GetTexture("Normal");
+					std::string normal_texname = normaltex->GetFilePath();
 					if (!normal_texname.empty())
 					{
 						int nIndex = FindTextureIndex(texture_vec, normal_texname);
