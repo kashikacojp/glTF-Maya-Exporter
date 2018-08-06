@@ -1354,10 +1354,8 @@ namespace kml
 					picojson::object pbrMetallicRoughness;
 
 					std::shared_ptr<kml::Texture> tex = mat->GetTexture("BaseColor");
-					std::string basecolor_texname = tex->GetFilePath();
-					
-					if (!basecolor_texname.empty())
-					{
+					if (tex) {
+						std::string basecolor_texname = tex->GetFilePath();
 						int nIndex = FindTextureIndex(texture_vec, basecolor_texname);
 						if (nIndex >= 0)
 						{
@@ -1368,9 +1366,8 @@ namespace kml
 					}
 					
 					std::shared_ptr<kml::Texture> normaltex = mat->GetTexture("Normal");
-					std::string normal_texname = normaltex->GetFilePath();
-					if (!normal_texname.empty())
-					{
+					if (normaltex) {
+						std::string normal_texname = normaltex->GetFilePath();
 						int nIndex = FindTextureIndex(texture_vec, normal_texname);
 						if (nIndex >= 0)
 						{
@@ -1379,7 +1376,6 @@ namespace kml
 							nd["normalTexture"] = picojson::value(normalTexture);
 						}
 					}
-
 
 					picojson::array colorFactor;
 					float R = mat->GetValue("BaseColor.R");

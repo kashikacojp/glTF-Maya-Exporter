@@ -17,11 +17,30 @@ namespace kml
 		};
 
 	public:
-		Texture() {};
+		Texture():
+			m_repeatU(0.0f), m_repeatV(0.0f),
+			m_offsetU(0.0f), m_offsetV(0.0f),
+			m_wrapU(true), m_wrapV(true),
+			m_filter(FILTER_NEAREST),
+			m_udimmode(false)
+		{};
+
 		~Texture() {};
 
 		Texture(const Texture& rh) {
 			m_textureFilePath = rh.m_textureFilePath;
+			m_repeatU  = rh.m_repeatU;
+			m_repeatV  = rh.m_repeatV;
+			m_offsetU  = rh.m_offsetU;
+			m_offsetV  = rh.m_offsetV;
+			m_wrapU    = rh.m_wrapU;
+			m_wrapV    = rh.m_wrapV;
+			m_filter   = rh.m_filter;
+			m_udimmode = rh.m_udimmode;
+		}
+
+		Texture* clone() {
+			return new Texture(*this);
 		}
 		
 		void SetFilePath(const std::string& filePath) {

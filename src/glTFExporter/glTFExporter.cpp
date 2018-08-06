@@ -1777,14 +1777,14 @@ MStatus WriteGLTF(
 							}
 							dstPath += GetFileExtName(copiedPath);
 
-							std::shared_ptr<kml::Texture> dstTex(new kml::Texture());
-							tex->SetFilePath(dstPath);
+							std::shared_ptr<kml::Texture> dstTex(tex->clone());
+							dstTex->SetFilePath(dstPath);
 							mat->SetTexture(key, dstTex);
 
 							if (make_preload_texture)
 							{
 								std::string cachePath = GetCacheTexturePath(dstPath);
-								std::shared_ptr<kml::Texture> cacheTex(new kml::Texture());
+								std::shared_ptr<kml::Texture> cacheTex(dstTex->clone());
 								cacheTex->SetFilePath(cachePath);
 								mat->SetTexture(key + "S0", cacheTex);
 							}
