@@ -1028,7 +1028,8 @@ namespace kml
 			LTE_pbr_material["baseColor"]        = picojson::value(baseColorFactor);
 			LTE_pbr_material["diffuseRoughness"] = picojson::value(mat->GetFloat("ai_diffuseRoughness"));
 			LTE_pbr_material["metalness"]        = picojson::value(mat->GetFloat("ai_metalness"));
-			const std::string ai_basetexname = mat->GetTextureName("ai_baseColor");
+			std::shared_ptr <kml::Texture> ai_baseTex = mat->GetTexture("ai_baseColor");
+			const std::string ai_basetexname = ai_baseTex->GetFilePath();
 			if (!ai_basetexname.empty()) {
 				const int nIndex = FindTextureIndex(texture_vec, ai_basetexname);
 				if (nIndex >= 0)
@@ -1050,7 +1051,8 @@ namespace kml
 			LTE_pbr_material["specularIOR"]        = picojson::value(mat->GetFloat("ai_specularIOR"));
 			LTE_pbr_material["specularRotation"]   = picojson::value(mat->GetFloat("ai_specularRotation"));
 			LTE_pbr_material["specularAnisotropy"] = picojson::value(mat->GetFloat("ai_specularAnisotropy"));
-			const std::string ai_specularTexname = mat->GetTextureName("ai_specularColor");
+			std::shared_ptr <kml::Texture> ai_specularTex = mat->GetTexture("ai_specularColor");
+			const std::string ai_specularTexname = ai_specularTex->GetFilePath();
 			if (!ai_specularTexname.empty()) {
 				const int nIndex = FindTextureIndex(texture_vec, ai_specularTexname);
 				if (nIndex >= 0)
@@ -1078,7 +1080,8 @@ namespace kml
 			LTE_pbr_material["transmissionExtraRoughness"] = picojson::value(mat->GetFloat("ai_transmissionExtraRoughness"));
 			LTE_pbr_material["transmissionDispersion"] = picojson::value(mat->GetFloat("ai_transmissionDispersion"));
 			LTE_pbr_material["transmissionAovs"] = picojson::value(mat->GetFloat("ai_transmissionAovs"));
-			const std::string ai_transmissionTexname = mat->GetTextureName("ai_transmissionColor");
+			std::shared_ptr <kml::Texture> ai_transmissionTex = mat->GetTexture("ai_transmissionColor");
+			const std::string ai_transmissionTexname = ai_transmissionTex->GetFilePath();
 			if (!ai_transmissionTexname.empty()) {
 				const int nIndex = FindTextureIndex(texture_vec, ai_transmissionTexname);
 				if (nIndex >= 0)
@@ -1088,7 +1091,8 @@ namespace kml
 					LTE_pbr_material["transmissionColorTexture"] = picojson::value(transmissionColorTexture);
 				}
 			}
-			const std::string ai_transmissionScatterTexname = mat->GetTextureName("ai_transmissionScatter");
+			std::shared_ptr <kml::Texture> ai_transmissionScatterTex = mat->GetTexture("ai_transmissionScatter");
+			const std::string ai_transmissionScatterTexname = ai_transmissionScatterTex->GetFilePath();
 			if (!ai_transmissionScatterTexname.empty()) {
 				const int nIndex = FindTextureIndex(texture_vec, ai_transmissionScatterTexname);
 				if (nIndex >= 0)
@@ -1118,7 +1122,8 @@ namespace kml
 			LTE_pbr_material["subsurfaceType"] = picojson::value(stype[mat->GetInteger("ai_subsurfaceType")]);
 			LTE_pbr_material["subsurfaceScale"] = picojson::value(mat->GetFloat("ai_subsurfaceScale"));
 			LTE_pbr_material["subsurfaceAnisotropy"] = picojson::value(mat->GetFloat("ai_subsurfaceAnisotropy"));
-			const std::string ai_subsurfaceColorTexname = mat->GetTextureName("ai_subsurfaceColor");
+			std::shared_ptr <kml::Texture> ai_subsurfaceColorTex = mat->GetTexture("ai_subsurfaceColor");
+			const std::string ai_subsurfaceColorTexname = ai_subsurfaceColorTex->GetFilePath();
 			if (!ai_subsurfaceColorTexname.empty()) {
 				const int nIndex = FindTextureIndex(texture_vec, ai_subsurfaceColorTexname);
 				if (nIndex >= 0)
@@ -1129,7 +1134,8 @@ namespace kml
 				}
 			}
 			
-			const std::string ai_subsurfaceRadiusTexname = mat->GetTextureName("ai_subsurfaceRadius");
+			std::shared_ptr <kml::Texture> ai_subsurfaceRadiusTex = mat->GetTexture("ai_subsurfaceRadius");
+			const std::string ai_subsurfaceRadiusTexname = ai_subsurfaceRadiusTex->GetFilePath();
 			if (!ai_subsurfaceRadiusTexname.empty()) {
 				const int nIndex = FindTextureIndex(texture_vec, ai_subsurfaceRadiusTexname);
 				if (nIndex >= 0)
@@ -1154,7 +1160,9 @@ namespace kml
 			LTE_pbr_material["coatRoughness"] = picojson::value(mat->GetFloat("ai_coatRoughness"));
 			LTE_pbr_material["coatIOR"] = picojson::value(mat->GetFloat("ai_coatIOR"));
 			LTE_pbr_material["coatNormal"] = picojson::value(coatNormal);
-			const std::string ai_coatColorTexname = mat->GetTextureName("ai_coatColor");
+
+			std::shared_ptr <kml::Texture> ai_coatColorTex = mat->GetTexture("ai_coatColor");
+			const std::string ai_coatColorTexname = ai_coatColorTex->GetFilePath();
 			if (!ai_coatColorTexname.empty()) {
 				const int nIndex = FindTextureIndex(texture_vec, ai_coatColorTexname);
 				if (nIndex >= 0)
@@ -1172,7 +1180,8 @@ namespace kml
 			emissiveColor.push_back(picojson::value(mat->GetFloat("ai_emissionColorB")));
 			LTE_pbr_material["emissionWeight"] = picojson::value(mat->GetFloat("ai_emissionWeight"));
 			LTE_pbr_material["emissionColor"] = picojson::value(emissiveColor);
-			const std::string ai_emissionColorTexname = mat->GetTextureName("ai_emissionColor");
+			std::shared_ptr <kml::Texture> ai_emissionColorTex = mat->GetTexture("ai_emissionColor");
+			const std::string ai_emissionColorTexname = ai_emissionColorTex->GetFilePath();
 			if (!ai_emissionColorTexname.empty()) {
 				const int nIndex = FindTextureIndex(texture_vec, ai_emissionColorTexname);
 				if (nIndex >= 0)
