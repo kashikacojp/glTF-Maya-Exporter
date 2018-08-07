@@ -10,7 +10,7 @@
 namespace kml
 {
 
-	std::shared_ptr<Bound> CalculateBound(const std::shared_ptr<Mesh>& mesh);
+	std::shared_ptr<Bound> CalculateBound(const std::shared_ptr<Mesh>& mesh, const glm::mat4& mat = glm::mat4(1.0f));
 
 }
 

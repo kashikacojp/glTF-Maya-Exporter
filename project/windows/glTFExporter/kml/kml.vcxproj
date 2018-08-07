@@ -143,6 +143,7 @@
     <ClCompile Include="..\..\..\..\src\kml\NodeExporter.cpp" />
     <ClCompile Include="..\..\..\..\src\kml\Options.cpp" />
     <ClCompile Include="..\..\..\..\src\kml\SaveToDraco.cpp" />
+    <ClCompile Include="..\..\..\..\src\kml\Skeleton.cpp" />
     <ClCompile Include="..\..\..\..\src\kml\SplitNodeByMaterialID.cpp" />
     <ClCompile Include="..\..\..\..\src\kml\Transform.cpp" />
     <ClCompile Include="..\..\..\..\src\kml\TriangulateMesh.cpp" />
@@ -161,6 +162,8 @@
     <ClInclude Include="..\..\..\..\src\kml\NodeExporter.h" />
     <ClInclude Include="..\..\..\..\src\kml\Options.h" />
     <ClInclude Include="..\..\..\..\src\kml\SaveToDraco.h" />
+    <ClInclude Include="..\..\..\..\src\kml\Skeleton.h" />
+    <ClInclude Include="..\..\..\..\src\kml\SkinWeights.h" />
     <ClInclude Include="..\..\..\..\src\kml\SplitNodeByMaterialID.h" />
     <ClInclude Include="..\..\..\..\src\kml\Transform.h" />
     <ClInclude Include="..\..\..\..\src\kml\TriangulateMesh.h" />

@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.2.3)
 #Use solution folders.
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-project("glTF-Maya-Exporter-LTE")
+project("glTF-Maya-Exporter")
 
 # -- options ----------------------------------------------------
 option(GLTF_MAYA_EXPORTER_BUILD_WITH_DRACO    "Build with Draco" ON)
@@ -137,7 +137,7 @@ if (GLTF_MAYA_EXPORTER_BUILD_MAYAEXPORTER)
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Dlinux -m64 -g -pthread -D_BOOL -DLINUX -DLINUX_64 -DFUNCPROTO -DREQUIRE_IOSTREAM -fPIC -Wno-deprecated -fno-gnu-keywords")
     endif()
 
-    add_library( glTFExporterLTE SHARED
+    add_library( glTFExporter SHARED
         ./src/glTFExporter/glTFExporter.cpp
         ./src/glTFExporter/glTFExporterRegist.cpp
         ./src/glTFExporter/glTFTranslator.cpp
@@ -145,27 +145,27 @@ if (GLTF_MAYA_EXPORTER_BUILD_MAYAEXPORTER)
         ./src/glTFExporter/ProgressWindow.cpp
     )
 
-    target_link_libraries( glTFExporterLTE
+    target_link_libraries( glTFExporter
                         kml
                         OpenMaya
                         OpenMayaUI
                         Foundation
     )
-    SET_TARGET_PROPERTIES(glTFExporterLTE PROPERTIES PREFIX "")
+    SET_TARGET_PROPERTIES(glTFExporter PROPERTIES PREFIX "")
     if(WIN32)
-      SET_TARGET_PROPERTIES(glTFExporterLTE PROPERTIES SUFFIX ".mll")
+      SET_TARGET_PROPERTIES(glTFExporter PROPERTIES SUFFIX ".mll")
     elseif(APPLE)
-      SET_TARGET_PROPERTIES(glTFExporterLTE PROPERTIES SUFFIX ".bundle")
+      SET_TARGET_PROPERTIES(glTFExporter PROPERTIES SUFFIX ".bundle")
     else()
-      SET_TARGET_PROPERTIES(glTFExporterLTE PROPERTIES SUFFIX ".so")
-      SET_TARGET_PROPERTIES(glTFExporterLTE PROPERTIES LINK_FLAGS "-shared -m64 -g -pthread -pipe -D_BOOL -DLINUX -DLINUX_64 -DFUNCPROTO -DREQUIRE_IOSTREAM -fPIC -Wno-deprecated -fno-gnu-keywords -Wl,-Bsymbolic")
+      SET_TARGET_PROPERTIES(glTFExporter PROPERTIES SUFFIX ".so")
+      SET_TARGET_PROPERTIES(glTFExporter PROPERTIES LINK_FLAGS "-shared -m64 -g -pthread -pipe -D_BOOL -DLINUX -DLINUX_64 -DFUNCPROTO -DREQUIRE_IOSTREAM -fPIC -Wno-deprecated -fno-gnu-keywords -Wl,-Bsymbolic")
     endif()
 
 
     # [VisualStudio] default startup
     if (WIN32)
     if (CMAKE_VERSION VERSION_GREATER 3.6.0)
-        set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT glTFExporterLTE)
+        set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT glTFExporter)
     endif()
     endif()
 endif()
@@ -202,5 +202,4 @@ if (GLTF_MAYA_EXPORTER_BUILD_CPP_INTERFACE)
         set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT glTFCppExporterLibTest)
     endif()
     endif()
-
 endif()

@@ -8,7 +8,17 @@
 
 namespace kml
 {
-	std::shared_ptr<Bound> CalculateBound(const std::shared_ptr<Mesh>& mesh)
+	static
+	glm::vec3 Transform(const glm::mat4& mat, const glm::vec3& v)
+	{
+		glm::vec4 t = mat * glm::vec4(v, 1.0f);
+		t[0] /= t[3];
+		t[1] /= t[3];
+		t[2] /= t[3];
+		return glm::vec3(t[0], t[1], t[2]);
+	}
+
+	std::shared_ptr<Bound> CalculateBound(const std::shared_ptr<Mesh>& mesh, const glm::mat4& mat)
 	{
 		static float MIN_ = -std::numeric_limits<float>::max();
 		static float MAX_ = +std::numeric_limits<float>::max();
@@ -17,6 +27,7 @@ namespace kml
 		for (size_t i = 0; i < mesh->positions.size(); i++)
 		{
 			glm::vec3 p = mesh->positions[i];
+			p = Transform(mat, p);
 			for (int j = 0; j < 3; j++)
 			{
 				m0[j] = std::min(m0[j], p[j]);

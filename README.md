@@ -51,8 +51,6 @@ we support MAYA2017 and MAYA2018 on Windows and macOS, now.
 
 - 4: Make it..  `$cmake --build .`
 
-`vc2017setup.bat` is provided for generating project file for Visual Studio 2017 64bit.
-
 ### Use Visual Studio (deprecated)
 
 - 1: Requirements: Visual studio 2017.

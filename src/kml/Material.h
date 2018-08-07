@@ -6,6 +6,8 @@
 #include <vector>
 #include <string>
 
+#include "Texture.h"
+
 namespace kml
 {
 	class Material
@@ -14,21 +16,20 @@ namespace kml
 		Material();
 		void        SetInteger(const std::string& key, int val);
 		void        SetFloat (const std::string& key, float val);
-		void        SetString(const std::string& key, const std::string& val);
+		void        SetTexture(const std::string& key, std::shared_ptr<Texture> tex);
 		int         GetInteger(const std::string& key)const;
 		float       GetFloat (const std::string& key)const;
-		std::string GetString(const std::string& key)const;
+
+		std::vector<std::string> GetTextureKeys() const;
+
 	public:
-		std::vector<std::string> GetStringKeys()const;
-	public:
-		float       GetValue (const std::string& key)const
+		float GetValue (const std::string& key)const
 		{
 			return GetFloat(key);
 		}
-		std::string GetTextureName(const std::string& key)const
-		{
-			return GetString(key);
-		}
+		
+		std::shared_ptr<Texture> GetTexture(const std::string& key) const;
+		
 		std::string GetName() const
 		{
 			return name_;
@@ -38,9 +39,9 @@ namespace kml
 			name_ = name;
 		}
 	protected:
-		std::map<std::string, int>         imap;
-		std::map<std::string, float>       fmap;
-		std::map<std::string, std::string> smap;
+		std::map<std::string, int>                       imap;
+		std::map<std::string, float>                     fmap;
+		std::map<std::string, std::shared_ptr<Texture> > tmap;
 		std::string name_;
 	};
 }

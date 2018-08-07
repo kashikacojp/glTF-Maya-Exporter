@@ -1,32 +1,35 @@
 #include "Material.h"
+#include "Texture.h"
+
+#include <memory>
 
 namespace kml
 {
 	typedef std::map<std::string, int>		   IntegerMapType;
 	typedef std::map<std::string, float>       ValueMapType;
-	typedef std::map<std::string, std::string> TextureMapType;
+	typedef std::map<std::string, std::shared_ptr<Texture> > TextureMapType;
 
 	Material::Material()
 	{
 		name_ = std::string("defaultMaterial");
 	}
 
-	void        Material::SetInteger(const std::string& key, int val)
+	void Material::SetInteger(const std::string& key, int val)
 	{
 		imap[key] = val;
 	}
 
-	void        Material::SetFloat(const std::string& key, float val)
+	void Material::SetFloat(const std::string& key, float val)
 	{
 		fmap[key] = val;
 	}
 
-	void        Material::SetString(const std::string& key, const std::string& val)
+	void Material::SetTexture(const std::string& key, std::shared_ptr<Texture> tex)
 	{
-		smap[key] = val;
+		tmap[key] = tex;
 	}
 
-	int         Material::GetInteger(const std::string& key)const
+	int Material::GetInteger(const std::string& key)const
 	{
 		IntegerMapType::const_iterator it = imap.find(key);
 		if (it != imap.end())
@@ -46,7 +49,7 @@ namespace kml
 		return 0;
 	}
 
-	std::string Material::GetString(const std::string& key)const
+	/*std::string Material::GetString(const std::string& key)const
 	{
 		TextureMapType::const_iterator it = smap.find(key);
 		if (it != smap.end())
@@ -60,6 +63,28 @@ namespace kml
 	{
 		std::vector<std::string> ret;
 		for (TextureMapType::const_iterator it = smap.begin(); it != smap.end(); it++)
+		{
+			ret.push_back(it->first);
+		}
+		return ret;
+	}*/
+
+	std::shared_ptr<Texture> Material::GetTexture(const std::string& key) const
+	{
+		const std::map<std::string, std::shared_ptr<Texture> >::const_iterator it = tmap.find(key);
+		if (it == tmap.end())
+		{
+			return nullptr;
+		}
+		else
+		{
+			return it->second;
+		}
+	}
+	std::vector<std::string> Material::GetTextureKeys() const
+	{
+		std::vector<std::string> ret;
+		for (TextureMapType::const_iterator it = tmap.begin(); it != tmap.end(); it++)
 		{
 			ret.push_back(it->first);
 		}
