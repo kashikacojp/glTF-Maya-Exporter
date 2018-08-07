@@ -1090,7 +1090,15 @@ bool getTextureAndColor(const MFnDependencyNode& node, const MString& name, std:
 				tex = std::shared_ptr<kml::Texture>(new kml::Texture);
 				MString tpath;
 				texturePlug.getValue(tpath);
-				tex->SetFilePath(tpath.asChar());
+				std::string texpath = tpath.asChar();
+				
+				// project path delimitor
+				const std::string pathDelimiter = "//";
+				size_t delim = texpath.find(pathDelimiter);
+				if (delim != std::string::npos) {
+					texpath.erase(0, delim + pathDelimiter.size());
+				}
+				tex->SetFilePath(texpath);
 			
 				// filter 
 				const int filterType = texNode.findPlug("filter").asInt();
