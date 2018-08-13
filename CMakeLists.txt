@@ -148,7 +148,8 @@ if (GLTF_MAYA_EXPORTER_BUILD_MAYAEXPORTER)
     target_link_libraries( glTFExporter
                         kml
                         OpenMaya
-                        OpenMayaUI
+                        OpenMayaAnim  # For SkinCluster
+                        OpenMayaUI # For progress window
                         Foundation
     )
     SET_TARGET_PROPERTIES(glTFExporter PROPERTIES PREFIX "")
