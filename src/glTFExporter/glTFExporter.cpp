@@ -666,12 +666,13 @@ MObject GetOriginalMesh(const MDagPath& dagpath)
 }
 
 static
-std::shared_ptr<kml::Mesh> CreateMesh(const MFnMesh& fnMesh, const MSpace::Space& space)
+std::shared_ptr<kml::Mesh> CreateMesh(const MDagPath& mdagPath, const MSpace::Space& space)
 {
 	MStatus status = MS::kSuccess;
 
-	MItMeshPolygon polyIter(fnMesh.object());
-	MItMeshVertex  vtxIter(fnMesh.object());
+    MFnMesh fnMesh(mdagPath);
+    MItMeshPolygon polyIter(mdagPath);
+    MItMeshVertex  vtxIter(mdagPath);
 
 	// Write out the vertex table
 	//
@@ -912,8 +913,7 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
 		space = MSpace::kObject;
 	}
 	
-	MFnMesh fnMesh(mdagPath);
-	std::shared_ptr<kml::Mesh> mesh = CreateMesh(fnMesh, space);
+	std::shared_ptr<kml::Mesh> mesh = CreateMesh(mdagPath, space);
 
 	if (!mesh.get())
 	{
