@@ -4,6 +4,7 @@
 
 #include <vector>
 #include <memory>
+#include <string>
 #include "Compatibility.h"
 #include "SkinWeights.h"
 #include <glm/vec2.hpp>
