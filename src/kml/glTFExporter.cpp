@@ -36,7 +36,7 @@ namespace {
 namespace kml
 {
 	static
-		std::string IToS(int n)
+	std::string IToS(int n)
 	{
 		char buffer[16] = {};
 #ifdef _WIN32
@@ -48,7 +48,7 @@ namespace kml
 	}
 
 	static
-		std::string GetBaseDir(const std::string& filepath)
+	std::string GetBaseDir(const std::string& filepath)
 	{
 #ifdef _WIN32
 		char dir[MAX_PATH + 1] = {};
@@ -63,7 +63,7 @@ namespace kml
 	}
 
 	static
-		std::string RemoveExt(const std::string& filepath)
+	std::string RemoveExt(const std::string& filepath)
 	{
 		if (filepath.find_last_of(".") != std::string::npos)
 			return filepath.substr(0, filepath.find_last_of("."));
@@ -71,7 +71,7 @@ namespace kml
 	}
 
 	static
-		std::string GetBaseName(const std::string& filepath)
+    std::string GetBaseName(const std::string& filepath)
 	{
 #ifdef _WIN32
 		char fname[MAX_PATH + 1] = {};
@@ -85,19 +85,19 @@ namespace kml
 	}
 
 	static
-		std::string GetImageID(const std::string& imagePath)
+	std::string GetImageID(const std::string& imagePath)
 	{
 		return GetBaseName(imagePath);
 	}
 
 	static
-		std::string GetTextureID(const std::string& imagePath)
+	std::string GetTextureID(const std::string& imagePath)
 	{
 		return "texture_" + GetImageID(imagePath);
 	}
 
 	static
-		std::string GetFileExtName(const std::string& path)
+	std::string GetFileExtName(const std::string& path)
 	{
 #ifdef _WIN32
 		char szFname[_MAX_FNAME];
@@ -121,7 +121,7 @@ namespace kml
 	}
 
 	static
-		void GetTextures(std::set<std::string>& texture_set, const std::vector< std::shared_ptr<::kml::Material> >& materials)
+    void GetTextures(std::set<std::string>& texture_set, const std::vector< std::shared_ptr<::kml::Material> >& materials)
 	{
 		for (size_t j = 0; j < materials.size(); j++)
 		{
@@ -137,7 +137,7 @@ namespace kml
 	}
 
 	static
-		std::string GetExt(const std::string& filepath)
+    std::string GetExt(const std::string& filepath)
 	{
 		if (filepath.find_last_of(".") != std::string::npos)
 			return filepath.substr(filepath.find_last_of("."));
@@ -145,7 +145,7 @@ namespace kml
 	}
 
 	static
-		unsigned int GetImageFormat(const std::string& path)
+    unsigned int GetImageFormat(const std::string& path)
 	{
 		std::string ext = GetExt(path);
 		if (ext == ".jpg" || ext == ".jpeg")
@@ -436,7 +436,7 @@ namespace kml
 		};
 
 		static
-			void GetMinMax(float min[], float max[], const std::vector<float>& verts, int n)
+		void GetMinMax(float min[], float max[], const std::vector<float>& verts, int n)
 		{
 			for (int i = 0; i<n; i++)
 			{
@@ -455,7 +455,7 @@ namespace kml
 		}
 
 		static
-			void GetMinMax(unsigned int& min, unsigned int& max, const std::vector<unsigned int>& verts)
+		void GetMinMax(unsigned int& min, unsigned int& max, const std::vector<unsigned int>& verts)
 		{
 			{
 				min = std::numeric_limits<unsigned int>::max();
@@ -470,7 +470,7 @@ namespace kml
 		}
 
 		static
-			picojson::array ConvertToArray(float v[], int n)
+		picojson::array ConvertToArray(float v[], int n)
 		{
 			picojson::array a;
 			for (int j = 0; j<n; j++)
@@ -973,7 +973,7 @@ namespace kml
 		};
 
 		static
-			int FindTextureIndex(const std::vector<std::string>& v, const std::string& s)
+		int FindTextureIndex(const std::vector<std::string>& v, const std::string& s)
 		{
 			std::vector<std::string>::const_iterator it = std::find(v.begin(), v.end(), s);
 			if (it != v.end())
@@ -984,11 +984,11 @@ namespace kml
 		}
 
 		static
-			std::shared_ptr<Node> RegisterNodes(
-				ObjectRegister& reg,
-				const std::shared_ptr<::kml::Node>& node,
-				bool IsOutputBin,
-				bool IsOutputDraco, bool IsUnionBufferDraco)
+		std::shared_ptr<Node> RegisterNodes(
+			ObjectRegister& reg,
+			const std::shared_ptr<::kml::Node>& node,
+			bool IsOutputBin,
+			bool IsOutputDraco, bool IsUnionBufferDraco)
 		{
 			std::shared_ptr<Node> ret_node;
 
@@ -1321,9 +1321,9 @@ namespace kml
 				picojson::object scene;
 				picojson::array nodes_;
 				const std::vector< std::shared_ptr<Node> >& nodes = reg.GetNodes();
-				for (size_t i = 0; i < nodes.size(); i++)
+				if(!nodes.empty())
 				{
-					nodes_.push_back(picojson::value((double)nodes[i]->GetIndex()));
+					nodes_.push_back(picojson::value((double)0));
 				}
 				scene["nodes"] = picojson::value(nodes_);
 				ar.push_back(picojson::value(scene));
@@ -1599,7 +1599,7 @@ namespace kml
 	//-----------------------------------------------------------------------------
 
 	static
-		bool ExportGLTF(const std::string& path, const std::shared_ptr<Node>& node, const std::shared_ptr<Options>& opts, bool prettify = true)
+	bool ExportGLTF(const std::string& path, const std::shared_ptr<Node>& node, const std::shared_ptr<Options>& opts, bool prettify = true)
 	{
 		bool output_bin = true;
 		bool output_draco = true;
@@ -1655,8 +1655,14 @@ namespace kml
 			// LTE extention
 			extensionsUsed.push_back(picojson::value("LTE_PBR_material"));
 
-			root_object["extensionsUsed"] = picojson::value(extensionsUsed);
-			root_object["extensionsRequired"] = picojson::value(extensionsRequired);
+			if (!extensionsUsed.empty())
+			{
+				root_object["extensionsUsed"] = picojson::value(extensionsUsed);
+			}
+			if (!extensionsRequired.empty())
+			{
+				root_object["extensionsRequired"] = picojson::value(extensionsRequired);
+			}
 		}
 
 
