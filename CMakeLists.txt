@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.2.3)
 #Use solution folders.
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-project("glTF-Maya-Exporter")
+project("glTF-Maya-Exporter-LTE")
 
 # -- options ----------------------------------------------------
 option(GLTF_MAYA_EXPORTER_BUILD_WITH_DRACO    "Build with Draco" ON)
