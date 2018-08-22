@@ -1246,6 +1246,10 @@ static bool isAiStandardSurfaceShader(const MFnDependencyNode& materialDependenc
 
 static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, const MFnDependencyNode& ainode)
 {
+	// store aishader name
+	std::string shadername = ainode.name().asChar();
+	mat->SetName(shadername);
+
 	// base
 	const float baseWeight = ainode.findPlug("base").asFloat();
 	const float baseColorR = ainode.findPlug("baseColorR").asFloat();
