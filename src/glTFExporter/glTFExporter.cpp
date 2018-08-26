@@ -483,7 +483,7 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	int make_preload_texture = 0;	//0:off, 1:on
 	int output_buffer = 1;			//0:bin, 1:draco, 2:bin/draco
 	int convert_texture_format = 0; //0:no convert, 1:jpeg, 2:png
-	int transform_space = 0;		//0:world_space, 1:local_space
+	int transform_space = 1;		//0:world_space, 1:local_space
 
 	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
 	opts->SetInt("recalc_normals", recalc_normals);
@@ -846,7 +846,8 @@ std::shared_ptr<kml::Mesh> GetSkinWeights(std::shared_ptr<kml::Mesh>& mesh, cons
 	skinC.findPlug("input").elementByLogicalIndex(skinC.indexForOutputShape(dagpath.node())).child(0).getValue(vtxobj);
 
 	std::shared_ptr<kml::SkinWeights> skin_weights(new kml::SkinWeights());
-	skin_weights->vertices.resize(mesh->positions.size());
+    skin_weights->name = skinC.name().asChar();
+	skin_weights->weights.resize(mesh->positions.size());
 	MDagPathArray dpa;
 	MStatus stat;
 	int jsz = skinC.influenceObjects(dpa, &stat);
@@ -862,14 +863,12 @@ std::shared_ptr<kml::Mesh> GetSkinWeights(std::shared_ptr<kml::Mesh>& mesh, cons
 
 		std::string weight_table_name = dp.partialPathName().asChar();
 
-		std::vector<std::string> joint_names;
+		std::vector<std::string> joint_paths;
 		for (int j = 0; j < jsz; j++)
 		{
-			std::string joint_name = dpa[j].fullPathName().asChar();
-			joint_names.push_back(joint_name);
+			std::string joint_path = dpa[j].fullPathName().asChar();
+            joint_paths.push_back(joint_path);
 		}
-
-		skin_weights->joint_names = joint_names;
 
 		{
 			MItGeometry geoit(dagpath);
@@ -886,12 +885,25 @@ std::shared_ptr<kml::Mesh> GetSkinWeights(std::shared_ptr<kml::Mesh>& mesh, cons
 					unsigned int index = geoit.index();
 					for (int l = 0; l < lsz; l++)
 					{
-						skin_weights->vertices[index][joint_names[l]] = ws[l];
+						skin_weights->weights[index][joint_paths[l]] = ws[l];
 					}
 				}
 				geoit.next();
 			}
 		}
+
+        struct StringSizeSorter
+        {
+            bool operator()(const std::string& a, const std::string& b)const
+            {
+                return a.size() < b.size();
+            }
+        };
+
+        std::sort(joint_paths.begin(), joint_paths.end());
+        joint_paths.erase(std::unique(joint_paths.begin(), joint_paths.end()), joint_paths.end());
+        std::sort(joint_paths.begin(), joint_paths.end(), StringSizeSorter());
+        skin_weights->joint_paths = joint_paths;
 	}
 
 	mesh->skin_weights = skin_weights;
@@ -2396,7 +2408,7 @@ static
 std::vector< std::shared_ptr < kml::Node > > GetJointNodes(const std::vector< std::shared_ptr < kml::Node > >& skinned_nodes)
 {
 	//create nodes from skin weights' name
-	std::vector<std::string> joint_names;
+	std::vector<std::string> joint_paths;
 	for (size_t i = 0; i < skinned_nodes.size(); i++)
 	{
 		auto mesh = skinned_nodes[i]->GetMesh();
@@ -2405,21 +2417,21 @@ std::vector< std::shared_ptr < kml::Node > > GetJointNodes(const std::vector< st
 			if (mesh->skin_weights.get())
 			{
 				auto& skin_weights = mesh->skin_weights;
-				for (size_t j = 0; j < skin_weights->joint_names.size(); j++)
+				for (size_t j = 0; j < skin_weights->joint_paths.size(); j++)
 				{
-					joint_names.push_back(skin_weights->joint_names[j]);
+                    joint_paths.push_back(skin_weights->joint_paths[j]);
 				}
 			}
 		}
 	}
 
-	std::sort(joint_names.begin(), joint_names.end());
-	joint_names.erase(std::unique(joint_names.begin(), joint_names.end()), joint_names.end());
+	std::sort(joint_paths.begin(), joint_paths.end());
+    joint_paths.erase(std::unique(joint_paths.begin(), joint_paths.end()), joint_paths.end());
 
 	std::vector< std::shared_ptr < kml::Node > > tnodes;
-	for (size_t i = 0; i < joint_names.size(); i++)
+	for (size_t i = 0; i < joint_paths.size(); i++)
 	{
-		std::vector<MDagPath> dagPathList = GetDagPathList(joint_names[i]);
+		std::vector<MDagPath> dagPathList = GetDagPathList(joint_paths[i]);
 		std::vector< std::shared_ptr<kml::Node> > nodes;
 		for (size_t i = 0; i < dagPathList.size(); i++)
 		{
