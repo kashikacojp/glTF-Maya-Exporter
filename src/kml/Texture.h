@@ -39,6 +39,7 @@ namespace kml
 			m_wrapV    = rh.m_wrapV;
 			m_filter   = rh.m_filter;
 			m_udimmode = rh.m_udimmode;
+			m_udimIDs  = rh.m_udimIDs;
 		}
 
 		Texture* clone() {
