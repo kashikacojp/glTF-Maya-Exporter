@@ -1668,6 +1668,7 @@ namespace kml
 
 			// LTE extention
 			extensionsUsed.push_back(picojson::value("LTE_PBR_material"));
+			extensionsUsed.push_back(picojson::value("LTE_UDIM_texture"));
 
 			if (!extensionsUsed.empty())
 			{
