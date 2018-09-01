@@ -1809,7 +1809,7 @@ MStatus WriteGLTF(
 								for (int udimID = 1001; udimID < 1100; udimID++) {
 									std::string orgPath = tex->MakeUDIMFilePath(udimID);
 									if (IsFileExist(orgPath)) { // find UDIM files
-										tex->AddUDIM_ID(udimID);
+										dstTex->AddUDIM_ID(udimID);
 										texPath_vec.push_back(orgPath);
 									}
 								}

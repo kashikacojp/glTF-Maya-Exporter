@@ -1232,36 +1232,30 @@ namespace kml
 			typedef std::map<std::string, std::string> CacheMapType;
 			std::vector<std::string> texture_vec;
 			std::map<std::string, std::string> cache_map;
+			std::map<std::string, std::shared_ptr<kml::Texture>> tex_map;
 			{
 				std::set<std::shared_ptr<kml::Texture>> texture_set;
 				GetTextures(texture_set, node->GetMaterials());
-
-				//std::ofstream fff("c:\\src\\debug.txt");
 
 				static const std::string t = "_s0.";
 				for (std::set<std::shared_ptr<kml::Texture>>::const_iterator it = texture_set.begin(); it != texture_set.end(); ++it)
 				{
 					std::shared_ptr<kml::Texture> tex = (*it);
 					std::string texname = tex->GetFilePath();
-					
-					if (tex->GetUDIMMode()) // UDIM Texture
+
+					if (texname.find(t) == std::string::npos)
 					{
-						// TODO:
+						texture_vec.push_back(texname);
+						tex_map[texname] = tex;
 					}
-					
+					else
 					{
-						if (texname.find(t) == std::string::npos)
-						{
-							texture_vec.push_back(texname);
-						}
-						else
-						{
-							std::string orgPath = texname;
-							orgPath.replace(texname.find(t), t.size(), ".");
-							orgPath = RemoveExt(orgPath);
-							cache_map.insert(CacheMapType::value_type(orgPath, texname));
-						}
+						std::string orgPath = texname;
+						orgPath.replace(texname.find(t), t.size(), ".");
+						orgPath = RemoveExt(orgPath);
+						cache_map.insert(CacheMapType::value_type(orgPath, texname));
 					}
+
 				}
 			}
 			{
