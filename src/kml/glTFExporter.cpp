@@ -857,7 +857,6 @@ namespace kml
                                 acc->Set("min", picojson::value(ConvertToArray(min, 16)));
                                 acc->Set("max", picojson::value(ConvertToArray(max, 16)));
 
-
                                 accessors_.push_back(acc);
                                 skin->SetAccessor("inverseBindMatrices", acc);
                                 nAcc++;
@@ -1132,9 +1131,9 @@ namespace kml
                     const std::shared_ptr<::kml::SkinWeights> in_skin = in_mesh->skin_weights;
                     if (in_skin.get())
                     {
-                        int nSkin = skins_.size();
-                        std::string skinName = in_skin->name;
-                        std::shared_ptr<Skin> skin(new Skin(skinName, nSkin));
+                        //int nSkin = skins_.size();
+                        //std::string skinName = in_skin->name;
+                        //std::shared_ptr<Skin> skin(new Skin(skinName, nSkin));
 
                         //node->SetSkin(skin);
                         //this->skins_.push_back(skin);
@@ -1536,7 +1535,7 @@ namespace kml
 					picojson::object attributes;
 					{
 						attributes["NORMAL"] = picojson::value((double)mesh->GetAccessor("NORMAL")->GetIndex());//picojson::value(mesh->GetAccessor("NORMAL")->GetName());
-						attributes["POSITION"] = picojson::value((double)mesh->GetAccessor("POSITION")->GetIndex());;
+						attributes["POSITION"] = picojson::value((double)mesh->GetAccessor("POSITION")->GetIndex());
 						std::shared_ptr<Accessor> tex = mesh->GetAccessor("TEXCOORD_0");
 						if (tex.get())
 						{
