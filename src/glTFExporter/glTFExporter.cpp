@@ -83,6 +83,7 @@
 #include <sstream>
 #include <fstream>
 #include <set>
+#include <iostream>
 
 #include <string.h> 
 #include <sys/types.h>
@@ -354,7 +355,12 @@ std::string GetTempDirectory()
 #endif
 }
 
-
+static
+bool IsFileExist(const std::string& filepath)
+{
+	std::ifstream ifs(filepath);
+	return ifs.is_open();
+}
 
 //////////////////////////////////////////////////////////////
 
@@ -1143,6 +1149,14 @@ bool getTextureAndColor(const MFnDependencyNode& node, const MString& name, std:
 					tex->SetUDIMMode(false);
 				} else if (tilingMode == 3) { // UDIM
 					tex->SetUDIMMode(true);
+					
+					// get <UDIM> tag filepath
+					MPlug compNamePlug = texNode.findPlug("computedFileTextureNamePattern", &status);
+					MString ctpath;
+					compNamePlug.getValue(ctpath);
+					std::string ctexpath = ctpath.asChar();
+					tex->SetUDIMFilePath(ctexpath);
+
 				} else { // Not Support
 					fprintf(stderr, "Error: Not support texture tiling mode.\n");
 				}
@@ -1784,29 +1798,50 @@ MStatus WriteGLTF(
 						{
 							std::string key = keys[j];
 							std::shared_ptr<kml::Texture> tex = mat->GetTexture(key);
-							std::string orgPath = tex->GetFilePath();
-							std::string copiedPath = MakeConvertTexturePath(texManager.GetCopiedPath(orgPath));
-							if (!texManager.HasOriginalPath(orgPath))
-							{
-								copiedPath = std::string(dirname.asChar()) + "/" + GetFileExtName(copiedPath);
-								texManager.SetPathPair(orgPath, copiedPath);
-							}
-
-							std::string dstPath;
-							if (onefile)
-							{
-								dstPath += "./";
-							}
-							else
-							{
-								dstPath += "../";
-							}
-							dstPath += GetFileExtName(copiedPath);
 
 							std::shared_ptr<kml::Texture> dstTex(tex->clone());
+
+							std::vector<std::string> texPath_vec;
+
+							// UDIM texturing
+							if (tex->GetUDIMMode()) {
+								tex->ClearUDIM_ID();
+								for (int udimID = 1001; udimID < 1100; udimID++) {
+									std::string orgPath = tex->MakeUDIMFilePath(udimID);
+									if (IsFileExist(orgPath)) { // find UDIM files
+										dstTex->AddUDIM_ID(udimID);
+										texPath_vec.push_back(orgPath);
+									}
+								}
+								std::string udimpath = tex->GetUDIMFilePath();
+								std::string copiedUDIMPath = MakeConvertTexturePath(texManager.GetCopiedPath(udimpath));
+								std::string dstUDIMPath = (onefile) ? "./" : "../";
+								dstUDIMPath += GetFileExtName(copiedUDIMPath);
+								dstTex->SetUDIMFilePath(dstUDIMPath);
+							}
+
+							// ordinary texturing
+							std::string orgPath = tex->GetFilePath();
+							texPath_vec.push_back(orgPath);
+							std::string copiedPath = MakeConvertTexturePath(texManager.GetCopiedPath(orgPath));
+							std::string dstPath = (onefile) ? "./" : "../";
+							dstPath += GetFileExtName(copiedPath);
 							dstTex->SetFilePath(dstPath);
 							mat->SetTexture(key, dstTex);
 
+
+							// if need convert, change image extension.
+							for (size_t t = 0; t < texPath_vec.size(); ++t) {
+								const std::string tmpOrgPath = texPath_vec[t];
+								std::string tempCopiedPath = MakeConvertTexturePath(texManager.GetCopiedPath(tmpOrgPath));
+								if (!texManager.HasOriginalPath(tmpOrgPath))
+								{
+									tempCopiedPath = std::string(dirname.asChar()) + "/" + GetFileExtName(tempCopiedPath);
+									texManager.SetPathPair(tmpOrgPath, tempCopiedPath); // register for texture copy
+								}
+							}
+
+							
 							if (make_preload_texture)
 							{
 								std::string cachePath = GetCacheTexturePath(dstPath);
