@@ -1282,7 +1282,7 @@ namespace kml
 						}
 					}
 
-					std::shared_ptr<kml::Texture> tex = tex_map[imagePath];
+					std::shared_ptr<kml::Texture> tex = texture_set[imagePath];
 					if (tex->GetUDIMMode()) {
 						picojson::object extensions;
 						picojson::object LTE_UDIM_texture;
