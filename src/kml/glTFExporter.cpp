@@ -121,7 +121,7 @@ namespace kml
 	}
 
 	static
-    void GetTextures(std::set< std::shared_ptr<kml::Texture> >& texture_set, const std::vector< std::shared_ptr<::kml::Material> >& materials)
+    void GetTextures(std::map<std::string, std::shared_ptr<kml::Texture> >& texture_set, const std::vector< std::shared_ptr<::kml::Material> >& materials)
 	{
 		for (size_t j = 0; j < materials.size(); j++)
 		{
@@ -130,7 +130,7 @@ namespace kml
 			for (int i = 0; i < keys.size(); i++)
 			{
 				std::shared_ptr<kml::Texture> tex = mat->GetTexture(keys[i]);
-				texture_set.insert(tex);
+				texture_set[tex->GetFilePath()] = tex;
 			}
 		}
 	}
@@ -1049,21 +1049,19 @@ namespace kml
 			typedef std::map<std::string, std::string> CacheMapType;
 			std::vector<std::string> texture_vec;
 			std::map<std::string, std::string> cache_map;
-			std::map<std::string, std::shared_ptr<kml::Texture>> tex_map;
+			std::map<std::string, std::shared_ptr<kml::Texture>> texture_set;
 			{
-				std::set<std::shared_ptr<kml::Texture>> texture_set;
 				GetTextures(texture_set, node->GetMaterials());
 
 				static const std::string t = "_s0.";
-				for (std::set<std::shared_ptr<kml::Texture>>::const_iterator it = texture_set.begin(); it != texture_set.end(); ++it)
+				for (std::map<std::string, std::shared_ptr<kml::Texture>>::const_iterator it = texture_set.begin(); it != texture_set.end(); ++it)
 				{
-					std::shared_ptr<kml::Texture> tex = (*it);
+					std::shared_ptr<kml::Texture> tex = it->second;
 					std::string texname = tex->GetFilePath();
 
 					if (texname.find(t) == std::string::npos)
 					{
 						texture_vec.push_back(texname);
-						tex_map[texname] = tex;
 					}
 					else
 					{
