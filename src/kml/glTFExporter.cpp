@@ -1283,6 +1283,22 @@ namespace kml
 							image["extensions"] = picojson::value(extensions);
 						}
 					}
+
+					std::shared_ptr<kml::Texture> tex = tex_map[imagePath];
+					if (tex->GetUDIMMode()) {
+						picojson::object extensions;
+						picojson::object LTE_UDIM_texture;
+						picojson::array tiles;
+						std::vector<int> udimIDs = tex->GetUDIM_IDs();
+						for (auto it = udimIDs.begin(); it != udimIDs.end(); ++it) {
+							tiles.push_back(picojson::value(static_cast<double>(*it)));
+						}
+						LTE_UDIM_texture["tiles"] = picojson::value(tiles);
+						LTE_UDIM_texture["url"] = picojson::value(tex->GetUDIMFilePath());
+						extensions["LTE_UDIM_texture"] = picojson::value(LTE_UDIM_texture);
+						image["extensions"] = picojson::value(extensions);
+					}
+
 					images.push_back(picojson::value(image));
 
 					picojson::object texture;
