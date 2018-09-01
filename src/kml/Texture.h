@@ -5,6 +5,8 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <algorithm>
+#include <sstream>
 
 namespace kml
 {
@@ -50,6 +52,25 @@ namespace kml
 		std::string GetFilePath() const {
 			return m_textureFilePath;
 		}
+
+		void SetUDIMFilePath(const std::string& filePath) {
+			m_udimTextureFilePath = filePath;
+		}
+
+		std::string GetUDIMFilePath() const {
+			return m_udimTextureFilePath;
+		}
+		std::string MakeUDIMFilePath(int udimID) const {
+			std::string path = m_udimTextureFilePath;
+			std::stringstream strID;
+			strID << udimID;
+			const std::string udimStr = "<UDIM>";
+			size_t p = path.find(udimStr);
+			if (p != std::string::npos) {
+				path.replace(p, udimStr.size(), strID.str());
+			}
+			return path;
+		}
 	
 		void SetRepeat(float repeatU, float repeatV) {
 			m_repeatU = repeatU;
@@ -86,13 +107,26 @@ namespace kml
 			return m_udimmode;
 		}
 
+
+		void AddUDIM_ID(int udim_id) {
+			m_udimIDs.push_back(udim_id);
+		}
+		void ClearUDIM_ID() {
+			m_udimIDs.clear();
+		}
+		const std::vector<int> GetUDIM_IDs() const {
+			return m_udimIDs;
+		}
+
 	protected:
 		std::string m_textureFilePath;
+		std::string m_udimTextureFilePath;
 		float m_repeatU, m_repeatV;
 		float m_offsetU, m_offsetV;
 		bool m_wrapU, m_wrapV;
 		FilterType m_filter;
 		bool m_udimmode;
+		std::vector<int> m_udimIDs;
 	};
 }
 
