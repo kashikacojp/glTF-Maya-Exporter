@@ -83,6 +83,7 @@
 #include <sstream>
 #include <fstream>
 #include <set>
+#include <iostream>
 
 #include <string.h> 
 #include <sys/types.h>
@@ -354,7 +355,12 @@ std::string GetTempDirectory()
 #endif
 }
 
-
+static
+bool IsFileExist(const std::string& filepath)
+{
+	std::ifstream ifs(filepath);
+	return ifs.is_open();
+}
 
 //////////////////////////////////////////////////////////////
 
@@ -450,6 +456,10 @@ MPxFileTranslator::MFileKind glTFExporter::identifyFile (
 	{
 		return kIsMyFileType;
 	}
+	else if ((nameLength > 4) && !strcasecmp(name + nameLength - 4, ".vrm"))
+	{
+		return kIsMyFileType;
+	}
 	else
 	{
 		return kNotMyFileType;
@@ -480,6 +490,7 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	int recalc_normals = 0;			//0:no, 1:recalc
 	int output_onefile = 1;			//0:sep, 1:one file
 	int output_glb = 0;				//0:json,1:glb
+	int vrm_export = 0;             //0:gltf or glb, 1:vrm
 	int make_preload_texture = 0;	//0:off, 1:on
 	int output_buffer = 1;			//0:bin, 1:draco, 2:bin/draco
 	int convert_texture_format = 0; //0:no convert, 1:jpeg, 2:png
@@ -489,6 +500,7 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	opts->SetInt("recalc_normals", recalc_normals);
 	opts->SetInt("output_onefile", output_onefile);
 	opts->SetInt("output_glb", output_glb);
+	opts->SetInt("vrm_export", vrm_export);
 	opts->SetInt("make_preload_texture", make_preload_texture);
 	opts->SetInt("output_buffer", output_buffer);
 	opts->SetInt("convert_texture_format", convert_texture_format);
@@ -518,6 +530,9 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 			if (theOption[0] == MString("output_glb") && theOption.length() > 1) {
 				output_glb = theOption[1].asInt();
 			}
+			if (theOption[0] == MString("vrm_export") && theOption.length() > 1) {
+				vrm_export = theOption[1].asInt();
+			}
 			if (theOption[0] == MString("make_preload_texture") && theOption.length() > 1) {
 				make_preload_texture = theOption[1].asInt();
 			}
@@ -531,6 +546,11 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 				transform_space = theOption[1].asInt();
 			}
 		}
+	}
+
+	if (vrm_export) {
+		output_buffer = 0; // disable Draco
+		output_glb = 1;    // force GLB format
 	}
 
 	if (output_glb)
@@ -1129,6 +1149,14 @@ bool getTextureAndColor(const MFnDependencyNode& node, const MString& name, std:
 					tex->SetUDIMMode(false);
 				} else if (tilingMode == 3) { // UDIM
 					tex->SetUDIMMode(true);
+					
+					// get <UDIM> tag filepath
+					MPlug compNamePlug = texNode.findPlug("computedFileTextureNamePattern", &status);
+					MString ctpath;
+					compNamePlug.getValue(ctpath);
+					std::string ctexpath = ctpath.asChar();
+					tex->SetUDIMFilePath(ctexpath);
+
 				} else { // Not Support
 					fprintf(stderr, "Error: Not support texture tiling mode.\n");
 				}
@@ -1770,29 +1798,50 @@ MStatus WriteGLTF(
 						{
 							std::string key = keys[j];
 							std::shared_ptr<kml::Texture> tex = mat->GetTexture(key);
-							std::string orgPath = tex->GetFilePath();
-							std::string copiedPath = MakeConvertTexturePath(texManager.GetCopiedPath(orgPath));
-							if (!texManager.HasOriginalPath(orgPath))
-							{
-								copiedPath = std::string(dirname.asChar()) + "/" + GetFileExtName(copiedPath);
-								texManager.SetPathPair(orgPath, copiedPath);
-							}
-
-							std::string dstPath;
-							if (onefile)
-							{
-								dstPath += "./";
-							}
-							else
-							{
-								dstPath += "../";
-							}
-							dstPath += GetFileExtName(copiedPath);
 
 							std::shared_ptr<kml::Texture> dstTex(tex->clone());
+
+							std::vector<std::string> texPath_vec;
+
+							// UDIM texturing
+							if (tex->GetUDIMMode()) {
+								tex->ClearUDIM_ID();
+								for (int udimID = 1001; udimID < 1100; udimID++) {
+									std::string orgPath = tex->MakeUDIMFilePath(udimID);
+									if (IsFileExist(orgPath)) { // find UDIM files
+										tex->AddUDIM_ID(udimID);
+										texPath_vec.push_back(orgPath);
+									}
+								}
+								std::string udimpath = tex->GetUDIMFilePath();
+								std::string copiedUDIMPath = MakeConvertTexturePath(texManager.GetCopiedPath(udimpath));
+								std::string dstUDIMPath = (onefile) ? "./" : "../";
+								dstUDIMPath += GetFileExtName(copiedUDIMPath);
+								dstTex->SetUDIMFilePath(dstUDIMPath);
+							}
+
+							// ordinary texturing
+							std::string orgPath = tex->GetFilePath();
+							texPath_vec.push_back(orgPath);
+							std::string copiedPath = MakeConvertTexturePath(texManager.GetCopiedPath(orgPath));
+							std::string dstPath = (onefile) ? "./" : "../";
+							dstPath += GetFileExtName(copiedPath);
 							dstTex->SetFilePath(dstPath);
 							mat->SetTexture(key, dstTex);
 
+
+							// if need convert, change image extension.
+							for (size_t t = 0; t < texPath_vec.size(); ++t) {
+								const std::string tmpOrgPath = texPath_vec[t];
+								std::string tempCopiedPath = MakeConvertTexturePath(texManager.GetCopiedPath(tmpOrgPath));
+								if (!texManager.HasOriginalPath(tmpOrgPath))
+								{
+									tempCopiedPath = std::string(dirname.asChar()) + "/" + GetFileExtName(tempCopiedPath);
+									texManager.SetPathPair(tmpOrgPath, tempCopiedPath); // register for texture copy
+								}
+							}
+
+							
 							if (make_preload_texture)
 							{
 								std::string cachePath = GetCacheTexturePath(dstPath);
@@ -2464,6 +2513,8 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
 	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
 	bool onefile = opts->GetInt("output_onefile") > 0;
 	bool glb = opts->GetInt("output_glb") > 0;
+	bool vrm = opts->GetInt("vrm_export") > 0;
+	
 
 	typedef std::vector< std::shared_ptr<kml::Node> > NodeVecType;
 	TexturePathManager texManager;
@@ -2578,10 +2629,16 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
 		picojson::value(root).serialize(std::ostream_iterator<char>(ofs), true);
 	}
 
-	if (glb)
+	if (glb | vrm)
 	{
 		std::string gltf_path = dir_path + "/" + GetFileName(std::string(fname.asChar())) + ".gltf";
-		std::string glb_path  = RemoveExt(std::string(fname.asChar())) + ".glb";
+		
+		std::string extname = ".glb";
+		if (vrm) {
+			extname = ".vrm";
+		}
+		std::string glb_path  = RemoveExt(std::string(fname.asChar())) + extname;
+
 		if (!kml::GLTF2GLB(gltf_path, glb_path))
 		{
 			status = MStatus::kFailure;

@@ -121,7 +121,7 @@ namespace kml
 	}
 
 	static
-    void GetTextures(std::set<std::string>& texture_set, const std::vector< std::shared_ptr<::kml::Material> >& materials)
+    void GetTextures(std::set< std::shared_ptr<kml::Texture> >& texture_set, const std::vector< std::shared_ptr<::kml::Material> >& materials)
 	{
 		for (size_t j = 0; j < materials.size(); j++)
 		{
@@ -130,8 +130,7 @@ namespace kml
 			for (int i = 0; i < keys.size(); i++)
 			{
 				std::shared_ptr<kml::Texture> tex = mat->GetTexture(keys[i]);
-				std::string texpath = tex->GetFilePath();
-				texture_set.insert(texpath);
+				texture_set.insert(tex);
 			}
 		}
 	}
@@ -1234,27 +1233,34 @@ namespace kml
 			std::vector<std::string> texture_vec;
 			std::map<std::string, std::string> cache_map;
 			{
-				std::set<std::string> texture_set;
+				std::set<std::shared_ptr<kml::Texture>> texture_set;
 				GetTextures(texture_set, node->GetMaterials());
 
 				//std::ofstream fff("c:\\src\\debug.txt");
 
 				static const std::string t = "_s0.";
-				for (std::set<std::string>::const_iterator it = texture_set.begin(); it != texture_set.end(); ++it)
+				for (std::set<std::shared_ptr<kml::Texture>>::const_iterator it = texture_set.begin(); it != texture_set.end(); ++it)
 				{
-					std::string tex = *it;
-					//fff << tex << std::endl;
-
-					if (tex.find(t) == std::string::npos)
+					std::shared_ptr<kml::Texture> tex = (*it);
+					std::string texname = tex->GetFilePath();
+					
+					if (tex->GetUDIMMode()) // UDIM Texture
 					{
-						texture_vec.push_back(tex);
+						// TODO:
 					}
-					else
+					
 					{
-						std::string orgPath = tex;
-						orgPath.replace(tex.find(t), t.size(), ".");
-						orgPath = RemoveExt(orgPath);
-						cache_map.insert(CacheMapType::value_type(orgPath, tex));
+						if (texname.find(t) == std::string::npos)
+						{
+							texture_vec.push_back(texname);
+						}
+						else
+						{
+							std::string orgPath = texname;
+							orgPath.replace(texname.find(t), t.size(), ".");
+							orgPath = RemoveExt(orgPath);
+							cache_map.insert(CacheMapType::value_type(orgPath, texname));
+						}
 					}
 				}
 			}
