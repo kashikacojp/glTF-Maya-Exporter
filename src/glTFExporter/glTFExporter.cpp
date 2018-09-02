@@ -2405,13 +2405,18 @@ MStatus glTFExporter::exportAll     (const MString& fname)
 }
 
 static
-std::vector< std::shared_ptr < kml::Node > > GetJointNodes(const std::vector< std::shared_ptr < kml::Node > >& skinned_nodes)
+std::vector< std::shared_ptr < kml::Node > > GetJointNodes(const std::vector< std::shared_ptr < kml::Node > >& lnodes)
 {
+    std::vector< std::shared_ptr < kml::Node > > mesh_nodes;
+    for (size_t i = 0; i < lnodes.size(); i++)
+    {
+        GetMeshNodes(mesh_nodes, lnodes[i]);
+    }
 	//create nodes from skin weights' name
 	std::vector<std::string> joint_paths;
-	for (size_t i = 0; i < skinned_nodes.size(); i++)
+	for (size_t i = 0; i < mesh_nodes.size(); i++)
 	{
-		auto mesh = skinned_nodes[i]->GetMesh();
+		auto mesh = mesh_nodes[i]->GetMesh();
 		if (mesh.get())
 		{
 			if (mesh->skin_weights.get())
@@ -2429,9 +2434,9 @@ std::vector< std::shared_ptr < kml::Node > > GetJointNodes(const std::vector< st
     joint_paths.erase(std::unique(joint_paths.begin(), joint_paths.end()), joint_paths.end());
 
 	std::vector< std::shared_ptr < kml::Node > > tnodes;
-	for (size_t i = 0; i < joint_paths.size(); i++)
+	for (size_t j = 0; j < joint_paths.size(); j++)
 	{
-		std::vector<MDagPath> dagPathList = GetDagPathList(joint_paths[i]);
+		std::vector<MDagPath> dagPathList = GetDagPathList(joint_paths[j]);
 		std::vector< std::shared_ptr<kml::Node> > nodes;
 		for (size_t i = 0; i < dagPathList.size(); i++)
 		{

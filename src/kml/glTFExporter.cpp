@@ -167,6 +167,21 @@ namespace kml
 		return FORMAT_JPEG;
 	}
 
+    static 
+    bool IsIdentity(const glm::mat4& mat)
+    {
+        glm::mat4 m = mat - glm::mat4(1.0f);
+        const float* ptr = glm::value_ptr(m);
+        for (int i = 0; i < 16; i++)
+        {
+            if (std::fabs(ptr[i]) > 1e-15)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
 	namespace gltf
 	{
         class Node;
@@ -508,8 +523,8 @@ namespace kml
 		{
 			for (int i = 0; i < n; i++)
 			{
-				min[i] = std::numeric_limits<float>::max();
-				max[i] = std::numeric_limits<float>::min();
+				min[i] = +1e+16;
+				max[i] = -1e+16;
 			}
 			size_t sz = verts.size() / n;
 			for (size_t i = 0; i < sz; i++)
@@ -540,7 +555,7 @@ namespace kml
         static
         void GetMinMax(unsigned short min[], unsigned short max[], const std::vector<unsigned short>& verts, int n)
         {
-            for (int i = 0; i<n; i++)
+            for (int i = 0; i < n; i++)
             {
                 min[i] = std::numeric_limits<float>::max();
                 max[i] = 0;
@@ -612,11 +627,26 @@ namespace kml
             {
                 glm::mat4 gm = global_matrices[i];
                 glm::mat4 im = glm::inverse(gm);
+                //im = glm::transpose(im);
                 const float* ptr = glm::value_ptr(im);
                 std::memcpy(dst + i * 16, ptr, sizeof(float) * 16);
             }
 
             return ret;
+        }
+
+        static
+        int GetIndexOfJoint(const std::shared_ptr<Skin>& skin, const std::string& path)
+        {
+            const auto& joints = skin->GetJoints();
+            for (int i = 0; i < (int)joints.size(); i++)
+            {
+                if (joints[i]->GetPath() == path)
+                {
+                    return i;
+                }
+            }
+            return -1;
         }
 
 		class ObjectRegisterer
@@ -800,11 +830,9 @@ namespace kml
 					}
 					
                     const std::shared_ptr<::kml::SkinWeights> in_skin = in_mesh->skin_weights;
-                    if (in_skin.get())
+                    if (in_skin.get() && this->skins_.size() > 0)
                     {
-                        int nSkin = skins_.size();
-                        std::string skinName = in_skin->name;
-                        std::shared_ptr<Skin> skin(new Skin(skinName, nSkin));
+                        std::shared_ptr<Skin> skin = skins_[0];
 
                         {
                             typedef std::map<std::string, std::shared_ptr<Node> > JointMap;
@@ -818,50 +846,6 @@ namespace kml
                                 }
                             };
 
-                            const std::vector< std::shared_ptr<Node> >& nodes = this->GetNodes();
-                            std::map<std::string, std::shared_ptr<Node> > joint_map;
-                            for (size_t i = 0; i < nodes.size(); i++)
-                            {
-                                std::string path = nodes[i]->GetPath();
-                                joint_map[path] = nodes[i];
-                            }
-  
-                            for (int i = 0; i < in_skin->joint_paths.size(); i++)
-                            {
-                                std::string path = in_skin->joint_paths[i];
-                                JointIterator it = joint_map.find(path);
-                                if (it != joint_map.end())
-                                {
-                                    skin->AddJoint(it->second);
-                                }
-                            }
-
-                            if (skin->GetJoints().size() > 0)
-                            {
-                                const std::vector<std::shared_ptr<Node> >& skin_joints = skin->GetJoints();
-                                std::vector<float> inverseMatrices = GetInverseBindMatrices(skin_joints);
-
-                                //indices
-                                std::string accName = "accessor_" + IToS(nAcc);//
-                                std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
-                                const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(inverseMatrices, GLTF_TARGET_ARRAY_BUFFER);
-                                acc->SetBufferView(bufferView);
-                                acc->Set("count", picojson::value((double)(inverseMatrices.size() / 16)));
-                                acc->Set("type", picojson::value("MAT4"));
-                                acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5123
-                                acc->Set("byteOffset", picojson::value((double)0));
-                                //acc->Set("byteStride", picojson::value((double)sizeof(unsigned int)));
-
-                                float min[16] = {}, max[16] = {};
-                                GetMinMax(min, max, inverseMatrices, 16);
-                                acc->Set("min", picojson::value(ConvertToArray(min, 16)));
-                                acc->Set("max", picojson::value(ConvertToArray(max, 16)));
-
-                                accessors_.push_back(acc);
-                                skin->SetAccessor("inverseBindMatrices", acc);
-                                nAcc++;
-                            }
-
                             typedef ::kml::SkinWeights::WeightVertex WeightVertex;
                             typedef WeightVertex::const_iterator WeightIterator;
                             std::vector<unsigned short> joints;
@@ -874,23 +858,30 @@ namespace kml
                                 {
                                     std::string path = it->first;
                                     float weight = it->second;
-                                    JointIterator jit = joint_map.find(path);
-                                    if (jit != joint_map.end())
-                                    {
-                                        ww.push_back(std::make_pair(jit->second->GetIndex(), weight));
-                                    }
+                                    int index = std::max<int>(0, GetIndexOfJoint(skin, path));
+                                    ww.push_back(std::make_pair(index, weight));
                                 }
                                 std::sort(ww.begin(), ww.end(), WeightSorter());
                                 unsigned short jx[4] = {};
                                 float wx[4] = {};
-                                for (int j = 0; j < ww.size(); j++)
+                                int nweights = std::min<int>(4, ww.size());
+                                for (int j = 0; j < nweights; j++)
                                 {
                                     jx[j] = ww[j].first;
                                     wx[j] = ww[j].second;
                                 }
-                                //TODO: normalize
+                                float l = 0.0f;
                                 for (int j = 0; j < 4; j++)
                                 {
+                                    l += wx[j];
+                                }
+                                l = 1.0 / std::max<float>(1e-16f, l);
+                                for (int j = 0; j < 4; j++)
+                                {
+                                    wx[j] *= l;
+                                }
+                                for (int j = 0; j < 4; j++)
+                                {                                   
                                     joints.push_back(jx[j]);
                                     weights.push_back(wx[j]);
                                 }
@@ -903,17 +894,17 @@ namespace kml
                                 std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
                                 const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(joints, GLTF_TARGET_ARRAY_BUFFER);
                                 acc->SetBufferView(bufferView);
-                                acc->Set("count", picojson::value((double)(joints.size())));
+                                acc->Set("count", picojson::value((double)(joints.size() / 4)));
                                 acc->Set("type", picojson::value("VEC4"));
                                 acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_UNSIGNED_SHORT));//5123
                                 acc->Set("byteOffset", picojson::value((double)0));
                                 //acc->Set("byteStride", picojson::value((double)sizeof(unsigned int)));
-
+                                /*
                                 unsigned short min[4] = {}, max[4] = {};
                                 GetMinMax(min, max, joints, 4);
                                 acc->Set("min", picojson::value(ConvertToArray(min, 4)));
                                 acc->Set("max", picojson::value(ConvertToArray(max, 4)));
-
+                                */
                                 accessors_.push_back(acc);
                                 mesh->SetAccessor("JOINTS_0", acc);
                                 nAcc++;
@@ -926,16 +917,17 @@ namespace kml
                                 std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
                                 const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(weights, GLTF_TARGET_ARRAY_BUFFER);
                                 acc->SetBufferView(bufferView);
-                                acc->Set("count", picojson::value((double)(weights.size())));
+                                acc->Set("count", picojson::value((double)(weights.size() / 4)));
                                 acc->Set("type", picojson::value("VEC4"));
                                 acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
                                 acc->Set("byteOffset", picojson::value((double)0));
                                 //acc->Set("byteStride", picojson::value((double)sizeof(unsigned int)));
-
+                                /*
                                 float min[4] = {}, max[4] = {};
-                                GetMinMax(min, max, texcoords, 4);
+                                GetMinMax(min, max, weights, 4);
                                 acc->Set("min", picojson::value(ConvertToArray(min, 4)));
                                 acc->Set("max", picojson::value(ConvertToArray(max, 4)));
+                                */
 
                                 accessors_.push_back(acc);
                                 mesh->SetAccessor("WEIGHTS_0", acc);
@@ -945,7 +937,6 @@ namespace kml
                         }
 
                         node->SetSkin(skin);
-                        this->skins_.push_back(skin);
                     }
 
                     node->SetMesh(mesh);
@@ -1178,7 +1169,16 @@ namespace kml
 			{
 				return dracoBuffers_;
 			}
-		protected:
+        public:
+            void AddSkin(const std::shared_ptr<Skin>& skin)
+            {
+                skins_.push_back(skin);
+            }
+            void AddAccessor(const std::shared_ptr<Accessor>& acc)
+            {
+                accessors_.push_back(acc);
+            }
+		public:
 			std::shared_ptr<Buffer> GetLastBinBuffer()
 			{
 				if (buffers_.empty())
@@ -1191,6 +1191,7 @@ namespace kml
 			{
 				nodes_.push_back(node);
 			}
+
 			const std::shared_ptr<BufferView>& AddBufferView(const std::vector<float>& vec, int target = GLTF_TARGET_ARRAY_BUFFER)
 			{
 				std::shared_ptr<Buffer> buffer = this->GetLastBinBuffer();
@@ -1325,6 +1326,136 @@ namespace kml
         }
 
         static
+        void GetSkinWeights(std::vector< std::shared_ptr<::kml::SkinWeights> >& skin_weights, const std::shared_ptr<::kml::Node>& in_node)
+        {
+            std::shared_ptr<::kml::Mesh> in_mesh = in_node->GetMesh();
+            if (in_mesh.get())
+            {
+                std::shared_ptr<::kml::SkinWeights> in_skin = in_mesh->skin_weights;
+                if (in_skin.get())
+                {
+                    skin_weights.push_back(in_skin);
+                }
+            }
+
+            {
+                auto& children = in_node->GetChildren();
+                for (size_t i = 0; i < children.size(); i++)
+                {
+                    GetSkinWeights(skin_weights, children[i]);
+                }
+            }
+        }
+
+        void RegisterSkins(
+            ObjectRegisterer& reg,
+            const std::shared_ptr<::kml::Node>& in_node)
+        {
+            std::vector< std::shared_ptr<::kml::SkinWeights> > skin_weights;
+            GetSkinWeights(skin_weights, in_node);
+
+            if(!skin_weights.empty())
+            {
+                int nSkin = reg.GetSkins().size();
+                std::string skinName = "skin_" + IToS(nSkin);
+                std::shared_ptr<Skin> skin(new Skin(skinName, nSkin));
+
+
+                typedef std::map<std::string, std::shared_ptr<Node> > JointMap;
+                typedef JointMap::iterator JointIterator;
+
+                typedef std::pair<size_t, std::shared_ptr<Node> > JointPair;
+
+                struct JointSorter
+                {
+                    bool operator()(const JointPair& a, const JointPair& b)const
+                    {
+                        return a.first < b.first;
+                    }
+                };
+
+                const std::vector< std::shared_ptr<Node> >& nodes = reg.GetNodes();
+                std::map<std::string, std::shared_ptr<Node> > joint_map;
+                for (size_t i = 0; i < nodes.size(); i++)
+                {
+                    std::string path = nodes[i]->GetPath();
+                    joint_map[path] = nodes[i];
+                }
+
+                std::map<std::string, std::shared_ptr<Node> > joint_map2;
+
+                for (size_t j = 0; j < skin_weights.size(); j++)
+                {
+                    std::shared_ptr<::kml::SkinWeights>& in_skin = skin_weights[j];
+
+                    typedef ::kml::SkinWeights::WeightVertex WeightVertex;
+                    typedef WeightVertex::const_iterator WeightIterator;
+                    std::vector<unsigned short> joints;
+                    std::vector<float> weights;
+                    for (int i = 0; i < in_skin->weights.size(); i++)
+                    {
+                        WeightIterator it = in_skin->weights[i].begin();
+                        for (; it != in_skin->weights[i].end(); it++)
+                        {
+                            std::string path = it->first;
+                            float weight = it->second;
+                            JointIterator jit = joint_map.find(path);
+                            if (jit != joint_map.end())
+                            {
+                                std::string path = jit->first;
+                                joint_map2[path] = jit->second;
+                            }
+                        }
+                    }
+                }
+
+                std::vector < std::pair<int, std::shared_ptr<Node> > > joint_nodes;
+                {
+                    for (JointIterator it = joint_map2.begin(); it != joint_map2.end(); it++)
+                    {
+                        joint_nodes.push_back( std::make_pair(it->first.size(), it->second) );
+                    }
+                }
+
+                std::sort(joint_nodes.begin(), joint_nodes.end(), JointSorter());
+                for (size_t i = 0; i < joint_nodes.size(); i++)
+                {
+                    skin->AddJoint(joint_nodes[i].second);
+                }
+
+
+                if (skin->GetJoints().size() > 0)
+                {
+                    const std::vector<std::shared_ptr<Node> >& skin_joints = skin->GetJoints();
+                    std::vector<float> inverseMatrices = GetInverseBindMatrices(skin_joints);
+
+                    int nAcc = reg.GetAccessors().size();
+                    //indices
+                    std::string accName = "accessor_" + IToS(nAcc);//
+                    std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
+                    const std::shared_ptr<BufferView>& bufferView = reg.AddBufferView(inverseMatrices, -1);
+                    acc->SetBufferView(bufferView);
+                    acc->Set("count", picojson::value((double)(inverseMatrices.size() / 16)));
+                    acc->Set("type", picojson::value("MAT4"));
+                    acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
+                    acc->Set("byteOffset", picojson::value((double)0));
+                    //acc->Set("byteStride", picojson::value((double)sizeof(unsigned int)));
+                    /*
+                    float min[16] = {}, max[16] = {};
+                    GetMinMax(min, max, inverseMatrices, 16);
+                    acc->Set("min", picojson::value(ConvertToArray(min, 16)));
+                    acc->Set("max", picojson::value(ConvertToArray(max, 16)));
+                    */
+
+                    reg.AddAccessor(acc);
+                    skin->SetAccessor("inverseBindMatrices", acc);
+
+                    reg.AddSkin(skin);
+                }
+            }
+        }
+
+        static
         void RegisterObjects(
             ObjectRegisterer& reg,
             const std::shared_ptr<::kml::Node>& node,
@@ -1333,6 +1464,7 @@ namespace kml
         {
             std::vector< std::pair<std::shared_ptr<Node>, std::shared_ptr<::kml::Node> > > node_pairs;
             CreateNodes(node_pairs, reg, node);
+            RegisterSkins(reg, node);
             for (size_t i = 0; i < node_pairs.size(); i++)
             {
                 if (IsOutputBin)
@@ -1458,7 +1590,6 @@ namespace kml
                 RegisterObjects(reg, node, IsOutputBin, IsOutputDraco, IsUnionBufferDraco);
 			}
 
-
 			{
 				root["scene"] = picojson::value((double)0);
 			}
@@ -1471,7 +1602,7 @@ namespace kml
 				const std::vector< std::shared_ptr<Node> >& nodes = reg.GetNodes();
 				if(!nodes.empty())
 				{
-					nodes_.push_back(picojson::value((double)0));
+                    nodes_.push_back(picojson::value((double)0));
 				}
 				scene["nodes"] = picojson::value(nodes_);
 				ar.push_back(picojson::value(scene));
@@ -1490,7 +1621,11 @@ namespace kml
 					std::string name = n->GetName();
 					nd["name"] = picojson::value(name);
 
-					nd["matrix"] = picojson::value(GetMatrixAsArray(n->GetMatrix()));
+                    glm::mat4 mat = n->GetMatrix();
+                    if (!IsIdentity(mat))
+                    {
+                        nd["matrix"] = picojson::value(GetMatrixAsArray(mat));
+                    }
 
 					const auto& children = n->GetChildren();
 					if (children.size() > 0)
@@ -1628,8 +1763,16 @@ namespace kml
 					nd["componentType"] = accessor->Get("componentType");
 					nd["count"] = accessor->Get("count");
 					nd["type"] = accessor->Get("type");
-					nd["min"] = accessor->Get("min");
-					nd["max"] = accessor->Get("max");
+                    auto min_ = accessor->Get("min");
+                    if (!min_.is<picojson::null>())
+                    {
+                        nd["min"] = min_;
+                    }
+                    auto max_ = accessor->Get("max");
+                    if (!max_.is<picojson::null>())
+                    {
+                        nd["max"] = max_;
+                    }
 					ar.push_back(picojson::value(nd));
 				}
 				root["accessors"] = picojson::value(ar);
@@ -1646,7 +1789,11 @@ namespace kml
 					nd["buffer"] = picojson::value((double)bufferView->GetBuffer()->GetIndex());
 					nd["byteOffset"] = picojson::value((double)bufferView->GetByteOffset());
 					nd["byteLength"] = picojson::value((double)bufferView->GetByteLength());
-					nd["target"] = picojson::value((double)bufferView->GetTarget());
+                    int nBufferView = bufferView->GetTarget();
+                    if (nBufferView >= 0)
+                    {
+                        nd["target"] = picojson::value((double)bufferView->GetTarget());
+                    }
 					ar.push_back(picojson::value(nd));
 				}
 				root["bufferViews"] = picojson::value(ar);
@@ -1689,28 +1836,38 @@ namespace kml
                 for (size_t i = 0; i < skins.size(); i++)
                 {
                     const std::shared_ptr<Skin>& skin = skins[i];
-                    picojson::object nd;
-                    nd["name"] = picojson::value(skin->GetName());
+                    const std::vector< std::shared_ptr<Node> >& joints = skin->GetJoints();
+                    if (!joints.empty())
                     {
-                        const std::vector< std::shared_ptr<Node> >& joints = skin->GetJoints();
-                        picojson::array nj;
-                        for (size_t i = 0; i < joints.size(); i++)
+                        picojson::object nd;
+                        nd["name"] = picojson::value(skin->GetName());
                         {
-                            int index = joints[i]->GetIndex();
-                            nj.push_back(picojson::value((double)index));
+                            picojson::array nj;
+                            for (size_t i = 0; i < joints.size(); i++)
+                            {
+                                int index = joints[i]->GetIndex();
+                                nj.push_back(picojson::value((double)index));
+                            }
+                            nd["joints"] = picojson::value(nj);
                         }
-                        nd["joints"] = picojson::value(nj);
-                    }
-                    
-                    nd["skeleton"] = picojson::value((double)skin->GetRootJoint()->GetIndex());
 
-                    std::shared_ptr<Accessor> inverseBindMatricesAccessor = skin->GetAccessor("inverseBindMatrices");
-                    if (inverseBindMatricesAccessor.get())
+                        nd["skeleton"] = picojson::value((double)skin->GetRootJoint()->GetIndex());
+                        std::shared_ptr<Accessor> inverseBindMatricesAccessor = skin->GetAccessor("inverseBindMatrices");
+                        if (inverseBindMatricesAccessor.get())
+                        {
+                            nd["inverseBindMatrices"] = picojson::value((double)inverseBindMatricesAccessor->GetIndex());
+                        }
+
+                        ar.push_back(picojson::value(nd));
+                    }
+                    else
                     {
-                        nd["inverseBindMatrices"] = picojson::value((double)inverseBindMatricesAccessor->GetIndex());
+                        continue;
                     }
-
-                    ar.push_back(picojson::value(nd));
+                }
+                if (!ar.empty())
+                {
+                    root["skins"] = picojson::value(ar);
                 }
             }
 
@@ -1858,6 +2015,8 @@ namespace kml
 		{
 			return false;
 		}
+
+
 
 		{
 			std::ofstream ofs(path.c_str());
