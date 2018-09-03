@@ -1,14 +1,8 @@
-displayString -replace -value "Recalc normals:" m_glTFExporterOptions.kRecalcNormals;
-displayString -replace -value "Output glb file:" m_glTFExporterOptions.kOutputGLBFile;
-displayString -replace -value "Compress buffer" m_glTFExporterOptions.kOutputBuffer;
-displayString -replace -value "Convert texture format" m_glTFExporterOptions.kConvertTextureFormat;
+displayString -replace -value "Recalc normals:" m_vrmExporterOptions.kRecalcNormals;
+displayString -replace -value "Convert texture format" m_vrmExporterOptions.kConvertTextureFormat;
 
-displayString -replace -value "Off" m_glTFExporterOptions.kOff;
-displayString -replace -value "On" m_glTFExporterOptions.kOn;
-displayString -replace -value "Bin" m_glTFExporterOptions.kBufBin;
-displayString -replace -value "Draco" m_glTFExporterOptions.kBufDrc;
-displayString -replace -value "N/A" m_glTFExporterOptions.kConvertNo;
-displayString -replace -value "Jpeg" m_glTFExporterOptions.kConvertJpeg;
-displayString -replace -value "Png" m_glTFExporterOptions.kConvertPng;
-displayString -replace -value "gltf" m_glTFExporterOptions.kGltf;
-displayString -replace -value "glb" m_glTFExporterOptions.kGlb;
+displayString -replace -value "Off" m_vrmExporterOptions.kOff;
+displayString -replace -value "On" m_vrmExporterOptions.kOn;
+displayString -replace -value "N/A" m_vrmExporterOptions.kConvertNo;
+displayString -replace -value "Jpeg" m_vrmExporterOptions.kConvertJpeg;
+displayString -replace -value "Png" m_vrmExporterOptions.kConvertPng;

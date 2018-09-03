@@ -1,4 +1,4 @@
-global proc int glTFExporterOptions ( string $parent,
+global proc int vrmExporterOptions ( string $parent,
 								   string $action,
 								   string $initialSettings,
 								   string $resultCallback )
@@ -13,37 +13,23 @@ global proc int glTFExporterOptions ( string $parent,
 		setParent $parent;
 
 		columnLayout -adj true objTypeCol;
-		    string $on = (uiRes("m_glTFExporterOptions.kOn"));
-            string $off = (uiRes("m_glTFExporterOptions.kOff"));
-            string $buf_bin = (uiRes("m_glTFExporterOptions.kBufBin"));
-            string $buf_drc = (uiRes("m_glTFExporterOptions.kBufDrc"));
-            string $conv_no = (uiRes("m_glTFExporterOptions.kConvertNo"));
-            string $conv_jpeg = (uiRes("m_glTFExporterOptions.kConvertJpeg"));
-            string $conv_png  = (uiRes("m_glTFExporterOptions.kConvertPng"));
-			string $gltf = (uiRes("m_glTFExporterOptions.kGltf"));
-            string $glb  = (uiRes("m_glTFExporterOptions.kGlb"));
-            
+		    string $on = (uiRes("m_vrmExporterOptions.kOn"));
+            string $off = (uiRes("m_vrmExporterOptions.kOff"));
+            string $conv_no = (uiRes("m_vrmExporterOptions.kConvertNo"));
+            string $conv_jpeg = (uiRes("m_vrmExporterOptions.kConvertJpeg"));
+            string $conv_png  = (uiRes("m_vrmExporterOptions.kConvertPng"));
+			
 			radioButtonGrp
-				-label (uiRes("m_glTFExporterOptions.kRecalcNormals"))
+				-label (uiRes("m_vrmExporterOptions.kRecalcNormals"))
 				-nrb 2 -cw3 190 45 45
 				-labelArray2 $on $off objRecalcNormals;
 			radioButtonGrp
-				-label (uiRes("m_glTFExporterOptions.kOutputGLBFile"))
-				-nrb 2	-cw3 190 45 45
-				-labelArray2 $gltf $glb objOutputGLBFile;
-			radioButtonGrp
-				-label (uiRes("m_glTFExporterOptions.kOutputBuffer"))
-				-nrb 2	-cw3 190 45 45
-				-labelArray2 $buf_bin $buf_drc objOutputBuffer;
-			radioButtonGrp
-				-label (uiRes("m_glTFExporterOptions.kConvertTextureFormat"))
+				-label (uiRes("m_vrmExporterOptions.kConvertTextureFormat"))
 				-nrb 3	-cw4 190 45 45 45
 				-labelArray3 $conv_no $conv_jpeg $conv_png objConvertTextureFormat;
 				
 				
 		radioButtonGrp -e -sl 2 objRecalcNormals;		//off
-		radioButtonGrp -e -sl 1 objOutputGLBFile;		//gltf
-		radioButtonGrp -e -sl 2 objOutputBuffer;		//draco
 		radioButtonGrp -e -sl 1 objConvertTextureFormat;//N/A
 
 		// Now set to current settings.
@@ -58,18 +44,6 @@ global proc int glTFExporterOptions ( string $parent,
 						radioButtonGrp -e -sl 2 objRecalcNormals;
 					} else {
 						radioButtonGrp -e -sl 1 objRecalcNormals;
-					}
-				} else if ($optionBreakDown[0] == "output_glb") {
-					if ($optionBreakDown[1] == "0") {
-						radioButtonGrp -e -sl 1 objOutputGLBFile;
-					} else {
-						radioButtonGrp -e -sl 2 objOutputGLBFile;
-					}
-				} else if ($optionBreakDown[0] == "output_buffer") {
-					if ($optionBreakDown[1] == "0") {
-						radioButtonGrp -e -sl 1 objOutputBuffer;
-					} else {
-						radioButtonGrp -e -sl 2 objOutputBuffer;
 					}
 				} else if ($optionBreakDown[0] == "convert_texture_format") {
 					if ($optionBreakDown[1] == "0") {
@@ -89,18 +63,6 @@ global proc int glTFExporterOptions ( string $parent,
 			$currentOptions = $currentOptions + "recalc_normals=1";
 		} else {
 			$currentOptions = $currentOptions + "recalc_normals=0";
-		}
-
-		if (`radioButtonGrp -q -sl objOutputGLBFile` == 1) {
-			$currentOptions = $currentOptions + ";output_glb=0";
-		} else {
-			$currentOptions = $currentOptions + ";output_glb=1";
-		}
-		
-		if (`radioButtonGrp -q -sl objOutputBuffer` == 1) {
-			$currentOptions = $currentOptions + ";output_buffer=0";
-		} else {
-			$currentOptions = $currentOptions + ";output_buffer=1";
 		}
 		
 		if (`radioButtonGrp -q -sl objConvertTextureFormat` == 1) {
