@@ -618,7 +618,7 @@ namespace kml
             std::vector<glm::mat4> global_matrices(jsz);
             for (size_t i = 0; i < jsz; i++)
             {
-                global_matrices[i] = GetGlobalMatrix(parentMap, joints[i].get());
+                global_matrices[i] = glm::mat4(1.0f);// GetGlobalMatrix(parentMap, joints[i].get());
             }
 
             std::vector<float> ret(jsz*4*4);
