@@ -47,7 +47,7 @@ namespace kml
 					positions.push_back(mesh->positions[i]);
 					if (mesh->skin_weights.get())
 					{
-						weight_vertices.push_back(mesh->skin_weights->vertices[i]);
+						weight_vertices.push_back(mesh->skin_weights->weights[i]);
 					}
 				}
 				new_indices[i] = offset;
@@ -56,7 +56,7 @@ namespace kml
 			mesh->positions.swap(positions);
 			if (mesh->skin_weights.get())
 			{
-				mesh->skin_weights->vertices = weight_vertices;
+				mesh->skin_weights->weights = weight_vertices;
 			}
 			for (size_t i = 0; i < mesh->pos_indices.size(); i++)
 			{
@@ -405,7 +405,7 @@ namespace kml
 			positions[index] = mesh->positions[vidx];
 			if (mesh->skin_weights.get())
 			{
-				weight_vertices[index] = mesh->skin_weights->vertices[vidx];
+				weight_vertices[index] = mesh->skin_weights->weights[vidx];
 			}
 
 			if (tidx >= 0)
@@ -439,7 +439,7 @@ namespace kml
 
 		if (mesh->skin_weights.get())
 		{
-			mesh->skin_weights->vertices.swap(weight_vertices);
+			mesh->skin_weights->weights.swap(weight_vertices);
 		}
 
 		return true;
