@@ -192,13 +192,13 @@ namespace kml
     static
     bool IsZero(const glm::quat& p, float eps = 1e-15)
     {
-        return IsZero(glm::value_ptr(p), 3, eps);
+        return IsZero(glm::value_ptr(p), 4, eps);
     }
 
     static
     bool IsZero(const glm::mat4& p, float eps = 1e-15)
     {
-        return IsZero(glm::value_ptr(p), 3, eps);
+        return IsZero(glm::value_ptr(p), 16, eps);
     }
 
 	namespace gltf
