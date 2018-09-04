@@ -1728,7 +1728,7 @@ namespace kml
                     else
                     {
                         glm::mat4 mat = n->GetMatrix();
-                        if (!IsZero(mat-glm::mat4(0)))
+                        if (!IsZero(mat-glm::mat4(1)))
                         {
                             nd["matrix"] = picojson::value(GetMatrixAsArray(mat));
                         }
