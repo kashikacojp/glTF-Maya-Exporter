@@ -6,9 +6,10 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 project("glTF-Maya-Exporter")
 
 # -- options ----------------------------------------------------
-option(GLTF_MAYA_EXPORTER_BUILD_WITH_DRACO    "Build with Draco" ON)
-option(GLTF_MAYA_EXPORTER_BUILD_MAYAEXPORTER      "Build Maya Exporter" ON)
-option(GLTF_MAYA_EXPORTER_BUILD_CPP_INTERFACE "Build cpp interface and test" OFF)
+option(GLTF_MAYA_EXPORTER_BUILD_WITH_DRACO          "Build with Draco"             ON)
+option(GLTF_MAYA_EXPORTER_BUILD_MAYA_GLTF_EXPORTER  "Build Maya glTF Exporter"     ON)
+option(GLTF_MAYA_EXPORTER_BUILD_MAYA_VRM_EXPORTER   "Build Maya VRM Exporter"      ON)
+option(GLTF_MAYA_EXPORTER_BUILD_CPP_INTERFACE       "Build cpp interface and test" OFF)
 
 SET(GLTF_MAYA_EXPORTER_MAYA_PATH "C:/Program Files/Autodesk/Maya2018" CACHE PATH "Installed Maya Directory")
 
@@ -59,7 +60,7 @@ endif()
 
 
 
-if(GLTF_MAYA_EXPORTER_BUILD_MAYAEXPORTER)
+if(GLTF_MAYA_EXPORTER_BUILD_MAYA_GLTF_EXPORTER OR GLTF_MAYA_EXPORTER_BUILD_MAYA_VRM_EXPORTER)
     
     SET(MAYA_INCLUDE_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/include/)
     SET(MAYA_LIBRARY_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/lib/)
@@ -124,22 +125,21 @@ target_link_libraries( kml
                        kil 
                        ${DRACO_LIB})
 
+# force define for maya header ifdef condition (building for makefile project)
+if (WIN32)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_WIN32")
+elseif(APPLE)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOSMac_")
+elseif(UNIX)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Dlinux -m64 -g -pthread -D_BOOL -DLINUX -DLINUX_64 -DFUNCPROTO -DREQUIRE_IOSTREAM -fPIC -Wno-deprecated -fno-gnu-keywords")
+endif()
 
 # -- glTF Exporter for maya --------------------
-if (GLTF_MAYA_EXPORTER_BUILD_MAYAEXPORTER)
-
-    # force define for maya header ifdef condition (building for makefile project)
-    if (WIN32)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_WIN32")
-    elseif(APPLE)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOSMac_")
-    elseif(UNIX)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Dlinux -m64 -g -pthread -D_BOOL -DLINUX -DLINUX_64 -DFUNCPROTO -DREQUIRE_IOSTREAM -fPIC -Wno-deprecated -fno-gnu-keywords")
-    endif()
+if (GLTF_MAYA_EXPORTER_BUILD_MAYA_GLTF_EXPORTER)
 
     add_library( glTFExporter SHARED
-        ./src/glTFExporter/glTFExporter.cpp
         ./src/glTFExporter/glTFExporterRegist.cpp
+        ./src/glTFExporter/glTFExporter.cpp
         ./src/glTFExporter/glTFTranslator.cpp
         ./src/glTFExporter/murmur3.c
         ./src/glTFExporter/ProgressWindow.cpp
@@ -168,6 +168,35 @@ if (GLTF_MAYA_EXPORTER_BUILD_MAYAEXPORTER)
         set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT glTFExporter)
     endif()
     endif()
+endif()
+
+# -- VRM Exporter for maya --------------------
+if (GLTF_MAYA_EXPORTER_BUILD_MAYA_VRM_EXPORTER)
+    
+    add_library( vrmExporter SHARED
+        ./src/glTFExporter/vrmExporterRegist.cpp
+        ./src/glTFExporter/glTFExporter.cpp
+        ./src/glTFExporter/glTFTranslator.cpp
+        ./src/glTFExporter/murmur3.c
+        ./src/glTFExporter/ProgressWindow.cpp
+    )
+
+    target_link_libraries( vrmExporter
+                        kml
+                        OpenMaya
+                        OpenMayaUI
+                        Foundation
+    )
+    SET_TARGET_PROPERTIES(vrmExporter PROPERTIES PREFIX "")
+    if(WIN32)
+      SET_TARGET_PROPERTIES(vrmExporter PROPERTIES SUFFIX ".mll")
+    elseif(APPLE)
+      SET_TARGET_PROPERTIES(vrmExporter PROPERTIES SUFFIX ".bundle")
+    else()
+      SET_TARGET_PROPERTIES(vrmExporter PROPERTIES SUFFIX ".so")
+      SET_TARGET_PROPERTIES(vrmExporter PROPERTIES LINK_FLAGS "-shared -m64 -g -pthread -pipe -D_BOOL -DLINUX -DLINUX_64 -DFUNCPROTO -DREQUIRE_IOSTREAM -fPIC -Wno-deprecated -fno-gnu-keywords -Wl,-Bsymbolic")
+    endif()
+
 endif()
 
 # -- cpp interface and test -----------------------------

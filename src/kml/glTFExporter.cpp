@@ -2048,6 +2048,134 @@ namespace kml
 
 			return true;
 		}
+
+		static
+		bool WriteVRMMetaInfo(picojson::object& root_object, const std::shared_ptr<::kml::Node>& node)
+		{
+			picojson::object extensions;
+			auto ext = root_object.find("extensions");
+			if (ext == root_object.end()) {
+				extensions = picojson::object();
+			} else {
+				extensions = root_object["extensions"].get<picojson::object>();
+			}
+			
+			picojson::object VRM;
+			{
+				VRM["exporterVersion"] = picojson::value("kashikaVRM-1.00");
+			}
+
+			{
+				picojson::object meta;
+				meta["version"] = picojson::value("");
+				meta["author"] = picojson::value("user_name"); // TODO: input from param
+				meta["contactInformation"] = picojson::value("");
+				meta["reference"] = picojson::value("");
+				meta["title"] = picojson::value("user_title"); // TODO: input from param
+				meta["texture"] = picojson::value(0.0); // TODO: count of texture
+				meta["allowedUserName"] = picojson::value("Everyone");
+				meta["violentUssageName"] = picojson::value("Disallow");
+				meta["sexualUssageName"] = picojson::value("Disallow");
+				meta["commercialUssageName"] = picojson::value("Disallow");
+				meta["otherPermissionUrl"] = picojson::value("");
+				meta["licenseName"] = picojson::value("Redistribution_Prohibited");
+				meta["otherLicenseUrl"] = picojson::value("");
+				VRM["meta"] = picojson::value(meta);
+			}
+			{
+				picojson::object humanoid;
+				picojson::array humanBones;
+				static const char* boneNames[] = {
+					"hips", "leftUpperLeg","rightUpperLeg", "leftLowerLeg","rightLowerLeg",
+					"leftFoot", "rightFoot", "spine", "chest", "neck", "head", "leftShoulder",
+					"rightShoulder", "leftUpperArm", "rightUpperArm", "leftLowerArm","rightLowerArm",
+					"leftHand", "rightHand","leftToes","rightToes",	"leftEye","rightEye","jaw",
+					"leftThumbProximal","leftThumbIntermediate","leftThumbDistal","leftIndexProximal",
+					"leftIndexIntermediate","leftIndexDistal","leftMiddleProximal","leftMiddleIntermediate",
+					"leftMiddleDistal","leftRingProximal","leftRingIntermediate","leftRingDistal",
+					"leftLittleProximal","leftLittleIntermediate","leftLittleDistal","rightThumbProximal",
+					"rightThumbIntermediate","rightThumbDistal", "rightIndexProximal","rightIndexIntermediate",
+					"rightIndexDistal","rightMiddleProximal","rightMiddleIntermediate","rightMiddleDistal",
+					"rightRingProximal","rightRingIntermediate","rightRingDistal","rightLittleProximal",
+					"rightLittleIntermediate","rightLittleDistal","upperChest" };
+				for (int i = 0; i < sizeof(boneNames) / sizeof(const char*); ++i) {
+					picojson::object info;
+					info["bone"] = picojson::value(boneNames[i]);
+					info["node"] = picojson::value(-1.0);             // TODO: find from Node
+					info["useDefaultValues"] = picojson::value(true); // what's this?
+					humanBones.push_back(picojson::value(info));
+				}
+				humanoid["humanBones"] = picojson::value(humanBones);
+				VRM["humanoid"] = picojson::value(humanoid);
+			}
+
+			{
+				picojson::object firstPerson;
+				firstPerson["firstPersonBone"] = picojson::value(-1.0);
+				picojson::object firstPersonBoneOffset;
+				firstPersonBoneOffset["x"] = picojson::value(0.0);
+				firstPersonBoneOffset["y"] = picojson::value(0.0);
+				firstPersonBoneOffset["z"] = picojson::value(0.0);
+				firstPerson["firstPersonBoneOffset"] = picojson::value(firstPersonBoneOffset);
+				firstPerson["meshAnnotations"] = picojson::value(picojson::array());
+				firstPerson["lookAtTypeName"] = picojson::value("Bone");
+
+				picojson::object lookAtHorizontalInner;
+				lookAtHorizontalInner["xRange"] = picojson::value(90.0);
+				lookAtHorizontalInner["yRange"] = picojson::value(10.0);
+				firstPerson["lookAtHorizontalInner"] = picojson::value(lookAtHorizontalInner);
+				
+				picojson::object lookAtHorizontalOuter;
+				lookAtHorizontalOuter["xRange"] = picojson::value(90.0);
+				lookAtHorizontalOuter["yRange"] = picojson::value(10.0);
+				firstPerson["lookAtHorizontalOuter"] = picojson::value(lookAtHorizontalOuter);
+				
+				picojson::object lookAtVerticalDown;
+				lookAtVerticalDown["xRange"] = picojson::value(90.0);
+				lookAtVerticalDown["yRange"] = picojson::value(10.0);
+				firstPerson["lookAtVerticalDown"] = picojson::value(lookAtVerticalDown);
+				
+				picojson::object lookAtVerticalUp;
+				lookAtVerticalUp["xRange"] = picojson::value(90.0);
+				lookAtVerticalUp["yRange"] = picojson::value(10.0);
+				firstPerson["lookAtVerticalDown"] = picojson::value(lookAtVerticalUp);
+
+				VRM["firstPerson"] = picojson::value(firstPerson);
+			}
+
+			{
+				picojson::object blendShapeMaster;
+				VRM["blendShapeMaster"] = picojson::value(blendShapeMaster);
+
+				picojson::array blendShapeGroups;
+				picojson::object shapeinfo;
+				static const char* names[] = { "Neutral", "A", "I", "U", "E", "O" };
+				for (int i = 0; i < sizeof(names) / sizeof(const char*); ++i) {
+					shapeinfo["name"] = picojson::value(names[i]);
+					shapeinfo["presetName"] = picojson::value("unknown");
+					shapeinfo["binds"] = picojson::value(picojson::array());
+					shapeinfo["materialValues"] = picojson::value(picojson::array());
+					blendShapeGroups.push_back(picojson::value(shapeinfo));
+				}
+				blendShapeMaster["blendShapeGroups"] = picojson::value(blendShapeGroups);
+			}
+
+			{
+				picojson::object secondaryAnimation;
+				secondaryAnimation["boneGroups"] = picojson::value(picojson::array());
+				secondaryAnimation["colliderGroups"] = picojson::value(picojson::array());
+				VRM["secondaryAnimation"] = picojson::value(secondaryAnimation);
+			}
+
+			{
+				picojson::array materialProperties;
+				VRM["materialProperties"] = picojson::value(materialProperties);
+			}
+
+			extensions["VRM"] = picojson::value(VRM);
+			root_object["extensions"] = picojson::value(extensions);
+			return true;
+		}
 	}
 	//-----------------------------------------------------------------------------
 
@@ -2059,7 +2187,8 @@ namespace kml
 		bool union_buffer_draco = true;
 
 		//std::shared_ptr<Options> opts = Options::GetGlobalOptions();
-		int output_buffer = opts->GetInt("output_buffer");
+		const bool vrm_export = opts->GetInt("vrm_export") > 0;
+		const int output_buffer = opts->GetInt("output_buffer");
 		if (output_buffer == 0)
 		{
 			output_bin = true;
@@ -2104,6 +2233,10 @@ namespace kml
 				extensionsUsed.push_back(picojson::value("KSK_preloadUri"));
 				extensionsRequired.push_back(picojson::value("KSK_preloadUri"));
 			}
+			if (vrm_export)
+			{
+				extensionsUsed.push_back(picojson::value("VRM"));
+			}
 
 			if (!extensionsUsed.empty())
 			{
@@ -2121,7 +2254,11 @@ namespace kml
 			return false;
 		}
 
-
+		if (vrm_export) {
+			if (!gltf::WriteVRMMetaInfo(root_object, node)) {
+				return false;
+			}
+		}
 
 		{
 			std::ofstream ofs(path.c_str());
@@ -2176,4 +2313,6 @@ namespace kml
 	{
 		return ExportGLTF(path, node, opts);
 	}
+
+	
 }

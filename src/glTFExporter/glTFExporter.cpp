@@ -499,15 +499,6 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	int transform_space = 1;		//0:world_space, 1:local_space
 
 	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
-	opts->SetInt("recalc_normals", recalc_normals);
-	opts->SetInt("output_onefile", output_onefile);
-	opts->SetInt("output_glb", output_glb);
-	opts->SetInt("vrm_export", vrm_export);
-	opts->SetInt("make_preload_texture", make_preload_texture);
-	opts->SetInt("output_buffer", output_buffer);
-	opts->SetInt("convert_texture_format", convert_texture_format);
-	opts->SetInt("transform_space", transform_space);
-	
     
 	if (options.length() > 0)
 	{
@@ -568,7 +559,7 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	opts->SetInt("output_buffer", output_buffer);
 	opts->SetInt("convert_texture_format", convert_texture_format);
 	opts->SetInt("transform_space", transform_space);
-	
+	opts->SetInt("vrm_export", vrm_export);
 
     /* print current linear units used as a comment in the obj file */
     //setToLongUnitName(MDistance::uiUnit(), unitName);
@@ -2652,7 +2643,7 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
 		picojson::value(root).serialize(std::ostream_iterator<char>(ofs), true);
 	}
 
-	if (glb | vrm)
+	if (glb || vrm)
 	{
 		std::string gltf_path = dir_path + "/" + GetFileName(std::string(fname.asChar())) + ".gltf";
 		
