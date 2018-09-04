@@ -2478,9 +2478,9 @@ std::vector< std::shared_ptr < kml::Node > > GetJointNodes(const std::vector< st
 
             MFnTransform fnTransform(path);
 #if 1
-            MVector mT = fnTransform.getTranslation(MSpace::kObject);
+            MVector mT = fnTransform.getTranslation(MSpace::kTransform);
             MQuaternion mR;
-            fnTransform.getRotation(mR, MSpace::kObject);
+            fnTransform.getRotation(mR, MSpace::kTransform);
             double mS[3];
             fnTransform.getScale(mS);
 

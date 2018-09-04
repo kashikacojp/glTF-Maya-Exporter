@@ -492,7 +492,7 @@ namespace kml
                 S_ = S;
                 glm::mat4 TT = glm::translate(glm::mat4(1.0f), T);
                 glm::mat4 RR = glm::toMat4(R);
-                glm::mat4 SS = glm::scale(glm::mat4(1.0f), T);
+                glm::mat4 SS = glm::scale(glm::mat4(1.0f), S);
 
                 isTRS_ = true;
             }
