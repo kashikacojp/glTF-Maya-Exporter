@@ -1,3 +1,5 @@
+#define GLM_ENABLE_EXPERIMENTAL 1
+
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS 1
 #define NOMINMAX
@@ -22,6 +24,8 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/quaternion.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 
 namespace {
@@ -145,41 +149,57 @@ namespace kml
 	}
 
 	static
-    unsigned int GetImageFormat(const std::string& path)
-	{
-		std::string ext = GetExt(path);
-		if (ext == ".jpg" || ext == ".jpeg")
-		{
-			return FORMAT_JPEG;
-		}
-		else if (ext == ".png")
-		{
-			return FORMAT_PNG;
-		}
-		else if (ext == ".bmp")
-		{
-			return FORMAT_BMP;
-		}
-		else if (ext == ".gif")
-		{
-			return FORMAT_GIF;
-		}
-		return FORMAT_JPEG;
-	}
-
-    static 
-    bool IsIdentity(const glm::mat4& mat)
+        unsigned int GetImageFormat(const std::string& path)
     {
-        glm::mat4 m = mat - glm::mat4(1.0f);
-        const float* ptr = glm::value_ptr(m);
-        for (int i = 0; i < 16; i++)
+        std::string ext = GetExt(path);
+        if (ext == ".jpg" || ext == ".jpeg")
         {
-            if (std::fabs(ptr[i]) > 1e-15)
+            return FORMAT_JPEG;
+        }
+        else if (ext == ".png")
+        {
+            return FORMAT_PNG;
+        }
+        else if (ext == ".bmp")
+        {
+            return FORMAT_BMP;
+        }
+        else if (ext == ".gif")
+        {
+            return FORMAT_GIF;
+        }
+        return FORMAT_JPEG;
+    }
+
+    static
+    bool IsZero(const float* p, int sz, float eps = 1e-15f)
+    {
+        for (int i = 0; i < sz; i++)
+        {
+            if (std::fabs(p[i]) > eps)
             {
                 return false;
             }
         }
         return true;
+    }
+
+    static
+    bool IsZero(const glm::vec3& p, float eps = 1e-15)
+    {
+        return IsZero(glm::value_ptr(p), 3, eps);
+    }
+
+    static
+    bool IsZero(const glm::quat& p, float eps = 1e-15)
+    {
+        return IsZero(glm::value_ptr(p), 3, eps);
+    }
+
+    static
+    bool IsZero(const glm::mat4& p, float eps = 1e-15)
+    {
+        return IsZero(glm::value_ptr(p), 3, eps);
     }
 
 	namespace gltf
@@ -450,12 +470,56 @@ namespace kml
             std::map<std::string, std::shared_ptr<Accessor> > accessors_;
         };
 
+        class Transform
+        {
+        public:
+            Transform()
+                :isTRS_(false)
+            {
+                mat_ = glm::mat4(1.0f);
+            }
+            const glm::mat4 GetMatrix()const
+            {
+                return mat_;                
+            }
+            void SetMatrix(const glm::mat4& mat)
+            {
+                mat_ = mat;
+            }
+            void SetTRS(const glm::vec3& T, const glm::quat& R, const glm::vec3& S)
+            {
+                T_ = T;
+                R_ = R;
+                S_ = S;
+                glm::mat4 TT = glm::translate(glm::mat4(1.0f), T);
+                glm::mat4 RR = glm::toMat4(R);
+                glm::mat4 SS = glm::scale(glm::mat4(1.0f), T);
+
+                isTRS_ = true;
+            }
+            bool IsTRS()const
+            {
+                return isTRS_;
+            }
+            glm::vec3 GetT()const { return T_; }
+            glm::quat GetR()const { return R_; }
+            glm::vec3 GetS()const { return S_; }
+        protected:
+            bool isTRS_;
+            glm::mat4 mat_;
+            glm::vec3 T_;
+            glm::quat R_;
+            glm::vec3 S_;
+        };
+
 		class Node
 		{
 		public:
 			Node(const std::string& name, int index)
-				:name_(name), index_(index), matrix_(1.0f)
-			{}
+				:name_(name), index_(index)
+			{
+                trans_.reset(new Transform());
+            }
 			const std::string& GetName()const
 			{
 				return name_;
@@ -500,19 +564,25 @@ namespace kml
 			{
 				return children_;
 			}
-			const glm::mat4 GetMatrix()const
-			{
-				return matrix_;
-			}
-			void SetMatrix(const glm::mat4& mat)
-			{
-				matrix_ = mat;
-			}
+
+            std::shared_ptr<Transform>& GetTransform()
+            {
+                return trans_;
+            }
+            const std::shared_ptr<Transform>& GetTransform()const
+            {
+                return trans_;
+            }
+
+            glm::mat4 GetMatrix()const
+            {
+                return trans_->GetMatrix();
+            }
 		protected:
 			std::string name_;
 			int index_;
             std::string path_;
-			glm::mat4 matrix_;
+            std::shared_ptr<Transform> trans_;
 			std::shared_ptr<Mesh> mesh_;
             std::shared_ptr<Skin> skin_;
 			std::vector< std::shared_ptr<Node> > children_;
@@ -662,7 +732,18 @@ namespace kml
                 int nNode = nodes_.size();
                 std::shared_ptr<Node> node(new Node(in_node->GetName(), nNode));
                 node->SetPath(in_node->GetPath());
-                node->SetMatrix(in_node->GetTransform()->GetMatrix());
+                if (!in_node->GetTransform()->IsTRS())
+                {
+                    node->GetTransform()->SetMatrix(in_node->GetTransform()->GetMatrix());
+                }
+                else
+                {
+                    auto T = in_node->GetTransform()->GetT();
+                    auto R = in_node->GetTransform()->GetR();
+                    auto S = in_node->GetTransform()->GetS();
+                    node->GetTransform()->SetTRS(T, R, S);
+                }
+                
                 this->AddNode(node);
                 return node;
             }
@@ -1478,17 +1559,22 @@ namespace kml
             }
         }
 
+        static
+        picojson::array GetFloatAsArray(const float* p, int sz)
+        {
+            picojson::array ar;
+            for (int i = 0; i < sz; i++)
+            {
+                ar.push_back(picojson::value(p[i]));
+            }
+
+            return ar;
+        }
+
 		static
 		picojson::array GetMatrixAsArray(const glm::mat4& mat)
 		{
-			picojson::array matrix;
-			const float* ptr = glm::value_ptr(mat);
-			for (int i = 0; i < 16; i++)
-			{
-				matrix.push_back(picojson::value(ptr[i]));
-			}
-
-			return matrix;
+			return GetFloatAsArray(glm::value_ptr(mat), 16);
 		}
 
 		static
@@ -1621,10 +1707,31 @@ namespace kml
 					std::string name = n->GetName();
 					nd["name"] = picojson::value(name);
 
-                    glm::mat4 mat = n->GetMatrix();
-                    if (!IsIdentity(mat))
+                    if (n->GetTransform()->IsTRS())
                     {
-                        nd["matrix"] = picojson::value(GetMatrixAsArray(mat));
+                        glm::vec3 T = n->GetTransform()->GetT();
+                        glm::quat R = n->GetTransform()->GetR();
+                        glm::vec3 S = n->GetTransform()->GetS();
+                        if(!IsZero(T))
+                        {
+                            nd["translation"] = picojson::value(GetFloatAsArray(glm::value_ptr(T), 3));
+                        }
+                        if (!IsZero(R - glm::quat(1, 0, 0, 0)))
+                        {
+                            nd["rotation"] = picojson::value(GetFloatAsArray(glm::value_ptr(R), 4));//xyzw
+                        }
+                        if (!IsZero(S - glm::vec3(1, 1, 1)))
+                        {
+                            nd["scale"] = picojson::value(GetFloatAsArray(glm::value_ptr(S), 3));
+                        }
+                    }
+                    else
+                    {
+                        glm::mat4 mat = n->GetMatrix();
+                        if (!IsZero(mat-glm::mat4(0)))
+                        {
+                            nd["matrix"] = picojson::value(GetMatrixAsArray(mat));
+                        }
                     }
 
 					const auto& children = n->GetChildren();

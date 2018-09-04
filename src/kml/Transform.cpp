@@ -116,6 +116,7 @@ namespace kml
             return glm::vec3(0);
         }
     }
+
     glm::quat Transform::GetR()const
     {
         if (this->GetType() == TRANSFORM_TYPE::TRANSFORM_TRS)
@@ -127,6 +128,7 @@ namespace kml
             return glm::quat(1,0,0,0);
         }
     }
+
     glm::vec3 Transform::GetS()const
     {
         if (this->GetType() == TRANSFORM_TYPE::TRANSFORM_TRS)
@@ -137,5 +139,10 @@ namespace kml
         {
             return glm::vec3(1, 1, 1);
         }
+    }
+
+    bool Transform::IsTRS()const
+    {
+        return GetType() == TRANSFORM_TYPE::TRANSFORM_TRS;
     }
 }

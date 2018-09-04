@@ -41,6 +41,7 @@ namespace kml
         glm::quat GetR()const;
         glm::vec3 GetS()const;
         int GetType()const;
+        bool IsTRS()const;
         const TransformCore* GetCore()const { return core_; }
 	public:
         TransformCore * core_;
