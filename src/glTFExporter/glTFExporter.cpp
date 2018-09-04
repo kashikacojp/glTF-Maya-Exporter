@@ -70,7 +70,9 @@
 #include <maya/MItDependencyGraph.h>
 #include <maya/MFnLambertShader.h>
 #include <maya/MFnPhongEShader.h>
-
+#include <maya/MFnTransform.h>
+#include <maya/MVector.h>
+#include <maya/MQuaternion.h>
 
 
 #include <maya/MMatrix.h>
@@ -638,22 +640,6 @@ std::vector<MDagPath> GetDagPathList(const MDagPath& mdagPath)
 	return GetDagPathList(mdagPath.fullPathName().asChar());
 }
 
-
-
-static
-std::shared_ptr<kml::Node> ConvertGlobalToLocalMatrix(std::shared_ptr<kml::Node>& node, const glm::mat4& parent_mat = glm::mat4(1.0f))
-{
-	glm::mat4 gm = node->GetTransform()->GetMatrix();
-	glm::mat4 lm = glm::inverse(parent_mat) * gm;
-	node->GetTransform()->SetMatrix(lm);
-	for (size_t i = 0; i < node->GetChildren().size(); i++)
-	{
-		auto n = node->GetChildren()[i];
-		ConvertGlobalToLocalMatrix(n, gm);
-	}
-	return node;
-}
-
 static
 MObject GetOriginalMesh(const MDagPath& dagpath)
 {
@@ -963,7 +949,11 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
 	}
 	else if (transform_space == 1)
 	{
-		MMatrix mmat = mdagPath.inclusiveMatrix();
+        std::vector<MDagPath> dagPathList = GetDagPathList(mdagPath);
+        dagPathList.pop_back();//shape
+
+        MFnTransform fnTransform(dagPathList.back());
+        MMatrix mmat = fnTransform.transformationMatrix();//local
 		double dest[4][4];
 		mmat.get(dest);
 		glm::mat4 mat(
@@ -973,7 +963,6 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
 			dest[3][0], dest[3][1], dest[3][2], dest[3][3]
 		);
 		node->GetTransform()->SetMatrix(mat);
-		//std::cout << glm::to_string(mat) << std::endl;
 	}
 	node->SetMesh(mesh);
 	node->SetBound(kml::CalculateBound(mesh));
@@ -1006,7 +995,9 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
 				std::shared_ptr < kml::Node > n(new kml::Node());
 				n->SetName(path.partialPathName().asChar());
 				n->SetPath(path.fullPathName().asChar());
-				MMatrix mmat = path.inclusiveMatrix();
+
+                MFnTransform fnTransform(path);
+                MMatrix mmat = fnTransform.transformationMatrix();//local
 				double dest[4][4];
 				mmat.get(dest);
 				glm::mat4 mat(
@@ -1024,7 +1015,7 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
 				nodes[i]->AddChild(nodes[i + 1]);
 			}
 			nodes.back()->AddChild(node);
-			nodes[0] = ConvertGlobalToLocalMatrix(nodes[0]);//
+
 			return nodes[0];
 		}
 		else
@@ -2484,17 +2475,32 @@ std::vector< std::shared_ptr < kml::Node > > GetJointNodes(const std::vector< st
 			std::shared_ptr < kml::Node > n(new kml::Node());
 			n->SetName(path.partialPathName().asChar());
 			n->SetPath(path.fullPathName().asChar());
-			MMatrix mmat = path.inclusiveMatrix();
-			double dest[4][4];
-			mmat.get(dest);
-			glm::mat4 mat(
-				dest[0][0], dest[0][1], dest[0][2], dest[0][3],
-				dest[1][0], dest[1][1], dest[1][2], dest[1][3],
-				dest[2][0], dest[2][1], dest[2][2], dest[2][3],
-				dest[3][0], dest[3][1], dest[3][2], dest[3][3]
-			);
-			n->GetTransform()->SetMatrix(mat);
-			nodes.push_back(n);
+
+            MFnTransform fnTransform(path);
+#if 1
+            MVector mT = fnTransform.getTranslation(MSpace::kObject);
+            MQuaternion mR;
+            fnTransform.getRotation(mR, MSpace::kObject);
+            double mS[3];
+            fnTransform.getScale(mS);
+
+            glm::vec3 vT(mT.x, mT.y, mT.z);
+            glm::quat vR(mR.w, mR.x, mR.y, mR.z);//wxyz
+            glm::vec3 vS(mS[0], mS[1], mS[2]);
+            n->GetTransform()->SetTRS(vT, vR, vS);
+#else
+            MMatrix mmat = fnTransform.transformationMatrix();//local
+            double dest[4][4];
+            mmat.get(dest);
+            glm::mat4 mat(
+                dest[0][0], dest[0][1], dest[0][2], dest[0][3],
+                dest[1][0], dest[1][1], dest[1][2], dest[1][3],
+                dest[2][0], dest[2][1], dest[2][2], dest[2][3],
+                dest[3][0], dest[3][1], dest[3][2], dest[3][3]
+            );
+            n->GetTransform()->SetMatrix(mat);
+#endif
+            nodes.push_back(n);
 		}
 
 		for (size_t i = 0; i < nodes.size() - 1; i++)
