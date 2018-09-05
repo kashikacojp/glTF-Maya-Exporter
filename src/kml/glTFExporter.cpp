@@ -484,6 +484,7 @@ namespace kml
             void SetMatrix(const glm::mat4& mat)
             {
                 mat_ = mat;
+                isTRS_ = false;
             }
             void SetTRS(const glm::vec3& T, const glm::quat& R, const glm::vec3& S)
             {
@@ -493,6 +494,8 @@ namespace kml
                 glm::mat4 TT = glm::translate(glm::mat4(1.0f), T);
                 glm::mat4 RR = glm::toMat4(R);
                 glm::mat4 SS = glm::scale(glm::mat4(1.0f), S);
+
+                mat_ = TT * RR * SS;
 
                 isTRS_ = true;
             }
@@ -652,6 +655,18 @@ namespace kml
 			return a;
 		}
 
+        /*
+        static
+        glm::mat4 GetBindMatrix(const glm::mat4& gm)
+        {
+            glm::mat4 bm(1.0f);
+            bm[3][0] = gm[3][0];
+            bm[3][1] = gm[3][1];
+            bm[3][2] = gm[3][2];
+            return bm;
+        }
+        */
+
         static
         glm::mat4 GetGlobalMatrix(const std::map<const Node*, const Node*>& parentMap, const Node* node)
         {
@@ -684,19 +699,28 @@ namespace kml
                 }
             }
 
-            std::vector<glm::mat4> global_matrices(jsz);
+            std::vector<glm::mat4> BM(jsz);
             for (size_t i = 0; i < jsz; i++)
             {
-                global_matrices[i] = glm::mat4(1.0f);// GetGlobalMatrix(parentMap, joints[i].get());
+                glm::mat4 gm = GetGlobalMatrix(parentMap, joints[i].get());
+                //Make it position only.
+                glm::mat4 bm(1.0f);
+                bm[3][0] = gm[3][0];
+                bm[3][1] = gm[3][1];
+                bm[3][2] = gm[3][2];
+                BM[i] = bm;
+            }
+            std::vector<glm::mat4> IBM(jsz);
+            for (size_t i = 0; i < jsz; i++)
+            {
+                IBM[i] = glm::inverse(BM[i]);
             }
 
             std::vector<float> ret(jsz*4*4);
             float* dst = &ret[0];
             for (size_t i = 0; i < jsz; i++)
             {
-                glm::mat4 gm = global_matrices[i];
-                glm::mat4 im = glm::inverse(gm);
-                //im = glm::transpose(im);
+                glm::mat4 im = IBM[i];
                 const float* ptr = glm::value_ptr(im);
                 std::memcpy(dst + i * 16, ptr, sizeof(float) * 16);
             }
