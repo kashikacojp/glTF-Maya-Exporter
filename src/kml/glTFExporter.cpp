@@ -655,7 +655,6 @@ namespace kml
 			return a;
 		}
 
-        /*
         static
         glm::mat4 GetBindMatrix(const glm::mat4& gm)
         {
@@ -665,10 +664,9 @@ namespace kml
             bm[3][2] = gm[3][2];
             return bm;
         }
-        */
 
         static
-        glm::mat4 GetGlobalMatrix(const std::map<const Node*, const Node*>& parentMap, const Node* node)
+        glm::mat4 GetGlobalBindMatrix(const std::map<const Node*, const Node*>& parentMap, const Node* node)
         {
             typedef std::map<const Node*, const Node*> MapType;
             typedef MapType::const_iterator iterator;
@@ -676,11 +674,11 @@ namespace kml
             if (it != parentMap.end())
             {
                 const Node* parent = it->second;
-                return GetGlobalMatrix(parentMap, parent) * node->GetMatrix();
+                return GetGlobalBindMatrix(parentMap, parent) * GetBindMatrix(node->GetMatrix());
             }
             else
             {
-                return node->GetMatrix();
+                return GetBindMatrix(node->GetMatrix());
             }
         }
 
@@ -702,13 +700,7 @@ namespace kml
             std::vector<glm::mat4> BM(jsz);
             for (size_t i = 0; i < jsz; i++)
             {
-                glm::mat4 gm = GetGlobalMatrix(parentMap, joints[i].get());
-                //Make it position only.
-                glm::mat4 bm(1.0f);
-                bm[3][0] = gm[3][0];
-                bm[3][1] = gm[3][1];
-                bm[3][2] = gm[3][2];
-                BM[i] = bm;
+                BM[i] = GetGlobalBindMatrix(parentMap, joints[i].get());
             }
             std::vector<glm::mat4> IBM(jsz);
             for (size_t i = 0; i < jsz; i++)
