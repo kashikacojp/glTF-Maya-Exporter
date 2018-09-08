@@ -499,6 +499,7 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	int output_buffer = 1;			//0:bin, 1:draco, 2:bin/draco
 	int convert_texture_format = 0; //0:no convert, 1:jpeg, 2:png
 	int transform_space = 1;		//0:world_space, 1:local_space
+    int bake_mesh_transform = 0;    //0:no_bake, 1:bake
 
 	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
     
@@ -540,6 +541,9 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 			if (theOption[0] == MString("transform_space") && theOption.length() > 1) {
 				transform_space = theOption[1].asInt();
 			}
+            if (theOption[0] == MString("bake_mesh_transform") && theOption.length() > 1) {
+                bake_mesh_transform = theOption[1].asInt();
+            }
 		}
 	}
 
@@ -561,6 +565,7 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	opts->SetInt("output_buffer", output_buffer);
 	opts->SetInt("convert_texture_format", convert_texture_format);
 	opts->SetInt("transform_space", transform_space);
+    opts->SetInt("bake_mesh_transform", bake_mesh_transform);
 	opts->SetInt("vrm_export", vrm_export);
 
     /* print current linear units used as a comment in the obj file */
@@ -940,13 +945,36 @@ std::shared_ptr<kml::Mesh> GetSkinWeights(std::shared_ptr<kml::Mesh>& mesh, cons
 	return mesh;
 }
 
-/*
+static
+glm::vec3 Transform(const glm::mat4& mat, const glm::vec3& v)
+{
+    glm::vec4 t = mat * glm::vec4(v, 1.0f);
+    t[0] /= t[3];
+    t[1] /= t[3];
+    t[2] /= t[3];
+    return glm::vec3(t[0], t[1], t[2]);
+}
+
 static
 std::shared_ptr<kml::Mesh> TransformMesh(std::shared_ptr<kml::Mesh>& mesh, const glm::mat4& mat)
 {
-
+    auto& positions = mesh->positions;
+    for (size_t i = 0; i < positions.size(); i++)
+    {
+        positions[i] = Transform(mat, positions[i]);
+    }
+    glm::mat4 im = glm::transpose(glm::inverse(mat));
+    im[3][0] = 0.0f;
+    im[3][1] = 0.0f;
+    im[3][2] = 0.0f;
+    auto& normals = mesh->normals;
+    for (size_t i = 0; i < normals.size(); i++)
+    {
+        normals[i] = glm::normalize(Transform(im, normals[i]));
+    }
+    return mesh;
 }
-*/
+
 
 static
 std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
@@ -955,7 +983,7 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
 	
 	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
 	int transform_space = opts->GetInt("transform_space");
-    bool bake_skinmesh_transfrom = false;// opts->GetInt("bake_skinmesh_transfrom") > 0;
+    bool bake_mesh_transform = opts->GetInt("bake_mesh_transform") > 0;
 
 	MSpace::Space space = MSpace::kWorld;
 	if (transform_space == 1)
@@ -1004,13 +1032,13 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
             dest[3][0], dest[3][1], dest[3][2], dest[3][3]
         );
 
-        if (!bake_skinmesh_transfrom)
+        if (!bake_mesh_transform)
         {
             node->GetTransform()->SetMatrix(mat);
         }
         else
         {
-
+            mesh = TransformMesh(mesh, mat);
             node->GetTransform()->SetMatrix(glm::mat4(1.0f));
         }
 	}
