@@ -27,6 +27,9 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <string.h>
+#include <stdlib.h>
+
 
 namespace {
 	enum ImageFormat {
@@ -2023,14 +2026,183 @@ namespace kml
 			v4.push_back(picojson::value(w));
 			return picojson::value(v4);
 		}
+
+        typedef const char* PCTR;
+        struct JointMap {
+            PCTR szVRMJointKey;
+            PCTR szSubStrs[5];
+        };
+
+        static
+        int FindJointKeyIndex(const JointMap JointMaps[], const char* key)
+        {
+            int i = 0;
+            while(JointMaps[i].szVRMJointKey)
+            {
+                if (strcmp(JointMaps[i].szVRMJointKey, key) == 0)
+                {
+                    return i;
+                }
+                i++;
+            }
+            return -1;
+        }
+
+        static
+        int FindVRNJointIndex(const std::vector<std::string>& joint_names, const std::string& key)
+        {
+            static const JointMap JointMaps[] = {
+                { "hips",{ "hip", "pelvis", NULL, NULL, NULL } },
+                { "leftUpperLeg",{ "upperleg", "upleg", NULL, NULL, NULL } },
+                { "rightUpperLeg",{ "upperleg", "upleg", NULL, NULL, NULL } },
+                { "leftLowerLeg",{ "lowerleg", "leftleg", NULL, NULL, NULL } },
+                { "rightLowerLeg",{ "lowerleg", "rightleg", NULL, NULL, NULL } },
+                { "leftFoot",{ "foot", NULL, NULL, NULL, NULL } },
+                { "rightFoot",{ "foot", NULL, NULL, NULL, NULL } },
+                { "spine",{ "spine", NULL, NULL, NULL, NULL } },
+                { "chest",{ "chest", "spine1", NULL, NULL, NULL } },
+                { "neck",{ "neck", NULL, NULL, NULL, NULL } },
+                { "head",{ "head", NULL, NULL, NULL, NULL } },
+                { "leftShoulder",{ "shoulder", NULL, NULL, NULL, NULL } },
+                { "rightShoulder",{ "shoulder", NULL, NULL, NULL, NULL } },
+                { "leftUpperArm",{ "upperarm", "leftarm", NULL, NULL, NULL } },
+                { "rightUpperArm",{ "upperarm", "rightarm", NULL, NULL, NULL } },
+                { "leftLowerArm",{ "lowerarm", "forearm", NULL, NULL, NULL } },
+                { "rightLowerArm",{ "lowerarm", "forearm", NULL, NULL, NULL } },
+                { "leftHand",{ "hand", NULL, NULL, NULL, NULL } },
+                { "rightHand",{ "hand", NULL, NULL, NULL, NULL } },
+                { "leftToes",{ "toe", NULL, NULL, NULL, NULL } },
+                { "rightToes",{ "toe", NULL, NULL, NULL, NULL } },
+                { "leftEye",{ "eye", NULL, NULL, NULL, NULL } },
+                { "rightEye",{ "eye", NULL, NULL, NULL, NULL } },
+                { "jaw",{ "jaw", NULL, NULL, NULL, NULL } },
+
+                { "leftThumbProximal",{ "thumbproximal", "thumb1", NULL, NULL, NULL } },
+                { "leftThumbIntermediate",{ "thumbintermediate", "thumb2", NULL, NULL, NULL } },
+                { "leftThumbDistal",{ "thumbdistal", "thumb3", NULL, NULL, NULL } },
+
+                { "leftIndexProximal",{ "indexproximal", "index1", NULL, NULL, NULL } },
+                { "leftIndexIntermediate",{ "indexintermediate", "index2", NULL, NULL, NULL } },
+                { "leftIndexDistal",{ "indexdistal", "index3", NULL, NULL, NULL } },
+
+                { "leftMiddleProximal",{ "middleproximal", "middle1", NULL, NULL, NULL } },
+                { "leftMiddleIntermediate",{ "middleintermediate", "middle2", NULL, NULL, NULL } },
+                { "leftMiddleDistal",{ "middledistal", "middle3", NULL, NULL, NULL } },
+
+                { "leftRingProximal",{ "ringproximal", "ring1", NULL, NULL, NULL } },
+                { "leftRingIntermediate",{ "ringintermediate", "ring2", NULL, NULL, NULL } },
+                { "leftRingDistal",{ "ringbdistal", "ring3", NULL, NULL, NULL } },
+
+                { "leftLittleProximal",{ "littleproximal", "little1", "pinkey1", NULL, NULL } },
+                { "leftLittleIntermediate",{ "littleintermediate", "little2", "pinkey1", NULL, NULL } },
+                { "leftLittleDistal",{ "littledistal", "little3", "pinkey3", NULL, NULL } },
+
+                { "rightThumbProximal",{ "thumbproximal", "thumb1", NULL, NULL, NULL } },
+                { "rightThumbIntermediate",{ "thumbintermediate", "thumb2", NULL, NULL, NULL } },
+                { "rightThumbDistal",{ "thumbdistal", "thumb3", NULL, NULL, NULL } },
+
+                { "rightIndexProximal",{ "indexproximal", "index1", NULL, NULL, NULL } },
+                { "rightIndexIntermediate",{ "indexintermediate", "index2", NULL, NULL, NULL } },
+                { "rightIndexDistal",{ "indexdistal", "index3", NULL, NULL, NULL } },
+
+                { "rightMiddleProximal",{ "middleproximal", "middle1", NULL, NULL, NULL } },
+                { "rightMiddleIntermediate",{ "middleintermediate", "middle2", NULL, NULL, NULL } },
+                { "rightMiddleDistal",{ "middledistal", "middle3", NULL, NULL, NULL } },
+
+                { "rightRingProximal",{ "ringproximal", "ring1", NULL, NULL, NULL } },
+                { "rightRingIntermediate",{ "ringintermediate", "ring2", NULL, NULL, NULL } },
+                { "rightRingDistal",{ "ringbdistal", "ring3", NULL, NULL, NULL } },
+
+                { "rightLittleProximal",{ "littleproximal", "little1", "pinkey1", NULL, NULL } },
+                { "rightLittleIntermediate",{ "littleintermediate", "little2", "pinkey2", NULL, NULL } },
+                { "rightLittleDistal",{ "littledistal", "little3", "pinkey3", NULL, NULL } },
+
+                { "upperChest",{ "upperchest", "spine2", NULL, NULL, NULL } },
+
+
+                { NULL,{ NULL, NULL, NULL, NULL, NULL } }
+            };
+
+            static const PCTR LeftKeys[]  = {"l_", "left", NULL};
+            static const PCTR RightKeys[] = { "r_", "right", NULL };
+
+            int key_index = FindJointKeyIndex(JointMaps, key.c_str());
+            const PCTR* subStrs = JointMaps[key_index].szSubStrs;
+
+            for (size_t i = 0; i < joint_names.size(); i++)
+            {
+                std::string joint_name = joint_names[i];
+                if (strstr(key.c_str(), "left") != NULL)
+                {
+                    bool bContinue = false;
+                    int k = 0;
+                    while (LeftKeys[k] && !bContinue)
+                    {
+                        if (strstr(joint_name.c_str(), LeftKeys[k]) != NULL)
+                        {
+                            bContinue = true;
+                            break;
+                        }
+                        k++;
+                    }
+                    if (!bContinue)
+                    {
+                        continue;
+                    }
+                }
+                else if (strstr(key.c_str(), "right") != NULL)
+                {
+                    bool bContinue = false;
+                    int k = 0;
+                    while (RightKeys[k] && !bContinue)
+                    {
+                        if (strstr(joint_name.c_str(), RightKeys[k]) != NULL)
+                        {
+                            bContinue = true;
+                            break;
+                        }
+                        k++;
+                    }
+                    if (!bContinue)
+                    {
+                        continue;
+                    }
+                }
+
+                {
+                    int j = 0;
+                    while (subStrs[j])
+                    {
+                        std::string subKey = "_" + std::string(subStrs[j]);
+                        if (strstr(joint_name.c_str(), subKey.c_str() ) != NULL)
+                        {
+                            if (key == "spine")
+                            {
+                                if (strstr(joint_name.c_str(), "spine1") != NULL)continue;
+                                if (strstr(joint_name.c_str(), "spine2") != NULL)continue;
+                            }
+
+                            return i;
+                        }
+                        j++;
+                    }
+                }
+            }
+            
+            return -1;
+        }
+
 		static
 		bool WriteVRMMetaInfo(picojson::object& root_object, const std::shared_ptr<::kml::Node>& node)
 		{
 			picojson::object extensions;
 			auto ext = root_object.find("extensions");
-			if (ext == root_object.end()) {
+			if (ext == root_object.end()) 
+            {
 				extensions = picojson::object();
-			} else {
+			}
+            else 
+            {
 				extensions = root_object["extensions"].get<picojson::object>();
 			}
 			
@@ -2072,10 +2244,24 @@ namespace kml
 					"rightIndexDistal","rightMiddleProximal","rightMiddleIntermediate","rightMiddleDistal",
 					"rightRingProximal","rightRingIntermediate","rightRingDistal","rightLittleProximal",
 					"rightLittleIntermediate","rightLittleDistal","upperChest" };
-				for (int i = 0; i < sizeof(boneNames) / sizeof(const char*); ++i) {
+
+                std::vector<std::string> joint_names;
+                {
+                    auto& nodes = root_object["nodes"].get<picojson::array>();
+                    for (size_t i = 0; i < nodes.size(); i++)
+                    {
+                        auto& node = nodes[i].get<picojson::object>();
+                        std::string name = node["name"].get<std::string>();
+                        std::transform(name.cbegin(), name.cend(), name.begin(), tolower);
+                        joint_names.push_back(name);
+                    }
+                }
+
+				for (int i = 0; i < sizeof(boneNames) / sizeof(const char*); ++i) 
+                {
 					picojson::object info;
 					info["bone"] = picojson::value(boneNames[i]);
-					info["node"] = picojson::value(-1.0);             // TODO: find from Node
+					info["node"] = picojson::value((double)FindVRNJointIndex(joint_names, boneNames[i]));             // TODO: find from Node
 					info["useDefaultValues"] = picojson::value(true); // what's this?
 					humanBones.push_back(picojson::value(info));
 				}
@@ -2224,8 +2410,9 @@ namespace kml
 		bool union_buffer_draco = true;
 
 		//std::shared_ptr<Options> opts = Options::GetGlobalOptions();
-		const bool vrm_export = opts->GetInt("vrm_export") > 0;
-		const int output_buffer = opts->GetInt("output_buffer");
+		bool vrm_export = opts->GetInt("vrm_export") > 0;
+	    int output_buffer = opts->GetInt("output_buffer");
+
 		if (output_buffer == 0)
 		{
 			output_bin = true;
@@ -2291,7 +2478,8 @@ namespace kml
 			return false;
 		}
 
-		if (vrm_export) {
+		if (vrm_export)
+        {
 			if (!gltf::WriteVRMMetaInfo(root_object, node)) {
 				return false;
 			}
