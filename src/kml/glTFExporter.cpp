@@ -2042,11 +2042,11 @@ namespace kml
 			{
 				picojson::object meta;
 				meta["version"] = picojson::value("");
-				meta["author"] = picojson::value("user_name"); // TODO: input from param
+				meta["author"] = picojson::value("username"); // TODO: input from param
 				meta["contactInformation"] = picojson::value("");
 				meta["reference"] = picojson::value("");
-				meta["title"] = picojson::value("user_title"); // TODO: input from param
-				meta["texture"] = picojson::value(0.0); // TODO: count of texture
+				meta["title"] = picojson::value("usertitle"); // TODO: input from param
+				meta["texture"] = picojson::value(0.0);
 				meta["allowedUserName"] = picojson::value("Everyone");
 				meta["violentUssageName"] = picojson::value("Disallow");
 				meta["sexualUssageName"] = picojson::value("Disallow");
@@ -2147,12 +2147,13 @@ namespace kml
 				for (size_t i = 0; i < materials.size(); ++i) {
 					picojson::object mat;
 					mat["name"] = picojson::value(materials[i]->GetName());
-					mat["renderQueue"] = picojson::value(3000.0);
-					mat["shader"] = picojson::value("VRM/MToon");
+					mat["renderQueue"] = picojson::value(2000.0);
+					mat["shader"] = picojson::value("Standard");
+					//mat["shader"] = picojson::value("VRM/MToon");
 					picojson::object floatProperties;
 
 					mat["floatProperties"] = picojson::value(floatProperties);
-					floatProperties["_Cutoff"] = picojson::value(0.5);
+					/*floatProperties["_Cutoff"] = picojson::value(0.5);
 					floatProperties["_BumpScale"] = picojson::value(1.0);
 					floatProperties["_ReceiveShadowRate"] = picojson::value(1.0);
 					floatProperties["_ShadeShift"] = picojson::value(-0.3);
@@ -2170,12 +2171,12 @@ namespace kml
 					floatProperties["_SrcBlend"] = picojson::value(1.0);
 					floatProperties["_DstBlend"] = picojson::value(0.0);
 					floatProperties["_ZWrite"] = picojson::value(1.0);
-					floatProperties["_IsFirstSetup"] = picojson::value(0.0);
+					floatProperties["_IsFirstSetup"] = picojson::value(0.0);*/
 
 					picojson::object vectorProperties;
-					vectorProperties["_Color"] = makeVec4Value(0.8450866, 0.05577575, 0.05577575, 1.0);
-					vectorProperties["_ShadeColor"] = makeVec4Value(0.391907483, 0.217116714, 0.217116714, 1.0);
-					vectorProperties["_EmissionColor"] = makeVec4Value(0.858823538, 0.694117665, 0.694117665, 1.0);
+					vectorProperties["_Color"] = makeVec4Value(1.0, 1.0, 1.0, 1.0);
+					vectorProperties["_EmissionColor"] = makeVec4Value(0.0, 0.0, 0.0, 1.0);
+					/*vectorProperties["_ShadeColor"] = makeVec4Value(0.2, 0.2, 0.2, 1.0);
 					vectorProperties["_MainTex"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
 					vectorProperties["_ShadeTexture"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
 					vectorProperties["_BumpMap"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
@@ -2183,10 +2184,11 @@ namespace kml
 					vectorProperties["_SphereAdd"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
 					vectorProperties["_EmissionMap"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
 					vectorProperties["_OutlineWidthTexture"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
-					vectorProperties["_OutlineColor"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+					vectorProperties["_OutlineColor"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);*/
 					mat["vectorProperties"] = picojson::value(vectorProperties);
 
 					picojson::object textureProperties;
+					//textureProperties["_MainTex"] = picojson::value(0.0);
 					/*	"_MainTex": 0,                 // TODO
 						"_ShadeTexture" : 0,
 						"_SphereAdd" : 1,
