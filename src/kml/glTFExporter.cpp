@@ -2270,11 +2270,11 @@ namespace kml
 				}
 				humanoid["humanBones"] = picojson::value(humanBones);
 				VRM["humanoid"] = picojson::value(humanoid);
-			}
+			/*}
 
-			{
+			{*/
 				picojson::object firstPerson;
-				firstPerson["firstPersonBone"] = picojson::value(-1.0);
+				firstPerson["firstPersonBone"] = picojson::value((double)FindVRNJointIndex(joint_names, "head"));//picojson::value(-1.0);
 				picojson::object firstPersonBoneOffset;
 				firstPersonBoneOffset["x"] = picojson::value(0.0);
 				firstPersonBoneOffset["y"] = picojson::value(0.0);
