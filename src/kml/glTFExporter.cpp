@@ -2259,11 +2259,14 @@ namespace kml
 
 				for (int i = 0; i < sizeof(boneNames) / sizeof(const char*); ++i) 
                 {
-					picojson::object info;
-					info["bone"] = picojson::value(boneNames[i]);
-					info["node"] = picojson::value((double)FindVRNJointIndex(joint_names, boneNames[i]));             // TODO: find from Node
-					info["useDefaultValues"] = picojson::value(true); // what's this?
-					humanBones.push_back(picojson::value(info));
+					int idx = FindVRNJointIndex(joint_names, boneNames[i]);
+					if (idx >= 0) {
+						picojson::object info;
+						info["bone"] = picojson::value(boneNames[i]);
+						info["node"] = picojson::value((double)idx);
+						info["useDefaultValues"] = picojson::value(true); // what's this?
+						humanBones.push_back(picojson::value(info));
+					}
 				}
 				humanoid["humanBones"] = picojson::value(humanBones);
 				VRM["humanoid"] = picojson::value(humanoid);
