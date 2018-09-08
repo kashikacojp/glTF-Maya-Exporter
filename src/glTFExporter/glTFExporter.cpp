@@ -71,6 +71,7 @@
 #include <maya/MFnLambertShader.h>
 #include <maya/MFnPhongEShader.h>
 #include <maya/MFnTransform.h>
+#include <maya/MFnIkJoint.h>
 #include <maya/MVector.h>
 #include <maya/MQuaternion.h>
 
@@ -2580,11 +2581,24 @@ std::vector< std::shared_ptr < kml::Node > > GetJointNodes(const std::vector< st
 			n->SetPath(path.fullPathName().asChar());
 
             MFnTransform fnTransform(path);
+			
 #if 1
             MVector mT = fnTransform.getTranslation(MSpace::kTransform);
-            MQuaternion mR;
-            fnTransform.getRotation(mR, MSpace::kTransform);
-            double mS[3];
+            MQuaternion mR, mOR, mJO;
+			fnTransform.getRotation(mR, MSpace::kTransform);
+			MStatus ret;
+			mOR = fnTransform.rotateOrientation(MSpace::kTransform, &ret); // get Rotation Axis
+			if (ret == MS::kSuccess) {
+				mR = mOR * mR;
+			}
+
+			MFnIkJoint fnJoint(path);
+			MStatus joret = fnJoint.getOrientation(mJO); // get jointOrient
+			if (joret == MS::kSuccess) {
+				mR *= mJO;
+			}
+            
+			double mS[3];
             fnTransform.getScale(mS);
 
             glm::vec3 vT(mT.x, mT.y, mT.z);
