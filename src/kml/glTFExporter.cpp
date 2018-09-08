@@ -2064,7 +2064,15 @@ namespace kml
 
 			return true;
 		}
-
+		
+		static picojson::value makeVec4Value(float x, float y, float z, float w) {
+			picojson::array v4;
+			v4.push_back(picojson::value(x));
+			v4.push_back(picojson::value(y));
+			v4.push_back(picojson::value(z));
+			v4.push_back(picojson::value(w));
+			return picojson::value(v4);
+		}
 		static
 		bool WriteVRMMetaInfo(picojson::object& root_object, const std::shared_ptr<::kml::Node>& node)
 		{
@@ -2184,7 +2192,70 @@ namespace kml
 			}
 
 			{
+				const auto& materials = node->GetMaterials();
 				picojson::array materialProperties;
+				for (size_t i = 0; i < materials.size(); ++i) {
+					picojson::object mat;
+					mat["name"] = picojson::value(materials[i]->GetName());
+					mat["renderQueue"] = picojson::value(3000.0);
+					mat["shader"] = picojson::value("VRM/MToon");
+					picojson::object floatProperties;
+
+					mat["floatProperties"] = picojson::value(floatProperties);
+					floatProperties["_Cutoff"] = picojson::value(0.5);
+					floatProperties["_BumpScale"] = picojson::value(1.0);
+					floatProperties["_ReceiveShadowRate"] = picojson::value(1.0);
+					floatProperties["_ShadeShift"] = picojson::value(-0.3);
+					floatProperties["_ShadeToony"] = picojson::value(0.0);
+					floatProperties["_LightColorAttenuation"] = picojson::value(0.0);
+					floatProperties["_OutlineWidth"] = picojson::value(0.172);
+					floatProperties["_OutlineScaledMaxDistance"] = picojson::value(2.0);// scale?
+					floatProperties["_OutlineLightingMix"] = picojson::value(1.0);
+					floatProperties["_DebugMode"] = picojson::value(0.0);
+					floatProperties["_BlendMode"] = picojson::value(1.0);
+					floatProperties["_OutlineWidthMode"] = picojson::value(0.0);
+					floatProperties["_OutlineColorMode"] = picojson::value(0.0);
+					floatProperties["_CullMode"] = picojson::value(0.0);
+					floatProperties["_OutlineCullMode"] = picojson::value(1.0);
+					floatProperties["_SrcBlend"] = picojson::value(1.0);
+					floatProperties["_DstBlend"] = picojson::value(0.0);
+					floatProperties["_ZWrite"] = picojson::value(1.0);
+					floatProperties["_IsFirstSetup"] = picojson::value(0.0);
+
+					picojson::object vectorProperties;
+					vectorProperties["_Color"] = makeVec4Value(0.8450866, 0.05577575, 0.05577575, 1.0);
+					vectorProperties["_ShadeColor"] = makeVec4Value(0.391907483, 0.217116714, 0.217116714, 1.0);
+					vectorProperties["_EmissionColor"] = makeVec4Value(0.858823538, 0.694117665, 0.694117665, 1.0);
+					vectorProperties["_MainTex"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+					vectorProperties["_ShadeTexture"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+					vectorProperties["_BumpMap"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+					vectorProperties["_ReceiveShadowTexture"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+					vectorProperties["_SphereAdd"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+					vectorProperties["_EmissionMap"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+					vectorProperties["_OutlineWidthTexture"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+					vectorProperties["_OutlineColor"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+					mat["vectorProperties"] = picojson::value(vectorProperties);
+
+					picojson::object textureProperties;
+					/*	"_MainTex": 0,                 // TODO
+						"_ShadeTexture" : 0,
+						"_SphereAdd" : 1,
+						"_EmissionMap" : 2
+					},*/
+					mat["textureProperties"] = picojson::value(textureProperties);
+
+	
+					picojson::object keywordMap;
+					keywordMap["_ALPHATEST_ON"] = picojson::value(true);
+					keywordMap["_NORMALMAP"] = picojson::value(true);
+					mat["keywordMap"] = picojson::value(keywordMap);
+
+					picojson::object tagMap;
+					tagMap["RenderType"] = picojson::value("TransparentCutout");
+					mat["tagMap"] = picojson::value(tagMap);
+
+					materialProperties.push_back(picojson::value(mat));
+				}
 				VRM["materialProperties"] = picojson::value(materialProperties);
 			}
 
