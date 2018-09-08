@@ -656,13 +656,12 @@ namespace kml
 		}
 
         static
-        glm::mat4 GetBindMatrix(const glm::mat4& gm)
+        glm::mat4 GetBindMatrix(const Node* node)
         {
-            glm::mat4 bm(1.0f);
-            bm[3][0] = gm[3][0];
-            bm[3][1] = gm[3][1];
-            bm[3][2] = gm[3][2];
-            return bm;
+            glm::mat4 TT = glm::translate(glm::mat4(1.0f), node->GetTransform()->GetT());
+            glm::mat4 SS = glm::scale(glm::mat4(1.0f), node->GetTransform()->GetS());
+
+            return TT * SS;
         }
 
         static
@@ -674,11 +673,11 @@ namespace kml
             if (it != parentMap.end())
             {
                 const Node* parent = it->second;
-                return GetGlobalBindMatrix(parentMap, parent) * GetBindMatrix(node->GetMatrix());
+                return GetGlobalBindMatrix(parentMap, parent) * GetBindMatrix(node);
             }
             else
             {
-                return GetBindMatrix(node->GetMatrix());
+                return GetBindMatrix(node);
             }
         }
 
