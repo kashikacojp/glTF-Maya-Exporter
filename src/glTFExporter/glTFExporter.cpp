@@ -80,6 +80,7 @@
 #include <maya/MStreamUtils.h>
 #include <maya/MFnSkinCluster.h>
 #include <maya/MItGeometry.h>
+#include <maya/MFnMatrixData.h>
 
 #include <memory>
 #include <sstream>
@@ -902,6 +903,30 @@ std::shared_ptr<kml::Mesh> GetSkinWeights(std::shared_ptr<kml::Mesh>& mesh, cons
         std::sort(joint_paths.begin(), joint_paths.end(), StringSizeSorter());
         skin_weights->joint_paths = joint_paths;
 	}
+
+    {
+        MPlug mp_m = skinC.findPlug("bindPreMatrix", &stat);
+        for (int j = 0; j < jsz; j++)
+        {
+            MPlug mp2 = mp_m.elementByLogicalIndex(skinC.indexForInfluenceObject(dpa[j], NULL), &stat);
+
+            MObject obj;
+            mp2.getValue(obj);
+            MFnMatrixData matData(obj);
+            MMatrix mmat = matData.matrix();
+            double dest[4][4];
+            mmat.get(dest);
+            glm::mat4 mat(
+                dest[0][0], dest[0][1], dest[0][2], dest[0][3],
+                dest[1][0], dest[1][1], dest[1][2], dest[1][3],
+                dest[2][0], dest[2][1], dest[2][2], dest[2][3],
+                dest[3][0], dest[3][1], dest[3][2], dest[3][3]
+            );
+            skin_weights->joint_bind_matrices.push_back(mat);
+        }
+    }
+
+
 
 	mesh->skin_weights = skin_weights;
 

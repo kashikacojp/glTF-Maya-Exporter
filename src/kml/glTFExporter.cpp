@@ -656,70 +656,6 @@ namespace kml
 		}
 
         static
-        glm::mat4 GetBindMatrix(const Node* node)
-        {
-            glm::mat4 TT = glm::translate(glm::mat4(1.0f), node->GetTransform()->GetT());
-            glm::mat4 SS = glm::scale(glm::mat4(1.0f), node->GetTransform()->GetS());
-
-            return TT * SS;
-        }
-
-        static
-        glm::mat4 GetGlobalBindMatrix(const std::map<const Node*, const Node*>& parentMap, const Node* node)
-        {
-            typedef std::map<const Node*, const Node*> MapType;
-            typedef MapType::const_iterator iterator;
-            iterator it = parentMap.find(node);
-            if (it != parentMap.end())
-            {
-                const Node* parent = it->second;
-                return GetGlobalBindMatrix(parentMap, parent) * GetBindMatrix(node);
-            }
-            else
-            {
-                return GetBindMatrix(node);
-            }
-        }
-
-        static
-        std::vector<float> GetInverseBindMatrices(const std::vector<std::shared_ptr<Node> >& joints)
-        {
-            size_t jsz = joints.size();
-            std::map<const Node*, const Node*> parentMap;
-
-            for (size_t i = 0; i < jsz; i++)
-            {
-                const auto& children = joints[i]->GetChildren();
-                for (size_t j = 0; j < children.size(); j++)
-                {
-                    parentMap[children[j].get()] = joints[i].get();
-                }
-            }
-
-            std::vector<glm::mat4> BM(jsz);
-            for (size_t i = 0; i < jsz; i++)
-            {
-                BM[i] = GetGlobalBindMatrix(parentMap, joints[i].get());
-            }
-            std::vector<glm::mat4> IBM(jsz);
-            for (size_t i = 0; i < jsz; i++)
-            {
-                IBM[i] = glm::inverse(BM[i]);
-            }
-
-            std::vector<float> ret(jsz*4*4);
-            float* dst = &ret[0];
-            for (size_t i = 0; i < jsz; i++)
-            {
-                glm::mat4 im = IBM[i];
-                const float* ptr = glm::value_ptr(im);
-                std::memcpy(dst + i * 16, ptr, sizeof(float) * 16);
-            }
-
-            return ret;
-        }
-
-        static
         int GetIndexOfJoint(const std::shared_ptr<Skin>& skin, const std::string& path)
         {
             const auto& joints = skin->GetJoints();
@@ -1449,6 +1385,7 @@ namespace kml
             std::vector< std::shared_ptr<::kml::SkinWeights> > skin_weights;
             GetSkinWeights(skin_weights, in_node);
 
+            std::map<std::string, glm::mat4> path_matrix_map;
             if(!skin_weights.empty())
             {
                 int nSkin = reg.GetSkins().size();
@@ -1478,7 +1415,7 @@ namespace kml
                 }
 
                 std::map<std::string, std::shared_ptr<Node> > joint_map2;
-
+                
                 for (size_t j = 0; j < skin_weights.size(); j++)
                 {
                     std::shared_ptr<::kml::SkinWeights>& in_skin = skin_weights[j];
@@ -1502,6 +1439,11 @@ namespace kml
                             }
                         }
                     }
+
+                    for (int i = 0; i < in_skin->joint_paths.size(); i++)
+                    {
+                        path_matrix_map[in_skin->joint_paths[i]] = in_skin->joint_bind_matrices[i];
+                    }
                 }
 
                 std::vector < std::pair<int, std::shared_ptr<Node> > > joint_nodes;
@@ -1518,11 +1460,20 @@ namespace kml
                     skin->AddJoint(joint_nodes[i].second);
                 }
 
-
                 if (skin->GetJoints().size() > 0)
                 {
                     const std::vector<std::shared_ptr<Node> >& skin_joints = skin->GetJoints();
-                    std::vector<float> inverseMatrices = GetInverseBindMatrices(skin_joints);
+                    
+                    std::vector<float> inverseMatrices;
+                    for (size_t i = 0; i < skin_joints.size(); i++)
+                    {
+                        glm::mat4 mat = path_matrix_map[skin_joints[i]->GetPath()];
+                        const float* ptr = glm::value_ptr(mat);
+                        for (size_t k = 0; k < 16; k++)
+                        {
+                            inverseMatrices.push_back(ptr[k]);
+                        }
+                    }
 
                     int nAcc = reg.GetAccessors().size();
                     //indices
