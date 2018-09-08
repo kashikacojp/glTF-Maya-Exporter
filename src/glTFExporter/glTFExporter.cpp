@@ -2194,6 +2194,32 @@ void AddChildUnique(std::shared_ptr<kml::Node>& parent, std::shared_ptr<kml::Nod
 
 
 static
+void SetNode(std::map<std::string, std::shared_ptr<kml::Node> >& pathMap, const std::string& path, const std::shared_ptr<kml::Node>& node)
+{
+    typedef std::map<std::string, std::shared_ptr<kml::Node> > PathMap;
+    typedef PathMap::iterator iterator;
+    //pathMap[path] = node;
+    iterator it = pathMap.find(path);
+    if (it == pathMap.end())
+    {
+        pathMap[path] = node;
+    }
+    else
+    {
+        const std::shared_ptr<kml::Node>& a = it->second;
+        const std::shared_ptr<kml::Node>& b = node;
+
+        std::shared_ptr<kml::Mesh> amesh = a->GetMesh();
+        std::shared_ptr<kml::Mesh> bmesh = b->GetMesh();
+
+        if (!amesh.get() && bmesh.get())
+        {
+            pathMap[path] = node;
+        }
+    }
+}
+
+static
 std::shared_ptr<kml::Node> CombineNodes(const std::vector< std::shared_ptr<kml::Node> >& nodes)
 {
 	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
@@ -2233,8 +2259,8 @@ std::shared_ptr<kml::Node> CombineNodes(const std::vector< std::shared_ptr<kml::
 					pathMapList.push_back(PathMap());
 				}
 			}
-			
-			pathMapList[sz - 1][pathvec[sz - 1]] = nodes[i];
+
+            SetNode(pathMapList[sz - 1], pathvec[sz - 1], nodes[i]);
 		}
 
 		for (size_t i = 0; i < pathList.size(); i++)
