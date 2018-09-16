@@ -26,10 +26,10 @@ const char *const gltfDefaultOptions =
 	"output_buffer=1;"
 	"convert_texture_format=1;"
 	"vrm_export=1;"
-    "vrm_licence_performance=2;"        //everyone
-    "vrm_licence_violence=1;"           //allow
-    "vrm_licence_sexuality=1;"          //allow
-    "vrm_licence_commercial_use=1;"     //allow
+    "vrm_licence_allowed_user_name=2;"        //everyone
+    "vrm_licence_violent_usage=1;"           //allow
+    "vrm_licence_sexual_usage=1;"          //allow
+    "vrm_licence_commercial_usage=1;"     //allow
     ;
 
 static

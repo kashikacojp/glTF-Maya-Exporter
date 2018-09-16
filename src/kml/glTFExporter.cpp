@@ -2221,7 +2221,7 @@ namespace kml
 			}
 
 			{
-				picojson::object meta;vrm_licence_commercial_usage
+				picojson::object meta;
 				meta["version"] = picojson::value("");
 				meta["author"] = picojson::value("username"); // TODO: input from param
 				meta["contactInformation"] = picojson::value("");

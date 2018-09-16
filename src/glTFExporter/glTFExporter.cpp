@@ -501,10 +501,10 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	int transform_space = 1;		//0:world_space, 1:local_space
     int bake_mesh_transform = 1;    //0:no_bake, 1:bake
 
-    int vrm_licence_performance = 2;    //everyone
-    int vrm_licence_violence = 1;       //allow
-    int vrm_licence_sexuality = 1;      //allow
-    int vrm_licence_commercial_use = 1; //allow
+    int vrm_licence_allowed_user_name = 2;    //everyone
+    int vrm_licence_violent_usage = 1;       //allow
+    int vrm_licence_sexual_usage = 1;      //allow
+    int vrm_licence_commercial_usage = 1; //allow
 
 	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
     
@@ -550,17 +550,17 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
                 bake_mesh_transform = theOption[1].asInt();
             }
 #ifdef ENABLE_VRM
-            if (theOption[0] == MString("vrm_licence_performance") && theOption.length() > 1) {
-                vrm_licence_performance = theOption[1].asInt();
+            if (theOption[0] == MString("vrm_licence_allowed_user_name") && theOption.length() > 1) {
+                vrm_licence_allowed_user_name = theOption[1].asInt();
             }
-            if (theOption[0] == MString("vrm_licence_violence") && theOption.length() > 1) {
-                vrm_licence_violence = theOption[1].asInt();
+            if (theOption[0] == MString("vrm_licence_violent_usage") && theOption.length() > 1) {
+                vrm_licence_violent_usage = theOption[1].asInt();
             }
-            if (theOption[0] == MString("vrm_licence_sexuality") && theOption.length() > 1) {
-                vrm_licence_sexuality = theOption[1].asInt();
+            if (theOption[0] == MString("vrm_licence_sexual_usage") && theOption.length() > 1) {
+                vrm_licence_sexual_usage = theOption[1].asInt();
             }
-            if (theOption[0] == MString("vrm_licence_commercial_use") && theOption.length() > 1) {
-                vrm_licence_commercial_use = theOption[1].asInt();
+            if (theOption[0] == MString("vrm_licence_commercial_usage") && theOption.length() > 1) {
+                vrm_licence_commercial_usage = theOption[1].asInt();
             }
 #endif
 		}
@@ -587,10 +587,10 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
     opts->SetInt("bake_mesh_transform", bake_mesh_transform);
 
 	opts->SetInt("vrm_export", vrm_export);
-    opts->SetInt("vrm_licence_performance", vrm_licence_performance);
-    opts->SetInt("vrm_licence_violence", vrm_licence_violence);
-    opts->SetInt("vrm_licence_sexuality", vrm_licence_sexuality);
-    opts->SetInt("vrm_licence_commercial_use", vrm_licence_commercial_use);
+    opts->SetInt("vrm_licence_allowed_user_name", vrm_licence_allowed_user_name);
+    opts->SetInt("vrm_licence_violent_usage", vrm_licence_violent_usage);
+    opts->SetInt("vrm_licence_sexual_usage", vrm_licence_sexual_usage);
+    opts->SetInt("vrm_licence_commercial_usage", vrm_licence_commercial_usage);
 
     /* print current linear units used as a comment in the obj file */
     //setToLongUnitName(MDistance::uiUnit(), unitName);
