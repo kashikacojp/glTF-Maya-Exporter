@@ -501,6 +501,11 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	int transform_space = 1;		//0:world_space, 1:local_space
     int bake_mesh_transform = 1;    //0:no_bake, 1:bake
 
+    int vrm_licence_performance = 2;    //everyone
+    int vrm_licence_violence = 1;       //allow
+    int vrm_licence_sexuality = 1;      //allow
+    int vrm_licence_commercial_use = 1; //allow
+
 	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
     
 	if (options.length() > 0)
@@ -544,6 +549,20 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
             if (theOption[0] == MString("bake_mesh_transform") && theOption.length() > 1) {
                 bake_mesh_transform = theOption[1].asInt();
             }
+#ifdef ENABLE_VRM
+            if (theOption[0] == MString("vrm_licence_performance") && theOption.length() > 1) {
+                vrm_licence_performance = theOption[1].asInt();
+            }
+            if (theOption[0] == MString("vrm_licence_violence") && theOption.length() > 1) {
+                vrm_licence_violence = theOption[1].asInt();
+            }
+            if (theOption[0] == MString("vrm_licence_sexuality") && theOption.length() > 1) {
+                vrm_licence_sexuality = theOption[1].asInt();
+            }
+            if (theOption[0] == MString("vrm_licence_commercial_use") && theOption.length() > 1) {
+                vrm_licence_commercial_use = theOption[1].asInt();
+            }
+#endif
 		}
 	}
 
@@ -566,7 +585,12 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	opts->SetInt("convert_texture_format", convert_texture_format);
 	opts->SetInt("transform_space", transform_space);
     opts->SetInt("bake_mesh_transform", bake_mesh_transform);
+
 	opts->SetInt("vrm_export", vrm_export);
+    opts->SetInt("vrm_licence_performance", vrm_licence_performance);
+    opts->SetInt("vrm_licence_violence", vrm_licence_violence);
+    opts->SetInt("vrm_licence_sexuality", vrm_licence_sexuality);
+    opts->SetInt("vrm_licence_commercial_use", vrm_licence_commercial_use);
 
     /* print current linear units used as a comment in the obj file */
     //setToLongUnitName(MDistance::uiUnit(), unitName);

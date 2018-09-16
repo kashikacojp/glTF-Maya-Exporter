@@ -18,19 +18,48 @@ global proc int vrmExporterOptions ( string $parent,
             string $conv_no = (uiRes("m_vrmExporterOptions.kConvertNo"));
             string $conv_jpeg = (uiRes("m_vrmExporterOptions.kConvertJpeg"));
             string $conv_png  = (uiRes("m_vrmExporterOptions.kConvertPng"));
+
+			string $only_auther = (uiRes("m_vrmExporterOptions.kOnlyAuthor"));
+			string $explictly_licensed_person  = (uiRes("m_vrmExporterOptions.kExplictlyLicensedPerson"));
+			string $everyone  = (uiRes("m_vrmExporterOptions.kEveryone"));
+			string $allow     = (uiRes("m_vrmExporterOptions.kAllow"));
+			string $disallow  = (uiRes("m_vrmExporterOptions.kDisallow"));
 			
 			radioButtonGrp
 				-label (uiRes("m_vrmExporterOptions.kRecalcNormals"))
-				-nrb 2 -cw3 190 45 45
+				-nrb 2 -cw3 270 50 50
 				-labelArray2 $on $off objRecalcNormals;
 			radioButtonGrp
 				-label (uiRes("m_vrmExporterOptions.kConvertTextureFormat"))
-				-nrb 3	-cw4 190 45 45 45
+				-nrb 3	-cw4 270 50 50 50
 				-labelArray3 $conv_no $conv_jpeg $conv_png objConvertTextureFormat;
+			//--------------------------------------------------------------------
+			radioButtonGrp
+				-label (uiRes("m_vrmExporterOptions.kLicensePerformance"))
+				-nrb 3	-cw4 270 100 180 100
+				-labelArray3 $only_auther $explictly_licensed_person $everyone objLicensePerformance;
+			radioButtonGrp
+				-label (uiRes("m_vrmExporterOptions.kLicenseViolence"))
+				-nrb 2 -cw3 270 100 100
+				-labelArray2 $disallow $allow objLicenseViolence;
+			radioButtonGrp
+				-label (uiRes("m_vrmExporterOptions.kLicenseSexuality"))
+				-nrb 2 -cw3 270 100 100
+				-labelArray2 $disallow $allow objLicenseSexuality;
+			radioButtonGrp
+				-label (uiRes("m_vrmExporterOptions.kLicenseCommercialUse"))
+				-nrb 2 -cw3 270 100 100
+				-labelArray2 $disallow $allow objLicenseCommercialUse;
 				
-				
+		//--------------------------------------------------------------------
 		radioButtonGrp -e -sl 2 objRecalcNormals;		//off
 		radioButtonGrp -e -sl 1 objConvertTextureFormat;//N/A
+		//--------------------------------------------------------------------
+		radioButtonGrp -e -sl 3 objLicensePerformance;  //everyone
+		radioButtonGrp -e -sl 2 objLicenseViolence;		//allow
+		radioButtonGrp -e -sl 2 objLicenseSexuality;	//allow
+		radioButtonGrp -e -sl 2 objLicenseCommercialUse;//allow
+		//--------------------------------------------------------------------
 
 		// Now set to current settings.
 		$currentOptions = $initialSettings;
@@ -53,6 +82,32 @@ global proc int vrmExporterOptions ( string $parent,
 					} else {
 						radioButtonGrp -e -sl 3 objConvertTextureFormat;
 					}
+				} else if ($optionBreakDown[0] == "vrm_licence_allowed_user_name") {
+					if ($optionBreakDown[1] == "0") {
+						radioButtonGrp -e -sl 1 objLicensePerformance;
+					} else if ($optionBreakDown[1] == "1") {
+						radioButtonGrp -e -sl 2 objLicensePerformance;
+					} else {
+						radioButtonGrp -e -sl 3 objLicensePerformance;
+					}
+				} else if ($optionBreakDown[0] == "vrm_licence_violent_usage") {
+					if ($optionBreakDown[1] == "0") {
+						radioButtonGrp -e -sl 1 objLicenseViolence;
+					} else {
+						radioButtonGrp -e -sl 2 objLicenseViolence;
+					}
+				} else if ($optionBreakDown[0] == "vrm_licence_sexual_usage") {
+					if ($optionBreakDown[1] == "0") {
+						radioButtonGrp -e -sl 1 objLicenseSexuality;
+					} else {
+						radioButtonGrp -e -sl 2 objLicenseSexuality;
+					}
+				} else if ($optionBreakDown[0] == "vrm_licence_commercial_usage") {
+					if ($optionBreakDown[1] == "0") {
+						radioButtonGrp -e -sl 1 objLicenseCommercialUse;
+					} else {
+						radioButtonGrp -e -sl 2 objLicenseCommercialUse;
+					}
 				}
 			}
 		}
@@ -72,6 +127,34 @@ global proc int vrmExporterOptions ( string $parent,
 		} else {
 			$currentOptions = $currentOptions + ";convert_texture_format=2";
 		}
+
+		//--------------------------------------------------------------------
+		if (`radioButtonGrp -q -sl objLicensePerformance` == 1) {
+			$currentOptions = $currentOptions + ";vrm_licence_allowed_user_name=0";
+		} else if (`radioButtonGrp -q -sl objLicensePerformance` == 2) {
+		    $currentOptions = $currentOptions + ";vrm_licence_allowed_user_name=1";
+		} else {
+			$currentOptions = $currentOptions + ";vrm_licence_allowed_user_name=2";
+		}
+		
+		if (`radioButtonGrp -q -sl objLicenseViolence` == 1) {
+			$currentOptions = $currentOptions + "vrm_licence_violent_usage=0";
+		} else {
+			$currentOptions = $currentOptions + "vrm_licence_violent_usage=1";
+		}
+
+		if (`radioButtonGrp -q -sl objLicenseSexuality` == 1) {
+			$currentOptions = $currentOptions + "vrm_licence_sexual_usage=0";
+		} else {
+			$currentOptions = $currentOptions + "vrm_licence_sexual_usage=1";
+		}
+
+		if (`radioButtonGrp -q -sl objLicenseCommercialUse` == 1) {
+			$currentOptions = $currentOptions + "vrm_licence_commercial_usage=0";
+		} else {
+			$currentOptions = $currentOptions + "vrm_licence_commercial_usage=1";
+		}
+		//--------------------------------------------------------------------
 
 		eval($resultCallback+" \""+$currentOptions+"\"");
 		$result = 1;

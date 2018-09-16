@@ -6,3 +6,14 @@ displayString -replace -value "On" m_vrmExporterOptions.kOn;
 displayString -replace -value "N/A" m_vrmExporterOptions.kConvertNo;
 displayString -replace -value "Jpeg" m_vrmExporterOptions.kConvertJpeg;
 displayString -replace -value "Png" m_vrmExporterOptions.kConvertPng;
+
+displayString -replace -value "A person who can perform with this avatar" m_vrmExporterOptions.kLicensePerformance;
+displayString -replace -value "Violent acts using this avatar" m_vrmExporterOptions.kLicenseViolence;
+displayString -replace -value "Sexuality acts using this avatar" m_vrmExporterOptions.kLicenseSexuality;
+displayString -replace -value "For commercial use" m_vrmExporterOptions.kLicenseCommercialUse;
+
+displayString -replace -value "Only Author" m_vrmExporterOptions.kOnlyAuthor;
+displayString -replace -value "Explictly Licensed Person" m_vrmExporterOptions.kExplictlyLicensedPerson;
+displayString -replace -value "Everyone" m_vrmExporterOptions.kEveryone;
+displayString -replace -value "Allow" m_vrmExporterOptions.kAllow;
+displayString -replace -value "Disallow" m_vrmExporterOptions.kDisallow;

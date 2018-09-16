@@ -2202,7 +2202,7 @@ namespace kml
         }
 
 		static
-		bool WriteVRMMetaInfo(picojson::object& root_object, const std::shared_ptr<::kml::Node>& node)
+		bool WriteVRMMetaInfo(picojson::object& root_object, const std::shared_ptr<::kml::Node>& node, const std::shared_ptr<Options>& opts)
 		{
 			picojson::object extensions;
 			auto ext = root_object.find("extensions");
@@ -2221,20 +2221,49 @@ namespace kml
 			}
 
 			{
-				picojson::object meta;
+				picojson::object meta;vrm_licence_commercial_usage
 				meta["version"] = picojson::value("");
 				meta["author"] = picojson::value("username"); // TODO: input from param
 				meta["contactInformation"] = picojson::value("");
 				meta["reference"] = picojson::value("");
 				meta["title"] = picojson::value("usertitle"); // TODO: input from param
 				meta["texture"] = picojson::value(0.0);
-				meta["allowedUserName"] = picojson::value("Everyone");
-				meta["violentUssageName"] = picojson::value("Disallow");
-				meta["sexualUssageName"] = picojson::value("Disallow");
-				meta["commercialUssageName"] = picojson::value("Disallow");
+
+                {
+                    int vrm_licence_allowed_user_name = opts->GetInt("vrm_licence_allowed_user_name", 2);
+                    switch (vrm_licence_allowed_user_name)
+                    {
+                    case 0:meta["allowedUserName"] = picojson::value("Only Author"); break;
+                    case 1:meta["allowedUserName"] = picojson::value("Explictly Licensed Person"); break;
+                    case 2:meta["allowedUserName"] = picojson::value("Everyone"); break;
+                    }
+
+                    int vrm_licence_violent_usage = opts->GetInt("vrm_licence_violent_usage", 1);
+                    switch (vrm_licence_violent_usage)
+                    {
+                    case 0:meta["violentUsageName"] = picojson::value("Disallow"); break;
+                    case 1:meta["violentUsageName"] = picojson::value("Allow"); break;
+                    }
+
+                    int vrm_licence_sexual_usage = opts->GetInt("vrm_licence_sexual_usage", 1);
+                    switch (vrm_licence_sexual_usage)
+                    {
+                    case 0:meta["sexualUsageName"] = picojson::value("Disallow"); break;
+                    case 1:meta["sexualUsageName"] = picojson::value("Allow"); break;
+                    }
+
+                    int vrm_licence_commercial_usage = opts->GetInt("vrm_licence_commercial_usage", 1);
+                    switch (vrm_licence_commercial_usage)
+                    {
+                    case 0:meta["commercialUsageName"] = picojson::value("Disallow"); break;
+                    case 1:meta["commercialUsageName"] = picojson::value("Allow"); break;
+                    }
+                }
+
 				meta["otherPermissionUrl"] = picojson::value("");
 				meta["licenseName"] = picojson::value("Redistribution_Prohibited");
 				meta["otherLicenseUrl"] = picojson::value("");
+
 				VRM["meta"] = picojson::value(meta);
 			}
 			{
@@ -2531,7 +2560,7 @@ namespace kml
 
 		if (vrm_export)
         {
-			if (!gltf::WriteVRMMetaInfo(root_object, node)) {
+			if (!gltf::WriteVRMMetaInfo(root_object, node, opts)) {
 				return false;
 			}
 		}
