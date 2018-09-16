@@ -1953,11 +1953,18 @@ namespace kml
 					const auto& mat = materials[i];
 					picojson::object nd;
 					nd["name"] = picojson::value(mat->GetName());
-					picojson::array emissiveFactor;
-					emissiveFactor.push_back(picojson::value(0.0));
-					emissiveFactor.push_back(picojson::value(0.0));
-					emissiveFactor.push_back(picojson::value(0.0));
-					nd["emissiveFactor"] = picojson::value(emissiveFactor);
+
+                    {
+                        picojson::array emissiveFactor;
+                        float R = mat->GetValue("Emission.R");
+                        float G = mat->GetValue("Emission.G");
+                        float B = mat->GetValue("Emission.B");
+
+                        emissiveFactor.push_back(picojson::value(R));
+                        emissiveFactor.push_back(picojson::value(G));
+                        emissiveFactor.push_back(picojson::value(B));
+                        nd["emissiveFactor"] = picojson::value(emissiveFactor);
+                    }
 
 					picojson::object pbrMetallicRoughness;
 
@@ -1985,30 +1992,32 @@ namespace kml
 						}
 					}
 
-					picojson::array colorFactor;
-					float R = mat->GetValue("BaseColor.R");
-					float G = mat->GetValue("BaseColor.G");
-					float B = mat->GetValue("BaseColor.B");
-					float A = mat->GetValue("BaseColor.A");
+                    {
+                        picojson::array colorFactor;
+                        float R = mat->GetValue("BaseColor.R");
+                        float G = mat->GetValue("BaseColor.G");
+                        float B = mat->GetValue("BaseColor.B");
+                        float A = mat->GetValue("BaseColor.A");
 
-					colorFactor.push_back(picojson::value(R));
-					colorFactor.push_back(picojson::value(G));
-					colorFactor.push_back(picojson::value(B));
-					colorFactor.push_back(picojson::value(A));
-					pbrMetallicRoughness["baseColorFactor"] = picojson::value(colorFactor);
+                        colorFactor.push_back(picojson::value(R));
+                        colorFactor.push_back(picojson::value(G));
+                        colorFactor.push_back(picojson::value(B));
+                        colorFactor.push_back(picojson::value(A));
+                        pbrMetallicRoughness["baseColorFactor"] = picojson::value(colorFactor);
+
+                        if (A >= 1.0f)
+                        {
+                            nd["alphaMode"] = picojson::value("OPAQUE");
+                        }
+                        else
+                        {
+                            nd["alphaMode"] = picojson::value("BLEND");
+                        }
+                    }
 
 					pbrMetallicRoughness["metallicFactor"] = picojson::value(mat->GetFloat("metallicFactor"));
 					pbrMetallicRoughness["roughnessFactor"] = picojson::value(mat->GetFloat("roughnessFactor"));
 					nd["pbrMetallicRoughness"] = picojson::value(pbrMetallicRoughness);
-
-					if (A >= 1.0f)
-					{
-						nd["alphaMode"] = picojson::value("OPAQUE");
-					}
-					else
-					{
-						nd["alphaMode"] = picojson::value("BLEND");
-					}
 
 					ar.push_back(picojson::value(nd));
 				}
@@ -2331,9 +2340,13 @@ namespace kml
 			}
 
 			{
+                const auto& nmaterials = root_object["materials"].get<picojson::array>();
 				const auto& materials = node->GetMaterials();
 				picojson::array materialProperties;
-				for (size_t i = 0; i < materials.size(); ++i) {
+				for (size_t i = 0; i < materials.size(); ++i) 
+                {
+                    auto nmat = nmaterials[i].get<picojson::object>();
+                    const auto& imat = materials[i];
 					picojson::object mat;
 					mat["name"] = picojson::value(materials[i]->GetName());
 					mat["renderQueue"] = picojson::value(2000.0);
@@ -2342,7 +2355,9 @@ namespace kml
 					picojson::object floatProperties;
 
 					mat["floatProperties"] = picojson::value(floatProperties);
-					/*floatProperties["_Cutoff"] = picojson::value(0.5);
+
+					/*
+                    floatProperties["_Cutoff"] = picojson::value(0.5);
 					floatProperties["_BumpScale"] = picojson::value(1.0);
 					floatProperties["_ReceiveShadowRate"] = picojson::value(1.0);
 					floatProperties["_ShadeShift"] = picojson::value(-0.3);
@@ -2360,12 +2375,26 @@ namespace kml
 					floatProperties["_SrcBlend"] = picojson::value(1.0);
 					floatProperties["_DstBlend"] = picojson::value(0.0);
 					floatProperties["_ZWrite"] = picojson::value(1.0);
-					floatProperties["_IsFirstSetup"] = picojson::value(0.0);*/
+					floatProperties["_IsFirstSetup"] = picojson::value(0.0);
+                    */
 
 					picojson::object vectorProperties;
-					vectorProperties["_Color"] = makeVec4Value(1.0, 1.0, 1.0, 1.0);
-					vectorProperties["_EmissionColor"] = makeVec4Value(0.0, 0.0, 0.0, 1.0);
-					/*vectorProperties["_ShadeColor"] = makeVec4Value(0.2, 0.2, 0.2, 1.0);
+                    {
+                        float R = imat->GetValue("BaseColor.R");
+                        float G = imat->GetValue("BaseColor.G");
+                        float B = imat->GetValue("BaseColor.B");
+                        float A = imat->GetValue("BaseColor.A");
+                        vectorProperties["_Color"] = makeVec4Value(R, G, B, A);
+                    }
+                    {
+                        float R = imat->GetValue("Emission.R");
+                        float G = imat->GetValue("Emission.G");
+                        float B = imat->GetValue("Emission.B");
+                        float A = 1.0f;
+                        vectorProperties["_EmissionColor"] = makeVec4Value(R, G, B, A);
+                    }
+					/*
+                    vectorProperties["_ShadeColor"] = makeVec4Value(0.2, 0.2, 0.2, 1.0);
 					vectorProperties["_MainTex"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
 					vectorProperties["_ShadeTexture"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
 					vectorProperties["_BumpMap"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
@@ -2373,17 +2402,34 @@ namespace kml
 					vectorProperties["_SphereAdd"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
 					vectorProperties["_EmissionMap"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
 					vectorProperties["_OutlineWidthTexture"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
-					vectorProperties["_OutlineColor"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);*/
+					vectorProperties["_OutlineColor"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+                    */
 					mat["vectorProperties"] = picojson::value(vectorProperties);
 
-					picojson::object textureProperties;
-					//textureProperties["_MainTex"] = picojson::value(0.0);
-					/*	"_MainTex": 0,                 // TODO
-						"_ShadeTexture" : 0,
-						"_SphereAdd" : 1,
-						"_EmissionMap" : 2
-					},*/
-					mat["textureProperties"] = picojson::value(textureProperties);
+                    {
+                        picojson::object textureProperties;
+                        //textureProperties["_MainTex"] = picojson::value(0.0);
+                        /*	
+                            "_MainTex": 0,                 // TODO
+                            "_ShadeTexture" : 0,
+                            "_SphereAdd" : 1,
+                            "_EmissionMap" : 2
+                        },*/
+
+                        std::shared_ptr<kml::Texture> tex = imat->GetTexture("BaseColor");
+                        if (tex) 
+                        {
+                            auto npbr  = nmat["pbrMetallicRoughness"].get<picojson::object>();
+                            auto ntex  = npbr["baseColorTexture"].get<picojson::object>();
+                            
+                            int nIndex = (int)(ntex["index"].get<double>());
+                            if (nIndex >= 0)
+                            {
+                                textureProperties["_MainTex"] = picojson::value((double)nIndex);
+                            }
+                        }
+                        mat["textureProperties"] = picojson::value(textureProperties);
+                    }
 
 	
 					picojson::object keywordMap;

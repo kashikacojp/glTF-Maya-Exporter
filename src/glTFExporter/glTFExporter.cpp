@@ -499,7 +499,7 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	int output_buffer = 1;			//0:bin, 1:draco, 2:bin/draco
 	int convert_texture_format = 0; //0:no convert, 1:jpeg, 2:png
 	int transform_space = 1;		//0:world_space, 1:local_space
-    int bake_mesh_transform = 0;    //0:no_bake, 1:bake
+    int bake_mesh_transform = 1;    //0:no_bake, 1:bake
 
 	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
     
