@@ -2222,47 +2222,71 @@ namespace kml
 
 			{
 				picojson::object meta;
-				meta["version"] = picojson::value("");
-				meta["author"] = picojson::value("username"); // TODO: input from param
-				meta["contactInformation"] = picojson::value("");
-				meta["reference"] = picojson::value("");
-				meta["title"] = picojson::value("usertitle"); // TODO: input from param
+                {
+                    std::string s = opts->GetString("vrm_product_title", "");
+                    meta["title"] = picojson::value(s);
+                }
+                {
+                    std::string s = opts->GetString("vrm_product_version", "");
+                    meta["version"] = picojson::value(s);
+                }
+                {
+                    std::string s = opts->GetString("vrm_product_author", "");
+                    meta["author"] = picojson::value(s);
+                }
+                {
+                    std::string s = opts->GetString("vrm_product_contact_information", "");
+                    meta["contactInformation"] = picojson::value(s);
+                }
+                {
+                    std::string s = opts->GetString("vrm_product_reference", "");
+                    meta["reference"] = picojson::value(s);
+                }
+
 				meta["texture"] = picojson::value(0.0);
 
                 {
-                    int vrm_licence_allowed_user_name = opts->GetInt("vrm_licence_allowed_user_name", 2);
-                    switch (vrm_licence_allowed_user_name)
+                    int vrm_license_allowed_user_name = opts->GetInt("vrm_license_allowed_user_name", 2);
+                    switch (vrm_license_allowed_user_name)
                     {
-                    case 0:meta["allowedUserName"] = picojson::value("Only Author"); break;
-                    case 1:meta["allowedUserName"] = picojson::value("Explictly Licensed Person"); break;
+                    case 0:meta["allowedUserName"] = picojson::value("OnlyAuthor"); break;
+                    case 1:meta["allowedUserName"] = picojson::value("ExplictlyLicensedPerson"); break;
                     case 2:meta["allowedUserName"] = picojson::value("Everyone"); break;
                     }
 
-                    int vrm_licence_violent_usage = opts->GetInt("vrm_licence_violent_usage", 1);
-                    switch (vrm_licence_violent_usage)
+                    int vrm_license_violent_usage = opts->GetInt("vrm_license_violent_usage", 1);
+                    switch (vrm_license_violent_usage)
                     {
                     case 0:meta["violentUsageName"] = meta["violentUssageName"] = picojson::value("Disallow"); break;
                     case 1:meta["violentUsageName"] = meta["violentUssageName"] = picojson::value("Allow"); break;
                     }
 
-                    int vrm_licence_sexual_usage = opts->GetInt("vrm_licence_sexual_usage", 1);
-                    switch (vrm_licence_sexual_usage)
+                    int vrm_license_sexual_usage = opts->GetInt("vrm_license_sexual_usage", 1);
+                    switch (vrm_license_sexual_usage)
                     {
                     case 0:meta["sexualUsageName"] = meta["sexualUssageName"] = picojson::value("Disallow"); break;
                     case 1:meta["sexualUsageName"] = meta["sexualUssageName"] = picojson::value("Allow"); break;
                     }
 
-                    int vrm_licence_commercial_usage = opts->GetInt("vrm_licence_commercial_usage", 1);
-                    switch (vrm_licence_commercial_usage)
+                    int vrm_license_commercial_usage = opts->GetInt("vrm_license_commercial_usage", 1);
+                    switch (vrm_license_commercial_usage)
                     {
                     case 0:meta["commercialUsageName"] = meta["commercialUssageName"] = picojson::value("Disallow"); break;
                     case 1:meta["commercialUsageName"] = meta["commercialUssageName"] = picojson::value("Allow"); break;
                     }
                 }
-
-				meta["otherPermissionUrl"] = picojson::value("");
-				meta["licenseName"] = picojson::value("Redistribution_Prohibited");
-				meta["otherLicenseUrl"] = picojson::value("");
+                {
+                    std::string url = opts->GetString("vrm_license_other_permission_url", "");
+                    meta["otherPermissionUrl"] = picojson::value(url);
+                }
+                {
+                    std::string type = opts->GetString("vrm_license_license_type", "");
+                    meta["licenseName"] = picojson::value(type);
+                }
+                {
+                    std::string url = opts->GetString("vrm_license_other_license_url", "");
+                    meta["otherLicenseUrl"] = picojson::value(url);
+                }
 
 				VRM["meta"] = picojson::value(meta);
 			}

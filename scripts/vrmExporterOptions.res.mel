@@ -1,5 +1,5 @@
 displayString -replace -value "Recalc normals:" m_vrmExporterOptions.kRecalcNormals;
-displayString -replace -value "Convert texture format" m_vrmExporterOptions.kConvertTextureFormat;
+displayString -replace -value "Convert texture format:" m_vrmExporterOptions.kConvertTextureFormat;
 
 displayString -replace -value "Off" m_vrmExporterOptions.kOff;
 displayString -replace -value "On" m_vrmExporterOptions.kOn;
@@ -7,13 +7,34 @@ displayString -replace -value "N/A" m_vrmExporterOptions.kConvertNo;
 displayString -replace -value "Jpeg" m_vrmExporterOptions.kConvertJpeg;
 displayString -replace -value "Png" m_vrmExporterOptions.kConvertPng;
 
-displayString -replace -value "A person who can perform with this avatar" m_vrmExporterOptions.kLicenseLicencedPerson;
-displayString -replace -value "Violent acts using this avatar" m_vrmExporterOptions.kLicenseViolentUsage;
-displayString -replace -value "Sexuality acts using this avatar" m_vrmExporterOptions.kLicenseSexualUsage;
-displayString -replace -value "For commercial use" m_vrmExporterOptions.kLicenseCommercialUsage;
+displayString -replace -value "Title:" m_vrmExporterOptions.kTitle;
+displayString -replace -value "Version:" m_vrmExporterOptions.kVersion;
+displayString -replace -value "Author:" m_vrmExporterOptions.kAuthor;
+displayString -replace -value "Contact Information:" m_vrmExporterOptions.kContactInformation;
+displayString -replace -value "Reference:" m_vrmExporterOptions.kReference;
+
+displayString -replace -value "A person who can perform with this avatar:" m_vrmExporterOptions.kLicenseLicensedPerson;
+displayString -replace -value "Violent acts using this avatar:" m_vrmExporterOptions.kLicenseViolentUsage;
+displayString -replace -value "Sexuality acts using this avatar:" m_vrmExporterOptions.kLicenseSexualUsage;
+displayString -replace -value "For commercial use:" m_vrmExporterOptions.kLicenseCommercialUsage;
+
+displayString -replace -value "License Type:" m_vrmExporterOptions.kLicenseLicenseType;
 
 displayString -replace -value "Only Author" m_vrmExporterOptions.kOnlyAuthor;
 displayString -replace -value "Explictly Licensed Person" m_vrmExporterOptions.kExplictlyLicensedPerson;
 displayString -replace -value "Everyone" m_vrmExporterOptions.kEveryone;
 displayString -replace -value "Allow" m_vrmExporterOptions.kAllow;
 displayString -replace -value "Disallow" m_vrmExporterOptions.kDisallow;
+
+displayString -replace -value "Other Permission URL:" m_vrmExporterOptions.kLicenseOtherPermissionURL;
+displayString -replace -value "Other License URL:" m_vrmExporterOptions.kLicenseOtherLicenseURL;
+       
+displayString -replace -value "Redistribution Prohibited" m_vrmExporterOptions.kRedistribution_Prohibited;
+displayString -replace -value "CC0" m_vrmExporterOptions.kCC0;
+displayString -replace -value "CC BY" m_vrmExporterOptions.kCC_BY;
+displayString -replace -value "CC BY-NC" m_vrmExporterOptions.kCC_BY_NC;
+displayString -replace -value "CC BY-SA" m_vrmExporterOptions.kCC_BY_SA;
+displayString -replace -value "CC BY-NC-SA" m_vrmExporterOptions.kCC_BY_NC_SA;
+displayString -replace -value "CC BY-ND" m_vrmExporterOptions.kCC_BY_ND;
+displayString -replace -value "CC BY-NC-ND" m_vrmExporterOptions.kCC_BY_NC_ND;
+displayString -replace -value "Other" m_vrmExporterOptions.kOther;

@@ -1,7 +1,7 @@
 displayString -replace -value "Recalc normals:" m_glTFExporterOptions.kRecalcNormals;
 displayString -replace -value "Output glb file:" m_glTFExporterOptions.kOutputGLBFile;
-displayString -replace -value "Compress buffer" m_glTFExporterOptions.kOutputBuffer;
-displayString -replace -value "Convert texture format" m_glTFExporterOptions.kConvertTextureFormat;
+displayString -replace -value "Compress buffer:" m_glTFExporterOptions.kOutputBuffer;
+displayString -replace -value "Convert texture format:" m_glTFExporterOptions.kConvertTextureFormat;
 
 displayString -replace -value "Off" m_glTFExporterOptions.kOff;
 displayString -replace -value "On" m_glTFExporterOptions.kOn;

@@ -470,6 +470,37 @@ MPxFileTranslator::MFileKind glTFExporter::identifyFile (
 	}
 }
 
+static
+std::string ConvertVRMLicenseType(const std::string& type)
+{
+    static const struct {
+        const char* szSrc;
+        const char* szDst;
+    } LicenseType[]{
+        {"Redistribution Prohibited", "Redistribution_Prohibited" },
+        {"CC0","CC0"},
+        {"CC BY","CC_BY"},
+        {"CC BY-NC","CC_BY_NC"},
+        {"CC BY-SA","CC_BY_SA"},
+        {"CC BY-NC-SA","CC_BY_NC_SA"},
+        {"CC BY-ND","CC_BY_ND" },
+        {"CC BY-NC-ND","CC_BY_NC_ND"},
+        {"Other", "Other"},
+        {NULL, NULL}
+    };
+
+    int i = 0;
+    while (LicenseType[i].szSrc != NULL)
+    {
+        if (strcmp(type.c_str(), LicenseType[i].szSrc) == 0)
+        {
+            return LicenseType[i].szDst;
+        }
+        i++;
+    }
+    return "CC_BY";
+}
+
 
 MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, FileAccessMode mode )
 
@@ -499,12 +530,23 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	int output_buffer = 1;			//0:bin, 1:draco, 2:bin/draco
 	int convert_texture_format = 0; //0:no convert, 1:jpeg, 2:png
 	int transform_space = 1;		//0:world_space, 1:local_space
-    int bake_mesh_transform = 1;    //0:no_bake, 1:bake
+    int bake_mesh_transform = 0;    //0:no_bake, 1:bake
 
-    int vrm_licence_allowed_user_name = 2;    //everyone
-    int vrm_licence_violent_usage = 1;       //allow
-    int vrm_licence_sexual_usage = 1;      //allow
-    int vrm_licence_commercial_usage = 1; //allow
+    std::string vrm_product_title = "notitle";
+    std::string vrm_product_version = "1.00";
+    std::string vrm_product_author = "unknown";
+    std::string vrm_product_contact_information = "";
+    std::string vrm_product_reference = "";
+
+    int vrm_license_allowed_user_name = 2;    //everyone
+    int vrm_license_violent_usage = 1;       //allow
+    int vrm_license_sexual_usage = 1;      //allow
+    int vrm_license_commercial_usage = 1; //allow
+
+    std::string vrm_license_other_permission_url = "";
+
+    std::string vrm_license_license_type = "CC_BY";
+    std::string vrm_license_other_license_url = "";
 
 	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
     
@@ -521,6 +563,8 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 		{
 			theOption.clear();
 			optionList[i].split( '=', theOption );
+
+            std::string debugName = optionList[i].asChar();
 
 			if( theOption[0] == MString("recalc_normals") && theOption.length() > 1 ) {
 				recalc_normals = theOption[1].asInt();
@@ -550,25 +594,54 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
                 bake_mesh_transform = theOption[1].asInt();
             }
 #ifdef ENABLE_VRM
-            if (theOption[0] == MString("vrm_licence_allowed_user_name") && theOption.length() > 1) {
-                vrm_licence_allowed_user_name = theOption[1].asInt();
+
+            if (theOption[0] == MString("vrm_product_title") && theOption.length() > 1) {
+                vrm_product_title = theOption[1].asChar();
             }
-            if (theOption[0] == MString("vrm_licence_violent_usage") && theOption.length() > 1) {
-                vrm_licence_violent_usage = theOption[1].asInt();
+            if (theOption[0] == MString("vrm_product_version") && theOption.length() > 1) {
+                vrm_product_version = theOption[1].asChar();
             }
-            if (theOption[0] == MString("vrm_licence_sexual_usage") && theOption.length() > 1) {
-                vrm_licence_sexual_usage = theOption[1].asInt();
+            if (theOption[0] == MString("vrm_product_author") && theOption.length() > 1) {
+                vrm_product_author = theOption[1].asChar();
             }
-            if (theOption[0] == MString("vrm_licence_commercial_usage") && theOption.length() > 1) {
-                vrm_licence_commercial_usage = theOption[1].asInt();
+            if (theOption[0] == MString("vrm_product_contact_information") && theOption.length() > 1) {
+                vrm_product_contact_information = theOption[1].asChar();
+            }
+            if (theOption[0] == MString("vrm_product_reference") && theOption.length() > 1) {
+                vrm_product_reference = theOption[1].asChar();
+            }
+
+            if (theOption[0] == MString("vrm_license_allowed_user_name") && theOption.length() > 1) {
+                vrm_license_allowed_user_name = theOption[1].asInt();
+            }
+            if (theOption[0] == MString("vrm_license_violent_usage") && theOption.length() > 1) {
+                vrm_license_violent_usage = theOption[1].asInt();
+            }
+            if (theOption[0] == MString("vrm_license_sexual_usage") && theOption.length() > 1) {
+                vrm_license_sexual_usage = theOption[1].asInt();
+            }
+            if (theOption[0] == MString("vrm_license_commercial_usage") && theOption.length() > 1) {
+                vrm_license_commercial_usage = theOption[1].asInt();
+            }
+            if (theOption[0] == MString("vrm_license_other_permission_url") && theOption.length() > 1) {
+                vrm_license_other_permission_url = theOption[1].asChar();
+            }
+
+            if (theOption[0] == MString("vrm_license_license_type") && theOption.length() > 1) {
+                vrm_license_license_type = ConvertVRMLicenseType(theOption[1].asChar());
+            }
+            if (theOption[0] == MString("vrm_license_other_license_url") && theOption.length() > 1) {
+                vrm_license_other_license_url = theOption[1].asChar();
             }
 #endif
 		}
 	}
 
-	if (vrm_export) {
+	if (vrm_export) 
+    {
 		output_buffer = 0; // disable Draco
 		output_glb = 1;    // force GLB format
+        bake_mesh_transform = 1;// bake mesh!
 	}
 
 	if (output_glb)
@@ -576,6 +649,17 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 		output_onefile = 1;			//enforce onefile
 		make_preload_texture = 0;	//no cache texture
 	}
+
+#ifdef ENABLE_VRM
+    if (
+        (vrm_license_license_type != "Other" && vrm_license_license_type != "Redistribution_Prohibited")
+        && 
+        vrm_license_other_license_url.empty()
+    )
+    {
+        vrm_license_other_license_url = "https://creativecommons.org/licenses/";
+    }
+#endif
 
 	opts->SetInt("recalc_normals", recalc_normals);
 	opts->SetInt("output_onefile", output_onefile);
@@ -587,10 +671,21 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
     opts->SetInt("bake_mesh_transform", bake_mesh_transform);
 
 	opts->SetInt("vrm_export", vrm_export);
-    opts->SetInt("vrm_licence_allowed_user_name", vrm_licence_allowed_user_name);
-    opts->SetInt("vrm_licence_violent_usage", vrm_licence_violent_usage);
-    opts->SetInt("vrm_licence_sexual_usage", vrm_licence_sexual_usage);
-    opts->SetInt("vrm_licence_commercial_usage", vrm_licence_commercial_usage);
+
+    opts->SetString("vrm_product_title", vrm_product_title);
+    opts->SetString("vrm_product_version", vrm_product_version);
+    opts->SetString("vrm_product_author", vrm_product_author);
+    opts->SetString("vrm_product_contact_information", vrm_product_contact_information);
+    opts->SetString("vrm_product_reference", vrm_product_reference);
+
+    opts->SetInt("vrm_license_allowed_user_name", vrm_license_allowed_user_name);
+    opts->SetInt("vrm_license_violent_usage", vrm_license_violent_usage);
+    opts->SetInt("vrm_license_sexual_usage", vrm_license_sexual_usage);
+    opts->SetInt("vrm_license_commercial_usage", vrm_license_commercial_usage);
+    opts->SetString("vrm_license_other_permission_url", vrm_license_other_permission_url);
+
+    opts->SetString("vrm_license_license_type", vrm_license_license_type);
+    opts->SetString("vrm_license_other_license_url", vrm_license_other_license_url);
 
     /* print current linear units used as a comment in the obj file */
     //setToLongUnitName(MDistance::uiUnit(), unitName);
