@@ -2241,22 +2241,22 @@ namespace kml
                     int vrm_licence_violent_usage = opts->GetInt("vrm_licence_violent_usage", 1);
                     switch (vrm_licence_violent_usage)
                     {
-                    case 0:meta["violentUsageName"] = picojson::value("Disallow"); break;
-                    case 1:meta["violentUsageName"] = picojson::value("Allow"); break;
+                    case 0:meta["violentUsageName"] = meta["violentUssageName"] = picojson::value("Disallow"); break;
+                    case 1:meta["violentUsageName"] = meta["violentUssageName"] = picojson::value("Allow"); break;
                     }
 
                     int vrm_licence_sexual_usage = opts->GetInt("vrm_licence_sexual_usage", 1);
                     switch (vrm_licence_sexual_usage)
                     {
-                    case 0:meta["sexualUsageName"] = picojson::value("Disallow"); break;
-                    case 1:meta["sexualUsageName"] = picojson::value("Allow"); break;
+                    case 0:meta["sexualUsageName"] = meta["sexualUssageName"] = picojson::value("Disallow"); break;
+                    case 1:meta["sexualUsageName"] = meta["sexualUssageName"] = picojson::value("Allow"); break;
                     }
 
                     int vrm_licence_commercial_usage = opts->GetInt("vrm_licence_commercial_usage", 1);
                     switch (vrm_licence_commercial_usage)
                     {
-                    case 0:meta["commercialUsageName"] = picojson::value("Disallow"); break;
-                    case 1:meta["commercialUsageName"] = picojson::value("Allow"); break;
+                    case 0:meta["commercialUsageName"] = meta["commercialUssageName"] = picojson::value("Disallow"); break;
+                    case 1:meta["commercialUsageName"] = meta["commercialUssageName"] = picojson::value("Allow"); break;
                     }
                 }
 
