@@ -2218,15 +2218,6 @@ namespace kml
 					pbrMetallicRoughness["roughnessFactor"] = picojson::value(mat->GetFloat("roughnessFactor"));
 					nd["pbrMetallicRoughness"] = picojson::value(pbrMetallicRoughness);
 
-					if (A >= 1.0f)
-					{
-						nd["alphaMode"] = picojson::value("OPAQUE");
-					}
-					else
-					{
-						nd["alphaMode"] = picojson::value("BLEND");
-					}
-
 					// LTE extenstion
 					nd["extensions"] = createLTE_pbr_material(mat, texture_vec);
 					
