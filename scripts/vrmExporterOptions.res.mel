@@ -1,0 +1,8 @@
+displayString -replace -value "Recalc normals:" m_vrmExporterOptions.kRecalcNormals;
+displayString -replace -value "Convert texture format" m_vrmExporterOptions.kConvertTextureFormat;
+
+displayString -replace -value "Off" m_vrmExporterOptions.kOff;
+displayString -replace -value "On" m_vrmExporterOptions.kOn;
+displayString -replace -value "N/A" m_vrmExporterOptions.kConvertNo;
+displayString -replace -value "Jpeg" m_vrmExporterOptions.kConvertJpeg;
+displayString -replace -value "Png" m_vrmExporterOptions.kConvertPng;

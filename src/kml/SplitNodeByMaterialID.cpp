@@ -239,8 +239,8 @@ namespace kml
 
 				if (mesh->skin_weights.get())
 				{
-					meshes[i]->skin_weights->joint_names = mesh->skin_weights->joint_names;
-					meshes[i]->skin_weights->vertices = mesh->skin_weights->vertices;
+					meshes[i]->skin_weights->joint_paths = mesh->skin_weights->joint_paths;
+					meshes[i]->skin_weights->weights = mesh->skin_weights->weights;
 				}
 
 				std::shared_ptr<kml::Node> tnode = std::shared_ptr<kml::Node>(new kml::Node());

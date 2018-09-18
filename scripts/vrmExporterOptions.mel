@@ -1,0 +1,83 @@
+global proc int vrmExporterOptions ( string $parent,
+								   string $action,
+								   string $initialSettings,
+								   string $resultCallback )
+{
+	int		$bResult;
+	string	$currentOptions;
+	string	$optionList[];
+	string	$optionBreakDown[];
+	int		$index;
+
+	if ($action == "post") {
+		setParent $parent;
+
+		columnLayout -adj true objTypeCol;
+		    string $on = (uiRes("m_vrmExporterOptions.kOn"));
+            string $off = (uiRes("m_vrmExporterOptions.kOff"));
+            string $conv_no = (uiRes("m_vrmExporterOptions.kConvertNo"));
+            string $conv_jpeg = (uiRes("m_vrmExporterOptions.kConvertJpeg"));
+            string $conv_png  = (uiRes("m_vrmExporterOptions.kConvertPng"));
+			
+			radioButtonGrp
+				-label (uiRes("m_vrmExporterOptions.kRecalcNormals"))
+				-nrb 2 -cw3 190 45 45
+				-labelArray2 $on $off objRecalcNormals;
+			radioButtonGrp
+				-label (uiRes("m_vrmExporterOptions.kConvertTextureFormat"))
+				-nrb 3	-cw4 190 45 45 45
+				-labelArray3 $conv_no $conv_jpeg $conv_png objConvertTextureFormat;
+				
+				
+		radioButtonGrp -e -sl 2 objRecalcNormals;		//off
+		radioButtonGrp -e -sl 1 objConvertTextureFormat;//N/A
+
+		// Now set to current settings.
+		$currentOptions = $initialSettings;
+		if (size($currentOptions) > 0) {
+			tokenize($currentOptions, ";", $optionList);
+			for ($index = 0; $index < size($optionList); $index++) {
+				tokenize($optionList[$index], "=", $optionBreakDown);
+
+				if ($optionBreakDown[0] == "recalc_normals") {
+					if ($optionBreakDown[1] == "0") {
+						radioButtonGrp -e -sl 2 objRecalcNormals;
+					} else {
+						radioButtonGrp -e -sl 1 objRecalcNormals;
+					}
+				} else if ($optionBreakDown[0] == "convert_texture_format") {
+					if ($optionBreakDown[1] == "0") {
+						radioButtonGrp -e -sl 1 objConvertTextureFormat;
+					} else if ($optionBreakDown[1] == "1") {
+						radioButtonGrp -e -sl 2 objConvertTextureFormat;
+					} else {
+						radioButtonGrp -e -sl 3 objConvertTextureFormat;
+					}
+				}
+			}
+		}
+		$result = 1;
+	
+	} else if ($action == "query") {
+		if (`radioButtonGrp -q -sl objRecalcNormals` == 1) {
+			$currentOptions = $currentOptions + "recalc_normals=1";
+		} else {
+			$currentOptions = $currentOptions + "recalc_normals=0";
+		}
+		
+		if (`radioButtonGrp -q -sl objConvertTextureFormat` == 1) {
+			$currentOptions = $currentOptions + ";convert_texture_format=0";
+		} else if (`radioButtonGrp -q -sl objConvertTextureFormat` == 2) {
+		    $currentOptions = $currentOptions + ";convert_texture_format=1";
+		} else {
+			$currentOptions = $currentOptions + ";convert_texture_format=2";
+		}
+
+		eval($resultCallback+" \""+$currentOptions+"\"");
+		$result = 1;
+	} else {
+		$bResult = 0;
+	}
+	
+	return $bResult;
+}

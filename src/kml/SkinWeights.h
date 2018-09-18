@@ -3,6 +3,7 @@
 #define _KML_SKINWEIGHTS_H_
 
 #include <map>
+#include <string>
 
 namespace kml
 {
@@ -10,8 +11,9 @@ namespace kml
 	{
 	public:
 		typedef std::map<std::string, float> WeightVertex;
-		std::vector<WeightVertex> vertices;
-		std::vector<std::string> joint_names;
+        std::string name;
+		std::vector<WeightVertex> weights;
+		std::vector<std::string> joint_paths;
 	};
 }
 

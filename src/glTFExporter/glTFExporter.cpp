@@ -70,7 +70,9 @@
 #include <maya/MItDependencyGraph.h>
 #include <maya/MFnLambertShader.h>
 #include <maya/MFnPhongEShader.h>
-
+#include <maya/MFnTransform.h>
+#include <maya/MVector.h>
+#include <maya/MQuaternion.h>
 
 
 #include <maya/MMatrix.h>
@@ -494,18 +496,9 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	int make_preload_texture = 0;	//0:off, 1:on
 	int output_buffer = 1;			//0:bin, 1:draco, 2:bin/draco
 	int convert_texture_format = 0; //0:no convert, 1:jpeg, 2:png
-	int transform_space = 0;		//0:world_space, 1:local_space
+	int transform_space = 1;		//0:world_space, 1:local_space
 
 	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
-	opts->SetInt("recalc_normals", recalc_normals);
-	opts->SetInt("output_onefile", output_onefile);
-	opts->SetInt("output_glb", output_glb);
-	opts->SetInt("vrm_export", vrm_export);
-	opts->SetInt("make_preload_texture", make_preload_texture);
-	opts->SetInt("output_buffer", output_buffer);
-	opts->SetInt("convert_texture_format", convert_texture_format);
-	opts->SetInt("transform_space", transform_space);
-	
     
 	if (options.length() > 0)
 	{
@@ -566,7 +559,7 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	opts->SetInt("output_buffer", output_buffer);
 	opts->SetInt("convert_texture_format", convert_texture_format);
 	opts->SetInt("transform_space", transform_space);
-	
+	opts->SetInt("vrm_export", vrm_export);
 
     /* print current linear units used as a comment in the obj file */
     //setToLongUnitName(MDistance::uiUnit(), unitName);
@@ -645,22 +638,6 @@ static
 std::vector<MDagPath> GetDagPathList(const MDagPath& mdagPath)
 {
 	return GetDagPathList(mdagPath.fullPathName().asChar());
-}
-
-
-
-static
-std::shared_ptr<kml::Node> ConvertGlobalToLocalMatrix(std::shared_ptr<kml::Node>& node, const glm::mat4& parent_mat = glm::mat4(1.0f))
-{
-	glm::mat4 gm = node->GetTransform()->GetMatrix();
-	glm::mat4 lm = glm::inverse(parent_mat) * gm;
-	node->GetTransform()->SetMatrix(lm);
-	for (size_t i = 0; i < node->GetChildren().size(); i++)
-	{
-		auto n = node->GetChildren()[i];
-		ConvertGlobalToLocalMatrix(n, gm);
-	}
-	return node;
 }
 
 static
@@ -866,7 +843,8 @@ std::shared_ptr<kml::Mesh> GetSkinWeights(std::shared_ptr<kml::Mesh>& mesh, cons
 	skinC.findPlug("input").elementByLogicalIndex(skinC.indexForOutputShape(dagpath.node())).child(0).getValue(vtxobj);
 
 	std::shared_ptr<kml::SkinWeights> skin_weights(new kml::SkinWeights());
-	skin_weights->vertices.resize(mesh->positions.size());
+    skin_weights->name = skinC.name().asChar();
+	skin_weights->weights.resize(mesh->positions.size());
 	MDagPathArray dpa;
 	MStatus stat;
 	int jsz = skinC.influenceObjects(dpa, &stat);
@@ -882,14 +860,12 @@ std::shared_ptr<kml::Mesh> GetSkinWeights(std::shared_ptr<kml::Mesh>& mesh, cons
 
 		std::string weight_table_name = dp.partialPathName().asChar();
 
-		std::vector<std::string> joint_names;
+		std::vector<std::string> joint_paths;
 		for (int j = 0; j < jsz; j++)
 		{
-			std::string joint_name = dpa[j].fullPathName().asChar();
-			joint_names.push_back(joint_name);
+			std::string joint_path = dpa[j].fullPathName().asChar();
+            joint_paths.push_back(joint_path);
 		}
-
-		skin_weights->joint_names = joint_names;
 
 		{
 			MItGeometry geoit(dagpath);
@@ -906,12 +882,25 @@ std::shared_ptr<kml::Mesh> GetSkinWeights(std::shared_ptr<kml::Mesh>& mesh, cons
 					unsigned int index = geoit.index();
 					for (int l = 0; l < lsz; l++)
 					{
-						skin_weights->vertices[index][joint_names[l]] = ws[l];
+						skin_weights->weights[index][joint_paths[l]] = ws[l];
 					}
 				}
 				geoit.next();
 			}
 		}
+
+        struct StringSizeSorter
+        {
+            bool operator()(const std::string& a, const std::string& b)const
+            {
+                return a.size() < b.size();
+            }
+        };
+
+        std::sort(joint_paths.begin(), joint_paths.end());
+        joint_paths.erase(std::unique(joint_paths.begin(), joint_paths.end()), joint_paths.end());
+        std::sort(joint_paths.begin(), joint_paths.end(), StringSizeSorter());
+        skin_weights->joint_paths = joint_paths;
 	}
 
 	mesh->skin_weights = skin_weights;
@@ -960,7 +949,11 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
 	}
 	else if (transform_space == 1)
 	{
-		MMatrix mmat = mdagPath.inclusiveMatrix();
+        std::vector<MDagPath> dagPathList = GetDagPathList(mdagPath);
+        dagPathList.pop_back();//shape
+
+        MFnTransform fnTransform(dagPathList.back());
+        MMatrix mmat = fnTransform.transformationMatrix();//local
 		double dest[4][4];
 		mmat.get(dest);
 		glm::mat4 mat(
@@ -970,7 +963,6 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
 			dest[3][0], dest[3][1], dest[3][2], dest[3][3]
 		);
 		node->GetTransform()->SetMatrix(mat);
-		//std::cout << glm::to_string(mat) << std::endl;
 	}
 	node->SetMesh(mesh);
 	node->SetBound(kml::CalculateBound(mesh));
@@ -1003,7 +995,9 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
 				std::shared_ptr < kml::Node > n(new kml::Node());
 				n->SetName(path.partialPathName().asChar());
 				n->SetPath(path.fullPathName().asChar());
-				MMatrix mmat = path.inclusiveMatrix();
+
+                MFnTransform fnTransform(path);
+                MMatrix mmat = fnTransform.transformationMatrix();//local
 				double dest[4][4];
 				mmat.get(dest);
 				glm::mat4 mat(
@@ -1021,7 +1015,7 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
 				nodes[i]->AddChild(nodes[i + 1]);
 			}
 			nodes.back()->AddChild(node);
-			nodes[0] = ConvertGlobalToLocalMatrix(nodes[0]);//
+
 			return nodes[0];
 		}
 		else
@@ -1929,10 +1923,15 @@ MStatus WriteGLTF(
 	{
 		return MS::kFailure;
 	}
+
+#ifdef REMOVE_NO_AREA_MESH
+	// Notice: if you use small polygon in small scale, these will be removed.
 	if (!kml::RemoveNoAreaMesh(node->GetMesh()))
 	{
 		return MS::kFailure;
 	}
+#endif
+
 	if (recalc_normals)
 	{
 		node->GetMesh()->normals.clear();
@@ -2442,33 +2441,38 @@ MStatus glTFExporter::exportAll     (const MString& fname)
 }
 
 static
-std::vector< std::shared_ptr < kml::Node > > GetJointNodes(const std::vector< std::shared_ptr < kml::Node > >& skinned_nodes)
+std::vector< std::shared_ptr < kml::Node > > GetJointNodes(const std::vector< std::shared_ptr < kml::Node > >& lnodes)
 {
+    std::vector< std::shared_ptr < kml::Node > > mesh_nodes;
+    for (size_t i = 0; i < lnodes.size(); i++)
+    {
+        GetMeshNodes(mesh_nodes, lnodes[i]);
+    }
 	//create nodes from skin weights' name
-	std::vector<std::string> joint_names;
-	for (size_t i = 0; i < skinned_nodes.size(); i++)
+	std::vector<std::string> joint_paths;
+	for (size_t i = 0; i < mesh_nodes.size(); i++)
 	{
-		auto mesh = skinned_nodes[i]->GetMesh();
+		auto mesh = mesh_nodes[i]->GetMesh();
 		if (mesh.get())
 		{
 			if (mesh->skin_weights.get())
 			{
 				auto& skin_weights = mesh->skin_weights;
-				for (size_t j = 0; j < skin_weights->joint_names.size(); j++)
+				for (size_t j = 0; j < skin_weights->joint_paths.size(); j++)
 				{
-					joint_names.push_back(skin_weights->joint_names[j]);
+                    joint_paths.push_back(skin_weights->joint_paths[j]);
 				}
 			}
 		}
 	}
 
-	std::sort(joint_names.begin(), joint_names.end());
-	joint_names.erase(std::unique(joint_names.begin(), joint_names.end()), joint_names.end());
+	std::sort(joint_paths.begin(), joint_paths.end());
+    joint_paths.erase(std::unique(joint_paths.begin(), joint_paths.end()), joint_paths.end());
 
 	std::vector< std::shared_ptr < kml::Node > > tnodes;
-	for (size_t i = 0; i < joint_names.size(); i++)
+	for (size_t j = 0; j < joint_paths.size(); j++)
 	{
-		std::vector<MDagPath> dagPathList = GetDagPathList(joint_names[i]);
+		std::vector<MDagPath> dagPathList = GetDagPathList(joint_paths[j]);
 		std::vector< std::shared_ptr<kml::Node> > nodes;
 		for (size_t i = 0; i < dagPathList.size(); i++)
 		{
@@ -2476,17 +2480,32 @@ std::vector< std::shared_ptr < kml::Node > > GetJointNodes(const std::vector< st
 			std::shared_ptr < kml::Node > n(new kml::Node());
 			n->SetName(path.partialPathName().asChar());
 			n->SetPath(path.fullPathName().asChar());
-			MMatrix mmat = path.inclusiveMatrix();
-			double dest[4][4];
-			mmat.get(dest);
-			glm::mat4 mat(
-				dest[0][0], dest[0][1], dest[0][2], dest[0][3],
-				dest[1][0], dest[1][1], dest[1][2], dest[1][3],
-				dest[2][0], dest[2][1], dest[2][2], dest[2][3],
-				dest[3][0], dest[3][1], dest[3][2], dest[3][3]
-			);
-			n->GetTransform()->SetMatrix(mat);
-			nodes.push_back(n);
+
+            MFnTransform fnTransform(path);
+#if 1
+            MVector mT = fnTransform.getTranslation(MSpace::kObject);
+            MQuaternion mR;
+            fnTransform.getRotation(mR, MSpace::kObject);
+            double mS[3];
+            fnTransform.getScale(mS);
+
+            glm::vec3 vT(mT.x, mT.y, mT.z);
+            glm::quat vR(mR.w, mR.x, mR.y, mR.z);//wxyz
+            glm::vec3 vS(mS[0], mS[1], mS[2]);
+            n->GetTransform()->SetTRS(vT, vR, vS);
+#else
+            MMatrix mmat = fnTransform.transformationMatrix();//local
+            double dest[4][4];
+            mmat.get(dest);
+            glm::mat4 mat(
+                dest[0][0], dest[0][1], dest[0][2], dest[0][3],
+                dest[1][0], dest[1][1], dest[1][2], dest[1][3],
+                dest[2][0], dest[2][1], dest[2][2], dest[2][3],
+                dest[3][0], dest[3][1], dest[3][2], dest[3][3]
+            );
+            n->GetTransform()->SetMatrix(mat);
+#endif
+            nodes.push_back(n);
 		}
 
 		for (size_t i = 0; i < nodes.size() - 1; i++)
@@ -2629,7 +2648,7 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
 		picojson::value(root).serialize(std::ostream_iterator<char>(ofs), true);
 	}
 
-	if (glb | vrm)
+	if (glb || vrm)
 	{
 		std::string gltf_path = dir_path + "/" + GetFileName(std::string(fname.asChar())) + ".gltf";
 		
