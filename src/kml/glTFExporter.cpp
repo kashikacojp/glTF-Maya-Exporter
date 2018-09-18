@@ -598,8 +598,8 @@ namespace kml
 		{
 			for (int i = 0; i < n; i++)
 			{
-				min[i] = +1e+38;
-				max[i] = -1e+38;
+				min[i] = +1e+38f;
+				max[i] = -1e+38f;
 			}
 			size_t sz = verts.size() / n;
 			for (size_t i = 0; i < sz; i++)
@@ -909,7 +909,7 @@ namespace kml
                                 {
                                     l += wx[j];
                                 }
-                                l = 1.0 / std::max<float>(1e-16f, l);
+                                l = 1.0f / std::max<float>(1e-16f, l);
                                 for (int j = 0; j < 4; j++)
                                 {
                                     wx[j] *= l;
@@ -2628,7 +2628,7 @@ namespace kml
 				if (!ofs)
 				{
 					std::cerr << "Couldn't write Draco bin outputfile :" << binfile << std::endl;
-					return -1;
+					return false;
 				}
 				ofs.write((const char*)buffer->GetBytesPtr(), buffer->GetByteLength());
 			}
