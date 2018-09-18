@@ -598,8 +598,8 @@ namespace kml
 		{
 			for (int i = 0; i < n; i++)
 			{
-				min[i] = +1e+16;
-				max[i] = -1e+16;
+				min[i] = +1e+38;
+				max[i] = -1e+38;
 			}
 			size_t sz = verts.size() / n;
 			for (size_t i = 0; i < sz; i++)
@@ -632,7 +632,7 @@ namespace kml
         {
             for (int i = 0; i < n; i++)
             {
-                min[i] = std::numeric_limits<float>::max();
+                min[i] = std::numeric_limits<unsigned short>::max();
                 max[i] = 0;
             }
             size_t sz = verts.size() / n;
