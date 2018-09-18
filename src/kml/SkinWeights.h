@@ -5,6 +5,8 @@
 #include <map>
 #include <string>
 
+#include <glm/glm.hpp>
+
 namespace kml
 {
 	class SkinWeights
@@ -14,6 +16,7 @@ namespace kml
         std::string name;
 		std::vector<WeightVertex> weights;
 		std::vector<std::string> joint_paths;
+        std::vector<glm::mat4> joint_bind_matrices;
 	};
 }
 

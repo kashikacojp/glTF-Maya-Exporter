@@ -182,6 +182,8 @@ if (GLTF_MAYA_EXPORTER_BUILD_MAYA_VRM_EXPORTER)
         ./src/glTFExporter/ProgressWindow.cpp
     )
 
+	target_compile_definitions(vrmExporter PUBLIC ENABLE_VRM=1)
+
     target_link_libraries( vrmExporter
                         kml
                         OpenMaya

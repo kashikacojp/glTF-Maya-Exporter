@@ -103,5 +103,9 @@ MPxFileTranslator::MFileKind glTFTranslator::identifyFile (
 
 MString         glTFTranslator::filter()const
 {
+#ifndef ENABLE_VRM 
 	return "*.gltf;*.glb";
+#else
+    return "*.vrm";
+#endif
 }

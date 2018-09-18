@@ -26,6 +26,15 @@ const char *const gltfDefaultOptions =
 	"output_buffer=1;"
 	"convert_texture_format=1;"
 	"vrm_export=1;"
+    "vrm_product_title=\"notitle\";"
+    "vrm_product_version=\"1.00\";"
+    "vrm_product_author=\"unknown\";"       //Todo: replace getenv "USER";
+    "vrm_license_allowed_user_name=2;"      //everyone
+    "vrm_license_violent_usage=1;"          //allow
+    "vrm_license_sexual_usage=1;"           //allow
+    "vrm_license_commercial_usage=1;"       //allow
+    "vrm_license_license_type=\"CC BY\";"
+    "vrm_license_other_license_url=\"https://creativecommons.org/licenses/\""
     ;
 
 static
