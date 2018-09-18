@@ -27,6 +27,9 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include <string.h>
+#include <stdlib.h>
+
 
 namespace {
 	enum ImageFormat {
@@ -192,13 +195,13 @@ namespace kml
     static
     bool IsZero(const glm::quat& p, float eps = 1e-15)
     {
-        return IsZero(glm::value_ptr(p), 3, eps);
+        return IsZero(glm::value_ptr(p), 4, eps);
     }
 
     static
     bool IsZero(const glm::mat4& p, float eps = 1e-15)
     {
-        return IsZero(glm::value_ptr(p), 3, eps);
+        return IsZero(glm::value_ptr(p), 16, eps);
     }
 
 	namespace gltf
@@ -484,6 +487,7 @@ namespace kml
             void SetMatrix(const glm::mat4& mat)
             {
                 mat_ = mat;
+                isTRS_ = false;
             }
             void SetTRS(const glm::vec3& T, const glm::quat& R, const glm::vec3& S)
             {
@@ -492,7 +496,9 @@ namespace kml
                 S_ = S;
                 glm::mat4 TT = glm::translate(glm::mat4(1.0f), T);
                 glm::mat4 RR = glm::toMat4(R);
-                glm::mat4 SS = glm::scale(glm::mat4(1.0f), T);
+                glm::mat4 SS = glm::scale(glm::mat4(1.0f), S);
+
+                mat_ = TT * RR * SS;
 
                 isTRS_ = true;
             }
@@ -651,58 +657,6 @@ namespace kml
 			}
 			return a;
 		}
-
-        static
-        glm::mat4 GetGlobalMatrix(const std::map<const Node*, const Node*>& parentMap, const Node* node)
-        {
-            typedef std::map<const Node*, const Node*> MapType;
-            typedef MapType::const_iterator iterator;
-            iterator it = parentMap.find(node);
-            if (it != parentMap.end())
-            {
-                const Node* parent = it->second;
-                return GetGlobalMatrix(parentMap, parent) * node->GetMatrix();
-            }
-            else
-            {
-                return node->GetMatrix();
-            }
-        }
-
-        static
-        std::vector<float> GetInverseBindMatrices(const std::vector<std::shared_ptr<Node> >& joints)
-        {
-            size_t jsz = joints.size();
-            std::map<const Node*, const Node*> parentMap;
-
-            for (size_t i = 0; i < jsz; i++)
-            {
-                const auto& children = joints[i]->GetChildren();
-                for (size_t j = 0; j < children.size(); j++)
-                {
-                    parentMap[children[j].get()] = joints[i].get();
-                }
-            }
-
-            std::vector<glm::mat4> global_matrices(jsz);
-            for (size_t i = 0; i < jsz; i++)
-            {
-                global_matrices[i] = glm::mat4(1.0f);// GetGlobalMatrix(parentMap, joints[i].get());
-            }
-
-            std::vector<float> ret(jsz*4*4);
-            float* dst = &ret[0];
-            for (size_t i = 0; i < jsz; i++)
-            {
-                glm::mat4 gm = global_matrices[i];
-                glm::mat4 im = glm::inverse(gm);
-                //im = glm::transpose(im);
-                const float* ptr = glm::value_ptr(im);
-                std::memcpy(dst + i * 16, ptr, sizeof(float) * 16);
-            }
-
-            return ret;
-        }
 
         static
         int GetIndexOfJoint(const std::shared_ptr<Skin>& skin, const std::string& path)
@@ -1434,6 +1388,7 @@ namespace kml
             std::vector< std::shared_ptr<::kml::SkinWeights> > skin_weights;
             GetSkinWeights(skin_weights, in_node);
 
+            std::map<std::string, glm::mat4> path_matrix_map;
             if(!skin_weights.empty())
             {
                 int nSkin = reg.GetSkins().size();
@@ -1463,7 +1418,7 @@ namespace kml
                 }
 
                 std::map<std::string, std::shared_ptr<Node> > joint_map2;
-
+                
                 for (size_t j = 0; j < skin_weights.size(); j++)
                 {
                     std::shared_ptr<::kml::SkinWeights>& in_skin = skin_weights[j];
@@ -1487,6 +1442,11 @@ namespace kml
                             }
                         }
                     }
+
+                    for (int i = 0; i < in_skin->joint_paths.size(); i++)
+                    {
+                        path_matrix_map[in_skin->joint_paths[i]] = in_skin->joint_bind_matrices[i];
+                    }
                 }
 
                 std::vector < std::pair<int, std::shared_ptr<Node> > > joint_nodes;
@@ -1503,11 +1463,20 @@ namespace kml
                     skin->AddJoint(joint_nodes[i].second);
                 }
 
-
                 if (skin->GetJoints().size() > 0)
                 {
                     const std::vector<std::shared_ptr<Node> >& skin_joints = skin->GetJoints();
-                    std::vector<float> inverseMatrices = GetInverseBindMatrices(skin_joints);
+                    
+                    std::vector<float> inverseMatrices;
+                    for (size_t i = 0; i < skin_joints.size(); i++)
+                    {
+                        glm::mat4 mat = path_matrix_map[skin_joints[i]->GetPath()];
+                        const float* ptr = glm::value_ptr(mat);
+                        for (size_t k = 0; k < 16; k++)
+                        {
+                            inverseMatrices.push_back(ptr[k]);
+                        }
+                    }
 
                     int nAcc = reg.GetAccessors().size();
                     //indices
@@ -1984,11 +1953,18 @@ namespace kml
 					const auto& mat = materials[i];
 					picojson::object nd;
 					nd["name"] = picojson::value(mat->GetName());
-					picojson::array emissiveFactor;
-					emissiveFactor.push_back(picojson::value(0.0));
-					emissiveFactor.push_back(picojson::value(0.0));
-					emissiveFactor.push_back(picojson::value(0.0));
-					nd["emissiveFactor"] = picojson::value(emissiveFactor);
+
+                    {
+                        picojson::array emissiveFactor;
+                        float R = mat->GetValue("Emission.R");
+                        float G = mat->GetValue("Emission.G");
+                        float B = mat->GetValue("Emission.B");
+
+                        emissiveFactor.push_back(picojson::value(R));
+                        emissiveFactor.push_back(picojson::value(G));
+                        emissiveFactor.push_back(picojson::value(B));
+                        nd["emissiveFactor"] = picojson::value(emissiveFactor);
+                    }
 
 					picojson::object pbrMetallicRoughness;
 
@@ -2016,30 +1992,32 @@ namespace kml
 						}
 					}
 
-					picojson::array colorFactor;
-					float R = mat->GetValue("BaseColor.R");
-					float G = mat->GetValue("BaseColor.G");
-					float B = mat->GetValue("BaseColor.B");
-					float A = mat->GetValue("BaseColor.A");
+                    {
+                        picojson::array colorFactor;
+                        float R = mat->GetValue("BaseColor.R");
+                        float G = mat->GetValue("BaseColor.G");
+                        float B = mat->GetValue("BaseColor.B");
+                        float A = mat->GetValue("BaseColor.A");
 
-					colorFactor.push_back(picojson::value(R));
-					colorFactor.push_back(picojson::value(G));
-					colorFactor.push_back(picojson::value(B));
-					colorFactor.push_back(picojson::value(A));
-					pbrMetallicRoughness["baseColorFactor"] = picojson::value(colorFactor);
+                        colorFactor.push_back(picojson::value(R));
+                        colorFactor.push_back(picojson::value(G));
+                        colorFactor.push_back(picojson::value(B));
+                        colorFactor.push_back(picojson::value(A));
+                        pbrMetallicRoughness["baseColorFactor"] = picojson::value(colorFactor);
+
+                        if (A >= 1.0f)
+                        {
+                            nd["alphaMode"] = picojson::value("OPAQUE");
+                        }
+                        else
+                        {
+                            nd["alphaMode"] = picojson::value("BLEND");
+                        }
+                    }
 
 					pbrMetallicRoughness["metallicFactor"] = picojson::value(mat->GetFloat("metallicFactor"));
 					pbrMetallicRoughness["roughnessFactor"] = picojson::value(mat->GetFloat("roughnessFactor"));
 					nd["pbrMetallicRoughness"] = picojson::value(pbrMetallicRoughness);
-
-					if (A >= 1.0f)
-					{
-						nd["alphaMode"] = picojson::value("OPAQUE");
-					}
-					else
-					{
-						nd["alphaMode"] = picojson::value("BLEND");
-					}
 
 					ar.push_back(picojson::value(nd));
 				}
@@ -2048,15 +2026,192 @@ namespace kml
 
 			return true;
 		}
+		
+		static picojson::value makeVec4Value(float x, float y, float z, float w) {
+			picojson::array v4;
+			v4.push_back(picojson::value(x));
+			v4.push_back(picojson::value(y));
+			v4.push_back(picojson::value(z));
+			v4.push_back(picojson::value(w));
+			return picojson::value(v4);
+		}
+
+        typedef const char* PCTR;
+        struct JointMap {
+            PCTR szVRMJointKey;
+            PCTR szSubStrs[5];
+        };
+
+        static
+        int FindJointKeyIndex(const JointMap JointMaps[], const char* key)
+        {
+            int i = 0;
+            while(JointMaps[i].szVRMJointKey)
+            {
+                if (strcmp(JointMaps[i].szVRMJointKey, key) == 0)
+                {
+                    return i;
+                }
+                i++;
+            }
+            return -1;
+        }
+
+        static
+        int FindVRNJointIndex(const std::vector<std::string>& joint_names, const std::string& key)
+        {
+            static const JointMap JointMaps[] = {
+                { "hips",{ "hip", "pelvis", NULL, NULL, NULL } },
+                { "leftUpperLeg",{ "upperleg", "upleg", NULL, NULL, NULL } },
+                { "rightUpperLeg",{ "upperleg", "upleg", NULL, NULL, NULL } },
+                { "leftLowerLeg",{ "lowerleg", "leftleg", NULL, NULL, NULL } },
+                { "rightLowerLeg",{ "lowerleg", "rightleg", NULL, NULL, NULL } },
+                { "leftFoot",{ "foot", NULL, NULL, NULL, NULL } },
+                { "rightFoot",{ "foot", NULL, NULL, NULL, NULL } },
+                { "spine",{ "spine", NULL, NULL, NULL, NULL } },
+                { "chest",{ "chest", "spine1", NULL, NULL, NULL } },
+                { "neck",{ "neck", NULL, NULL, NULL, NULL } },
+                { "head",{ "head", NULL, NULL, NULL, NULL } },
+                { "leftShoulder",{ "shoulder", NULL, NULL, NULL, NULL } },
+                { "rightShoulder",{ "shoulder", NULL, NULL, NULL, NULL } },
+                { "leftUpperArm",{ "upperarm", "leftarm", NULL, NULL, NULL } },
+                { "rightUpperArm",{ "upperarm", "rightarm", NULL, NULL, NULL } },
+                { "leftLowerArm",{ "lowerarm", "forearm", NULL, NULL, NULL } },
+                { "rightLowerArm",{ "lowerarm", "forearm", NULL, NULL, NULL } },
+                { "leftHand",{ "hand", NULL, NULL, NULL, NULL } },
+                { "rightHand",{ "hand", NULL, NULL, NULL, NULL } },
+                { "leftToes",{ "toe", NULL, NULL, NULL, NULL } },
+                { "rightToes",{ "toe", NULL, NULL, NULL, NULL } },
+                { "leftEye",{ "eye", NULL, NULL, NULL, NULL } },
+                { "rightEye",{ "eye", NULL, NULL, NULL, NULL } },
+                { "jaw",{ "jaw", NULL, NULL, NULL, NULL } },
+
+                { "leftThumbProximal",{ "thumbproximal", "thumb1", NULL, NULL, NULL } },
+                { "leftThumbIntermediate",{ "thumbintermediate", "thumb2", NULL, NULL, NULL } },
+                { "leftThumbDistal",{ "thumbdistal", "thumb3", NULL, NULL, NULL } },
+
+                { "leftIndexProximal",{ "indexproximal", "index1", NULL, NULL, NULL } },
+                { "leftIndexIntermediate",{ "indexintermediate", "index2", NULL, NULL, NULL } },
+                { "leftIndexDistal",{ "indexdistal", "index3", NULL, NULL, NULL } },
+
+                { "leftMiddleProximal",{ "middleproximal", "middle1", NULL, NULL, NULL } },
+                { "leftMiddleIntermediate",{ "middleintermediate", "middle2", NULL, NULL, NULL } },
+                { "leftMiddleDistal",{ "middledistal", "middle3", NULL, NULL, NULL } },
+
+                { "leftRingProximal",{ "ringproximal", "ring1", NULL, NULL, NULL } },
+                { "leftRingIntermediate",{ "ringintermediate", "ring2", NULL, NULL, NULL } },
+                { "leftRingDistal",{ "ringbdistal", "ring3", NULL, NULL, NULL } },
+
+                { "leftLittleProximal",{ "littleproximal", "little1", "pinkey1", NULL, NULL } },
+                { "leftLittleIntermediate",{ "littleintermediate", "little2", "pinkey1", NULL, NULL } },
+                { "leftLittleDistal",{ "littledistal", "little3", "pinkey3", NULL, NULL } },
+
+                { "rightThumbProximal",{ "thumbproximal", "thumb1", NULL, NULL, NULL } },
+                { "rightThumbIntermediate",{ "thumbintermediate", "thumb2", NULL, NULL, NULL } },
+                { "rightThumbDistal",{ "thumbdistal", "thumb3", NULL, NULL, NULL } },
+
+                { "rightIndexProximal",{ "indexproximal", "index1", NULL, NULL, NULL } },
+                { "rightIndexIntermediate",{ "indexintermediate", "index2", NULL, NULL, NULL } },
+                { "rightIndexDistal",{ "indexdistal", "index3", NULL, NULL, NULL } },
+
+                { "rightMiddleProximal",{ "middleproximal", "middle1", NULL, NULL, NULL } },
+                { "rightMiddleIntermediate",{ "middleintermediate", "middle2", NULL, NULL, NULL } },
+                { "rightMiddleDistal",{ "middledistal", "middle3", NULL, NULL, NULL } },
+
+                { "rightRingProximal",{ "ringproximal", "ring1", NULL, NULL, NULL } },
+                { "rightRingIntermediate",{ "ringintermediate", "ring2", NULL, NULL, NULL } },
+                { "rightRingDistal",{ "ringbdistal", "ring3", NULL, NULL, NULL } },
+
+                { "rightLittleProximal",{ "littleproximal", "little1", "pinkey1", NULL, NULL } },
+                { "rightLittleIntermediate",{ "littleintermediate", "little2", "pinkey2", NULL, NULL } },
+                { "rightLittleDistal",{ "littledistal", "little3", "pinkey3", NULL, NULL } },
+
+                { "upperChest",{ "upperchest", "spine2", NULL, NULL, NULL } },
+
+
+                { NULL,{ NULL, NULL, NULL, NULL, NULL } }
+            };
+
+            static const PCTR LeftKeys[]  = {"l_", "left", NULL};
+            static const PCTR RightKeys[] = { "r_", "right", NULL };
+
+            int key_index = FindJointKeyIndex(JointMaps, key.c_str());
+            const PCTR* subStrs = JointMaps[key_index].szSubStrs;
+
+            for (size_t i = 0; i < joint_names.size(); i++)
+            {
+                std::string joint_name = joint_names[i];
+                if (strstr(key.c_str(), "left") != NULL)
+                {
+                    bool bContinue = false;
+                    int k = 0;
+                    while (LeftKeys[k] && !bContinue)
+                    {
+                        if (strstr(joint_name.c_str(), LeftKeys[k]) != NULL)
+                        {
+                            bContinue = true;
+                            break;
+                        }
+                        k++;
+                    }
+                    if (!bContinue)
+                    {
+                        continue;
+                    }
+                }
+                else if (strstr(key.c_str(), "right") != NULL)
+                {
+                    bool bContinue = false;
+                    int k = 0;
+                    while (RightKeys[k] && !bContinue)
+                    {
+                        if (strstr(joint_name.c_str(), RightKeys[k]) != NULL)
+                        {
+                            bContinue = true;
+                            break;
+                        }
+                        k++;
+                    }
+                    if (!bContinue)
+                    {
+                        continue;
+                    }
+                }
+
+                {
+                    int j = 0;
+                    while (subStrs[j])
+                    {
+                        std::string subKey = "_" + std::string(subStrs[j]);
+                        if (strstr(joint_name.c_str(), subKey.c_str() ) != NULL)
+                        {
+                            if (key == "spine")
+                            {
+                                if (strstr(joint_name.c_str(), "spine1") != NULL)continue;
+                                if (strstr(joint_name.c_str(), "spine2") != NULL)continue;
+                            }
+
+                            return i;
+                        }
+                        j++;
+                    }
+                }
+            }
+            
+            return -1;
+        }
 
 		static
-		bool WriteVRMMetaInfo(picojson::object& root_object, const std::shared_ptr<::kml::Node>& node)
+		bool WriteVRMMetaInfo(picojson::object& root_object, const std::shared_ptr<::kml::Node>& node, const std::shared_ptr<Options>& opts)
 		{
 			picojson::object extensions;
 			auto ext = root_object.find("extensions");
-			if (ext == root_object.end()) {
+			if (ext == root_object.end()) 
+            {
 				extensions = picojson::object();
-			} else {
+			}
+            else 
+            {
 				extensions = root_object["extensions"].get<picojson::object>();
 			}
 			
@@ -2067,19 +2222,72 @@ namespace kml
 
 			{
 				picojson::object meta;
-				meta["version"] = picojson::value("");
-				meta["author"] = picojson::value("user_name"); // TODO: input from param
-				meta["contactInformation"] = picojson::value("");
-				meta["reference"] = picojson::value("");
-				meta["title"] = picojson::value("user_title"); // TODO: input from param
-				meta["texture"] = picojson::value(0.0); // TODO: count of texture
-				meta["allowedUserName"] = picojson::value("Everyone");
-				meta["violentUssageName"] = picojson::value("Disallow");
-				meta["sexualUssageName"] = picojson::value("Disallow");
-				meta["commercialUssageName"] = picojson::value("Disallow");
-				meta["otherPermissionUrl"] = picojson::value("");
-				meta["licenseName"] = picojson::value("Redistribution_Prohibited");
-				meta["otherLicenseUrl"] = picojson::value("");
+                {
+                    std::string s = opts->GetString("vrm_product_title", "");
+                    meta["title"] = picojson::value(s);
+                }
+                {
+                    std::string s = opts->GetString("vrm_product_version", "");
+                    meta["version"] = picojson::value(s);
+                }
+                {
+                    std::string s = opts->GetString("vrm_product_author", "");
+                    meta["author"] = picojson::value(s);
+                }
+                {
+                    std::string s = opts->GetString("vrm_product_contact_information", "");
+                    meta["contactInformation"] = picojson::value(s);
+                }
+                {
+                    std::string s = opts->GetString("vrm_product_reference", "");
+                    meta["reference"] = picojson::value(s);
+                }
+
+				meta["texture"] = picojson::value(0.0);
+
+                {
+                    int vrm_license_allowed_user_name = opts->GetInt("vrm_license_allowed_user_name", 2);
+                    switch (vrm_license_allowed_user_name)
+                    {
+                    case 0:meta["allowedUserName"] = picojson::value("OnlyAuthor"); break;
+                    case 1:meta["allowedUserName"] = picojson::value("ExplictlyLicensedPerson"); break;
+                    case 2:meta["allowedUserName"] = picojson::value("Everyone"); break;
+                    }
+
+                    int vrm_license_violent_usage = opts->GetInt("vrm_license_violent_usage", 1);
+                    switch (vrm_license_violent_usage)
+                    {
+                    case 0:meta["violentUsageName"] = meta["violentUssageName"] = picojson::value("Disallow"); break;
+                    case 1:meta["violentUsageName"] = meta["violentUssageName"] = picojson::value("Allow"); break;
+                    }
+
+                    int vrm_license_sexual_usage = opts->GetInt("vrm_license_sexual_usage", 1);
+                    switch (vrm_license_sexual_usage)
+                    {
+                    case 0:meta["sexualUsageName"] = meta["sexualUssageName"] = picojson::value("Disallow"); break;
+                    case 1:meta["sexualUsageName"] = meta["sexualUssageName"] = picojson::value("Allow"); break;
+                    }
+
+                    int vrm_license_commercial_usage = opts->GetInt("vrm_license_commercial_usage", 1);
+                    switch (vrm_license_commercial_usage)
+                    {
+                    case 0:meta["commercialUsageName"] = meta["commercialUssageName"] = picojson::value("Disallow"); break;
+                    case 1:meta["commercialUsageName"] = meta["commercialUssageName"] = picojson::value("Allow"); break;
+                    }
+                }
+                {
+                    std::string url = opts->GetString("vrm_license_other_permission_url", "");
+                    meta["otherPermissionUrl"] = picojson::value(url);
+                }
+                {
+                    std::string type = opts->GetString("vrm_license_license_type", "");
+                    meta["licenseName"] = picojson::value(type);
+                }
+                {
+                    std::string url = opts->GetString("vrm_license_other_license_url", "");
+                    meta["otherLicenseUrl"] = picojson::value(url);
+                }
+
 				VRM["meta"] = picojson::value(meta);
 			}
 			{
@@ -2098,20 +2306,37 @@ namespace kml
 					"rightIndexDistal","rightMiddleProximal","rightMiddleIntermediate","rightMiddleDistal",
 					"rightRingProximal","rightRingIntermediate","rightRingDistal","rightLittleProximal",
 					"rightLittleIntermediate","rightLittleDistal","upperChest" };
-				for (int i = 0; i < sizeof(boneNames) / sizeof(const char*); ++i) {
-					picojson::object info;
-					info["bone"] = picojson::value(boneNames[i]);
-					info["node"] = picojson::value(-1.0);             // TODO: find from Node
-					info["useDefaultValues"] = picojson::value(true); // what's this?
-					humanBones.push_back(picojson::value(info));
+
+                std::vector<std::string> joint_names;
+                {
+                    auto& nodes = root_object["nodes"].get<picojson::array>();
+                    for (size_t i = 0; i < nodes.size(); i++)
+                    {
+                        auto& node = nodes[i].get<picojson::object>();
+                        std::string name = node["name"].get<std::string>();
+                        std::transform(name.cbegin(), name.cend(), name.begin(), tolower);
+                        joint_names.push_back(name);
+                    }
+                }
+
+				for (int i = 0; i < sizeof(boneNames) / sizeof(const char*); ++i) 
+                {
+					int idx = FindVRNJointIndex(joint_names, boneNames[i]);
+					if (idx >= 0) {
+						picojson::object info;
+						info["bone"] = picojson::value(boneNames[i]);
+						info["node"] = picojson::value((double)idx);
+						info["useDefaultValues"] = picojson::value(true); // what's this?
+						humanBones.push_back(picojson::value(info));
+					}
 				}
 				humanoid["humanBones"] = picojson::value(humanBones);
 				VRM["humanoid"] = picojson::value(humanoid);
-			}
+			/*}
 
-			{
+			{*/
 				picojson::object firstPerson;
-				firstPerson["firstPersonBone"] = picojson::value(-1.0);
+				firstPerson["firstPersonBone"] = picojson::value((double)FindVRNJointIndex(joint_names, "head"));//picojson::value(-1.0);
 				picojson::object firstPersonBoneOffset;
 				firstPersonBoneOffset["x"] = picojson::value(0.0);
 				firstPersonBoneOffset["y"] = picojson::value(0.0);
@@ -2168,7 +2393,109 @@ namespace kml
 			}
 
 			{
+                const auto& nmaterials = root_object["materials"].get<picojson::array>();
+				const auto& materials = node->GetMaterials();
 				picojson::array materialProperties;
+				for (size_t i = 0; i < materials.size(); ++i) 
+                {
+                    auto nmat = nmaterials[i].get<picojson::object>();
+                    const auto& imat = materials[i];
+					picojson::object mat;
+					mat["name"] = picojson::value(materials[i]->GetName());
+					mat["renderQueue"] = picojson::value(2000.0);
+					mat["shader"] = picojson::value("Standard");
+					//mat["shader"] = picojson::value("VRM/MToon");
+					picojson::object floatProperties;
+
+					mat["floatProperties"] = picojson::value(floatProperties);
+
+					/*
+                    floatProperties["_Cutoff"] = picojson::value(0.5);
+					floatProperties["_BumpScale"] = picojson::value(1.0);
+					floatProperties["_ReceiveShadowRate"] = picojson::value(1.0);
+					floatProperties["_ShadeShift"] = picojson::value(-0.3);
+					floatProperties["_ShadeToony"] = picojson::value(0.0);
+					floatProperties["_LightColorAttenuation"] = picojson::value(0.0);
+					floatProperties["_OutlineWidth"] = picojson::value(0.172);
+					floatProperties["_OutlineScaledMaxDistance"] = picojson::value(2.0);// scale?
+					floatProperties["_OutlineLightingMix"] = picojson::value(1.0);
+					floatProperties["_DebugMode"] = picojson::value(0.0);
+					floatProperties["_BlendMode"] = picojson::value(1.0);
+					floatProperties["_OutlineWidthMode"] = picojson::value(0.0);
+					floatProperties["_OutlineColorMode"] = picojson::value(0.0);
+					floatProperties["_CullMode"] = picojson::value(0.0);
+					floatProperties["_OutlineCullMode"] = picojson::value(1.0);
+					floatProperties["_SrcBlend"] = picojson::value(1.0);
+					floatProperties["_DstBlend"] = picojson::value(0.0);
+					floatProperties["_ZWrite"] = picojson::value(1.0);
+					floatProperties["_IsFirstSetup"] = picojson::value(0.0);
+                    */
+
+					picojson::object vectorProperties;
+                    {
+                        float R = imat->GetValue("BaseColor.R");
+                        float G = imat->GetValue("BaseColor.G");
+                        float B = imat->GetValue("BaseColor.B");
+                        float A = imat->GetValue("BaseColor.A");
+                        vectorProperties["_Color"] = makeVec4Value(R, G, B, A);
+                    }
+                    {
+                        float R = imat->GetValue("Emission.R");
+                        float G = imat->GetValue("Emission.G");
+                        float B = imat->GetValue("Emission.B");
+                        float A = 1.0f;
+                        vectorProperties["_EmissionColor"] = makeVec4Value(R, G, B, A);
+                    }
+					/*
+                    vectorProperties["_ShadeColor"] = makeVec4Value(0.2, 0.2, 0.2, 1.0);
+					vectorProperties["_MainTex"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+					vectorProperties["_ShadeTexture"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+					vectorProperties["_BumpMap"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+					vectorProperties["_ReceiveShadowTexture"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+					vectorProperties["_SphereAdd"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+					vectorProperties["_EmissionMap"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+					vectorProperties["_OutlineWidthTexture"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+					vectorProperties["_OutlineColor"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+                    */
+					mat["vectorProperties"] = picojson::value(vectorProperties);
+
+                    {
+                        picojson::object textureProperties;
+                        //textureProperties["_MainTex"] = picojson::value(0.0);
+                        /*	
+                            "_MainTex": 0,                 // TODO
+                            "_ShadeTexture" : 0,
+                            "_SphereAdd" : 1,
+                            "_EmissionMap" : 2
+                        },*/
+
+                        std::shared_ptr<kml::Texture> tex = imat->GetTexture("BaseColor");
+                        if (tex) 
+                        {
+                            auto npbr  = nmat["pbrMetallicRoughness"].get<picojson::object>();
+                            auto ntex  = npbr["baseColorTexture"].get<picojson::object>();
+                            
+                            int nIndex = (int)(ntex["index"].get<double>());
+                            if (nIndex >= 0)
+                            {
+                                textureProperties["_MainTex"] = picojson::value((double)nIndex);
+                            }
+                        }
+                        mat["textureProperties"] = picojson::value(textureProperties);
+                    }
+
+	
+					picojson::object keywordMap;
+					keywordMap["_ALPHATEST_ON"] = picojson::value(true);
+					keywordMap["_NORMALMAP"] = picojson::value(true);
+					mat["keywordMap"] = picojson::value(keywordMap);
+
+					picojson::object tagMap;
+					tagMap["RenderType"] = picojson::value("TransparentCutout");
+					mat["tagMap"] = picojson::value(tagMap);
+
+					materialProperties.push_back(picojson::value(mat));
+				}
 				VRM["materialProperties"] = picojson::value(materialProperties);
 			}
 
@@ -2187,8 +2514,9 @@ namespace kml
 		bool union_buffer_draco = true;
 
 		//std::shared_ptr<Options> opts = Options::GetGlobalOptions();
-		const bool vrm_export = opts->GetInt("vrm_export") > 0;
-		const int output_buffer = opts->GetInt("output_buffer");
+		bool vrm_export = opts->GetInt("vrm_export") > 0;
+	    int output_buffer = opts->GetInt("output_buffer");
+
 		if (output_buffer == 0)
 		{
 			output_bin = true;
@@ -2254,8 +2582,9 @@ namespace kml
 			return false;
 		}
 
-		if (vrm_export) {
-			if (!gltf::WriteVRMMetaInfo(root_object, node)) {
+		if (vrm_export)
+        {
+			if (!gltf::WriteVRMMetaInfo(root_object, node, opts)) {
 				return false;
 			}
 		}

@@ -71,6 +71,7 @@
 #include <maya/MFnLambertShader.h>
 #include <maya/MFnPhongEShader.h>
 #include <maya/MFnTransform.h>
+#include <maya/MFnIkJoint.h>
 #include <maya/MVector.h>
 #include <maya/MQuaternion.h>
 
@@ -80,6 +81,7 @@
 #include <maya/MStreamUtils.h>
 #include <maya/MFnSkinCluster.h>
 #include <maya/MItGeometry.h>
+#include <maya/MFnMatrixData.h>
 
 #include <memory>
 #include <sstream>
@@ -468,6 +470,37 @@ MPxFileTranslator::MFileKind glTFExporter::identifyFile (
 	}
 }
 
+static
+std::string ConvertVRMLicenseType(const std::string& type)
+{
+    static const struct {
+        const char* szSrc;
+        const char* szDst;
+    } LicenseType[]{
+        {"Redistribution Prohibited", "Redistribution_Prohibited" },
+        {"CC0","CC0"},
+        {"CC BY","CC_BY"},
+        {"CC BY-NC","CC_BY_NC"},
+        {"CC BY-SA","CC_BY_SA"},
+        {"CC BY-NC-SA","CC_BY_NC_SA"},
+        {"CC BY-ND","CC_BY_ND" },
+        {"CC BY-NC-ND","CC_BY_NC_ND"},
+        {"Other", "Other"},
+        {NULL, NULL}
+    };
+
+    int i = 0;
+    while (LicenseType[i].szSrc != NULL)
+    {
+        if (strcmp(type.c_str(), LicenseType[i].szSrc) == 0)
+        {
+            return LicenseType[i].szDst;
+        }
+        i++;
+    }
+    return "CC_BY";
+}
+
 
 MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, FileAccessMode mode )
 
@@ -497,6 +530,23 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	int output_buffer = 1;			//0:bin, 1:draco, 2:bin/draco
 	int convert_texture_format = 0; //0:no convert, 1:jpeg, 2:png
 	int transform_space = 1;		//0:world_space, 1:local_space
+    int bake_mesh_transform = 0;    //0:no_bake, 1:bake
+
+    std::string vrm_product_title = "notitle";
+    std::string vrm_product_version = "1.00";
+    std::string vrm_product_author = "unknown";
+    std::string vrm_product_contact_information = "";
+    std::string vrm_product_reference = "";
+
+    int vrm_license_allowed_user_name = 2;    //everyone
+    int vrm_license_violent_usage = 1;       //allow
+    int vrm_license_sexual_usage = 1;      //allow
+    int vrm_license_commercial_usage = 1; //allow
+
+    std::string vrm_license_other_permission_url = "";
+
+    std::string vrm_license_license_type = "CC_BY";
+    std::string vrm_license_other_license_url = "";
 
 	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
     
@@ -513,6 +563,8 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 		{
 			theOption.clear();
 			optionList[i].split( '=', theOption );
+
+            std::string debugName = optionList[i].asChar();
 
 			if( theOption[0] == MString("recalc_normals") && theOption.length() > 1 ) {
 				recalc_normals = theOption[1].asInt();
@@ -538,12 +590,58 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 			if (theOption[0] == MString("transform_space") && theOption.length() > 1) {
 				transform_space = theOption[1].asInt();
 			}
+            if (theOption[0] == MString("bake_mesh_transform") && theOption.length() > 1) {
+                bake_mesh_transform = theOption[1].asInt();
+            }
+#ifdef ENABLE_VRM
+
+            if (theOption[0] == MString("vrm_product_title") && theOption.length() > 1) {
+                vrm_product_title = theOption[1].asChar();
+            }
+            if (theOption[0] == MString("vrm_product_version") && theOption.length() > 1) {
+                vrm_product_version = theOption[1].asChar();
+            }
+            if (theOption[0] == MString("vrm_product_author") && theOption.length() > 1) {
+                vrm_product_author = theOption[1].asChar();
+            }
+            if (theOption[0] == MString("vrm_product_contact_information") && theOption.length() > 1) {
+                vrm_product_contact_information = theOption[1].asChar();
+            }
+            if (theOption[0] == MString("vrm_product_reference") && theOption.length() > 1) {
+                vrm_product_reference = theOption[1].asChar();
+            }
+
+            if (theOption[0] == MString("vrm_license_allowed_user_name") && theOption.length() > 1) {
+                vrm_license_allowed_user_name = theOption[1].asInt();
+            }
+            if (theOption[0] == MString("vrm_license_violent_usage") && theOption.length() > 1) {
+                vrm_license_violent_usage = theOption[1].asInt();
+            }
+            if (theOption[0] == MString("vrm_license_sexual_usage") && theOption.length() > 1) {
+                vrm_license_sexual_usage = theOption[1].asInt();
+            }
+            if (theOption[0] == MString("vrm_license_commercial_usage") && theOption.length() > 1) {
+                vrm_license_commercial_usage = theOption[1].asInt();
+            }
+            if (theOption[0] == MString("vrm_license_other_permission_url") && theOption.length() > 1) {
+                vrm_license_other_permission_url = theOption[1].asChar();
+            }
+
+            if (theOption[0] == MString("vrm_license_license_type") && theOption.length() > 1) {
+                vrm_license_license_type = ConvertVRMLicenseType(theOption[1].asChar());
+            }
+            if (theOption[0] == MString("vrm_license_other_license_url") && theOption.length() > 1) {
+                vrm_license_other_license_url = theOption[1].asChar();
+            }
+#endif
 		}
 	}
 
-	if (vrm_export) {
+	if (vrm_export) 
+    {
 		output_buffer = 0; // disable Draco
 		output_glb = 1;    // force GLB format
+        bake_mesh_transform = 1;// bake mesh!
 	}
 
 	if (output_glb)
@@ -552,6 +650,17 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 		make_preload_texture = 0;	//no cache texture
 	}
 
+#ifdef ENABLE_VRM
+    if (
+        (vrm_license_license_type != "Other" && vrm_license_license_type != "Redistribution_Prohibited")
+        && 
+        vrm_license_other_license_url.empty()
+    )
+    {
+        vrm_license_other_license_url = "https://creativecommons.org/licenses/";
+    }
+#endif
+
 	opts->SetInt("recalc_normals", recalc_normals);
 	opts->SetInt("output_onefile", output_onefile);
 	opts->SetInt("output_glb", output_glb);
@@ -559,7 +668,24 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	opts->SetInt("output_buffer", output_buffer);
 	opts->SetInt("convert_texture_format", convert_texture_format);
 	opts->SetInt("transform_space", transform_space);
+    opts->SetInt("bake_mesh_transform", bake_mesh_transform);
+
 	opts->SetInt("vrm_export", vrm_export);
+
+    opts->SetString("vrm_product_title", vrm_product_title);
+    opts->SetString("vrm_product_version", vrm_product_version);
+    opts->SetString("vrm_product_author", vrm_product_author);
+    opts->SetString("vrm_product_contact_information", vrm_product_contact_information);
+    opts->SetString("vrm_product_reference", vrm_product_reference);
+
+    opts->SetInt("vrm_license_allowed_user_name", vrm_license_allowed_user_name);
+    opts->SetInt("vrm_license_violent_usage", vrm_license_violent_usage);
+    opts->SetInt("vrm_license_sexual_usage", vrm_license_sexual_usage);
+    opts->SetInt("vrm_license_commercial_usage", vrm_license_commercial_usage);
+    opts->SetString("vrm_license_other_permission_url", vrm_license_other_permission_url);
+
+    opts->SetString("vrm_license_license_type", vrm_license_license_type);
+    opts->SetString("vrm_license_other_license_url", vrm_license_other_license_url);
 
     /* print current linear units used as a comment in the obj file */
     //setToLongUnitName(MDistance::uiUnit(), unitName);
@@ -903,10 +1029,71 @@ std::shared_ptr<kml::Mesh> GetSkinWeights(std::shared_ptr<kml::Mesh>& mesh, cons
         skin_weights->joint_paths = joint_paths;
 	}
 
+    {
+        std::map<std::string, glm::mat4> path_mat_map;
+        MPlug mp_m = skinC.findPlug("bindPreMatrix", &stat);
+        for (int j = 0; j < jsz; j++)
+        {
+            std::string joint_path = dpa[j].fullPathName().asChar();
+            MPlug mp2 = mp_m.elementByLogicalIndex(skinC.indexForInfluenceObject(dpa[j], NULL), &stat);
+
+            MObject obj;
+            mp2.getValue(obj);
+            MFnMatrixData matData(obj);
+            MMatrix mmat = matData.matrix();
+            double dest[4][4];
+            mmat.get(dest);
+            glm::mat4 mat(
+                dest[0][0], dest[0][1], dest[0][2], dest[0][3],
+                dest[1][0], dest[1][1], dest[1][2], dest[1][3],
+                dest[2][0], dest[2][1], dest[2][2], dest[2][3],
+                dest[3][0], dest[3][1], dest[3][2], dest[3][3]
+            );
+            path_mat_map[joint_path] = mat;
+        }
+
+        for(int j = 0; j < skin_weights->joint_paths.size(); j++)
+        { 
+            glm::mat4 mat = path_mat_map[skin_weights->joint_paths[j]];
+            skin_weights->joint_bind_matrices.push_back(mat);
+        }
+    }
+
 	mesh->skin_weights = skin_weights;
 
 	return mesh;
 }
+
+static
+glm::vec3 Transform(const glm::mat4& mat, const glm::vec3& v)
+{
+    glm::vec4 t = mat * glm::vec4(v, 1.0f);
+    t[0] /= t[3];
+    t[1] /= t[3];
+    t[2] /= t[3];
+    return glm::vec3(t[0], t[1], t[2]);
+}
+
+static
+std::shared_ptr<kml::Mesh> TransformMesh(std::shared_ptr<kml::Mesh>& mesh, const glm::mat4& mat)
+{
+    auto& positions = mesh->positions;
+    for (size_t i = 0; i < positions.size(); i++)
+    {
+        positions[i] = Transform(mat, positions[i]);
+    }
+    glm::mat4 im = glm::transpose(glm::inverse(mat));
+    im[3][0] = 0.0f;
+    im[3][1] = 0.0f;
+    im[3][2] = 0.0f;
+    auto& normals = mesh->normals;
+    for (size_t i = 0; i < normals.size(); i++)
+    {
+        normals[i] = glm::normalize(Transform(im, normals[i]));
+    }
+    return mesh;
+}
+
 
 static
 std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
@@ -915,6 +1102,7 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
 	
 	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
 	int transform_space = opts->GetInt("transform_space");
+    bool bake_mesh_transform = opts->GetInt("bake_mesh_transform") > 0;
 
 	MSpace::Space space = MSpace::kWorld;
 	if (transform_space == 1)
@@ -954,15 +1142,24 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
 
         MFnTransform fnTransform(dagPathList.back());
         MMatrix mmat = fnTransform.transformationMatrix();//local
-		double dest[4][4];
-		mmat.get(dest);
-		glm::mat4 mat(
-			dest[0][0], dest[0][1], dest[0][2], dest[0][3],
-			dest[1][0], dest[1][1], dest[1][2], dest[1][3],
-			dest[2][0], dest[2][1], dest[2][2], dest[2][3],
-			dest[3][0], dest[3][1], dest[3][2], dest[3][3]
-		);
-		node->GetTransform()->SetMatrix(mat);
+        double dest[4][4];
+        mmat.get(dest);
+        glm::mat4 mat(
+            dest[0][0], dest[0][1], dest[0][2], dest[0][3],
+            dest[1][0], dest[1][1], dest[1][2], dest[1][3],
+            dest[2][0], dest[2][1], dest[2][2], dest[2][3],
+            dest[3][0], dest[3][1], dest[3][2], dest[3][3]
+        );
+
+        if (!bake_mesh_transform)
+        {
+            node->GetTransform()->SetMatrix(mat);
+        }
+        else
+        {
+            mesh = TransformMesh(mesh, mat);
+            node->GetTransform()->SetMatrix(glm::mat4(1.0f));
+        }
 	}
 	node->SetMesh(mesh);
 	node->SetBound(kml::CalculateBound(mesh));
@@ -2199,6 +2396,32 @@ void AddChildUnique(std::shared_ptr<kml::Node>& parent, std::shared_ptr<kml::Nod
 
 
 static
+void SetNode(std::map<std::string, std::shared_ptr<kml::Node> >& pathMap, const std::string& path, const std::shared_ptr<kml::Node>& node)
+{
+    typedef std::map<std::string, std::shared_ptr<kml::Node> > PathMap;
+    typedef PathMap::iterator iterator;
+    //pathMap[path] = node;
+    iterator it = pathMap.find(path);
+    if (it == pathMap.end())
+    {
+        pathMap[path] = node;
+    }
+    else
+    {
+        const std::shared_ptr<kml::Node>& a = it->second;
+        const std::shared_ptr<kml::Node>& b = node;
+
+        std::shared_ptr<kml::Mesh> amesh = a->GetMesh();
+        std::shared_ptr<kml::Mesh> bmesh = b->GetMesh();
+
+        if (!amesh.get() && bmesh.get())
+        {
+            pathMap[path] = node;
+        }
+    }
+}
+
+static
 std::shared_ptr<kml::Node> CombineNodes(const std::vector< std::shared_ptr<kml::Node> >& nodes)
 {
 	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
@@ -2238,8 +2461,8 @@ std::shared_ptr<kml::Node> CombineNodes(const std::vector< std::shared_ptr<kml::
 					pathMapList.push_back(PathMap());
 				}
 			}
-			
-			pathMapList[sz - 1][pathvec[sz - 1]] = nodes[i];
+
+            SetNode(pathMapList[sz - 1], pathvec[sz - 1], nodes[i]);
 		}
 
 		for (size_t i = 0; i < pathList.size(); i++)
@@ -2482,11 +2705,24 @@ std::vector< std::shared_ptr < kml::Node > > GetJointNodes(const std::vector< st
 			n->SetPath(path.fullPathName().asChar());
 
             MFnTransform fnTransform(path);
+			
 #if 1
-            MVector mT = fnTransform.getTranslation(MSpace::kObject);
-            MQuaternion mR;
-            fnTransform.getRotation(mR, MSpace::kObject);
-            double mS[3];
+            MVector mT = fnTransform.getTranslation(MSpace::kTransform);
+            MQuaternion mR, mOR, mJO;
+			fnTransform.getRotation(mR, MSpace::kTransform);
+			MStatus ret;
+			mOR = fnTransform.rotateOrientation(MSpace::kTransform, &ret); // get Rotation Axis
+			if (ret == MS::kSuccess) {
+				mR = mOR * mR;
+			}
+
+			MFnIkJoint fnJoint(path);
+			MStatus joret = fnJoint.getOrientation(mJO); // get jointOrient
+			if (joret == MS::kSuccess) {
+				mR *= mJO;
+			}
+            
+			double mS[3];
             fnTransform.getScale(mS);
 
             glm::vec3 vT(mT.x, mT.y, mT.z);

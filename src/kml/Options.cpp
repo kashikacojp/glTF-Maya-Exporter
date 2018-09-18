@@ -2,22 +2,38 @@
 
 
 namespace kml {
-	typedef typename Options::map_type map_type;
+	typedef typename Options::imap_type imap_type;
+    typedef typename Options::smap_type smap_type;
 
 	void Options::SetInt(const std::string& key, int val)
 	{
-		map_[key] = val;
+		imap_[key] = val;
 	}
 
 	int Options::GetInt(const std::string& key, int def)const
 	{
-		map_type::const_iterator it = map_.find(key);
-		if (it != map_.end())
+		imap_type::const_iterator it = imap_.find(key);
+		if (it != imap_.end())
 		{
 			return it->second;
 		}
 		return def;
 	}
+
+    void Options::SetString(const std::string& key, const std::string& val)
+    {
+        smap_[key] = val;
+    }
+
+    std::string Options::GetString(const std::string& key, const std::string& def)const
+    {
+        smap_type::const_iterator it = smap_.find(key);
+        if (it != smap_.end())
+        {
+            return it->second;
+        }
+        return def;
+    }
 
 	static std::shared_ptr<Options> g_GlobalOptions;
 	std::shared_ptr<Options> Options::GetGlobalOptions()
