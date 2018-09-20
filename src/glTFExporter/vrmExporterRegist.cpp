@@ -25,6 +25,7 @@ const char *const gltfDefaultOptions =
 	"make_preload_texture=0;"
 	"output_buffer=1;"
 	"convert_texture_format=1;"
+    "output_animations=1;"
 	"vrm_export=1;"
     "vrm_product_title=\"notitle\";"
     "vrm_product_version=\"1.00\";"

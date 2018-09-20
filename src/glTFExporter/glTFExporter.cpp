@@ -530,7 +530,8 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	int output_buffer = 1;			//0:bin, 1:draco, 2:bin/draco
 	int convert_texture_format = 0; //0:no convert, 1:jpeg, 2:png
 	int transform_space = 1;		//0:world_space, 1:local_space
-    int bake_mesh_transform = 0;    //0:no_bake, 1:bake
+    int freeze_skinned_mesh_transform = 0;    //0:no_bake, 1:bake veritces
+    int output_animations = 1;       //0:no output, 1: output animation
 
     std::string vrm_product_title = "notitle";
     std::string vrm_product_version = "1.00";
@@ -538,10 +539,10 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
     std::string vrm_product_contact_information = "";
     std::string vrm_product_reference = "";
 
-    int vrm_license_allowed_user_name = 2;    //everyone
-    int vrm_license_violent_usage = 1;       //allow
-    int vrm_license_sexual_usage = 1;      //allow
-    int vrm_license_commercial_usage = 1; //allow
+    int vrm_license_allowed_user_name = 2;      //everyone
+    int vrm_license_violent_usage = 1;          //allow
+    int vrm_license_sexual_usage = 1;           //allow
+    int vrm_license_commercial_usage = 1;       //allow
 
     std::string vrm_license_other_permission_url = "";
 
@@ -590,8 +591,11 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 			if (theOption[0] == MString("transform_space") && theOption.length() > 1) {
 				transform_space = theOption[1].asInt();
 			}
-            if (theOption[0] == MString("bake_mesh_transform") && theOption.length() > 1) {
-                bake_mesh_transform = theOption[1].asInt();
+            if (theOption[0] == MString("freeze_skinned_mesh_transform") && theOption.length() > 1) {
+                freeze_skinned_mesh_transform = theOption[1].asInt();
+            }
+            if (theOption[0] == MString("output_animations") && theOption.length() > 1) {
+                output_animations = theOption[1].asInt();
             }
 #ifdef ENABLE_VRM
 
@@ -641,7 +645,8 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
     {
 		output_buffer = 0; // disable Draco
 		output_glb = 1;    // force GLB format
-        bake_mesh_transform = 1;// bake mesh!
+        freeze_skinned_mesh_transform = 1;// bake mesh!
+        output_animations = 1;//
 	}
 
 	if (output_glb)
@@ -668,7 +673,8 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	opts->SetInt("output_buffer", output_buffer);
 	opts->SetInt("convert_texture_format", convert_texture_format);
 	opts->SetInt("transform_space", transform_space);
-    opts->SetInt("bake_mesh_transform", bake_mesh_transform);
+    opts->SetInt("freeze_skinned_mesh_transform", freeze_skinned_mesh_transform);
+    opts->SetInt("output_animations", output_animations);
 
 	opts->SetInt("vrm_export", vrm_export);
 
@@ -1102,7 +1108,8 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
 	
 	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
 	int transform_space = opts->GetInt("transform_space");
-    bool bake_mesh_transform = opts->GetInt("bake_mesh_transform") > 0;
+    bool freeze_skinned_mesh_transform = opts->GetInt("freeze_skinned_mesh_transform") > 0;
+    bool output_animations = opts->GetInt("output_animations") > 0;
 
 	MSpace::Space space = MSpace::kWorld;
 	if (transform_space == 1)
@@ -1117,14 +1124,14 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
 		return std::shared_ptr<kml::Node>();
 	}
 
-	if (transform_space == 1)
+	if (transform_space == 1 && output_animations)
 	{
-		MObject orgMeshObj = GetOriginalMesh(mdagPath);//T-pose
-		if (orgMeshObj.hasFn(MFn::kMesh))
-		{
-			mesh = GetOriginalVertices(mesh, orgMeshObj);	//dynamic
-			mesh = GetSkinWeights(mesh, mdagPath);			//dynamic
-		}
+        MObject orgMeshObj = GetOriginalMesh(mdagPath);//T-pose
+        if (orgMeshObj.hasFn(MFn::kMesh))
+        {
+            mesh = GetOriginalVertices(mesh, orgMeshObj);	//dynamic
+            mesh = GetSkinWeights(mesh, mdagPath);			//dynamic
+        }
 	}
 
 	mesh->name = mdagPath.partialPathName().asChar();
@@ -1151,7 +1158,7 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
             dest[3][0], dest[3][1], dest[3][2], dest[3][3]
         );
 
-        if (!bake_mesh_transform)
+        if (!freeze_skinned_mesh_transform)
         {
             node->GetTransform()->SetMatrix(mat);
         }
@@ -2120,15 +2127,10 @@ MStatus WriteGLTF(
 	{
 		return MS::kFailure;
 	}
-
-#ifdef REMOVE_NO_AREA_MESH
-	// Notice: if you use small polygon in small scale, these will be removed.
 	if (!kml::RemoveNoAreaMesh(node->GetMesh()))
 	{
 		return MS::kFailure;
 	}
-#endif
-
 	if (recalc_normals)
 	{
 		node->GetMesh()->normals.clear();
