@@ -1716,6 +1716,19 @@ namespace kml
 				}
 			}
 
+            // Opacity map
+			std::shared_ptr <kml::Texture> ai_opacityTex = mat->GetTexture("ai_opacity");
+			if (ai_opacityTex) {
+				const std::string ai_opacitytexname = ai_opacityTex->GetFilePath();
+				const int nIndex = FindTextureIndex(texture_vec, ai_opacitytexname);
+				if (nIndex >= 0)
+				{
+					picojson::object opacityColorTexture;
+					opacityColorTexture["index"] = picojson::value((double)nIndex);
+					LTE_pbr_material["opacityTexture"] = picojson::value(opacityColorTexture);
+				}
+			}
+
 			// Output LTE_PBR_material
 			picojson::object extensions;
 			extensions["LTE_PBR_material"] = picojson::value(LTE_pbr_material);

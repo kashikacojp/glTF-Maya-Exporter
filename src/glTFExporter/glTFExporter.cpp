@@ -1643,6 +1643,16 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
 	mat->SetFloat("ai_emissionColorG", emissionColorG);
 	mat->SetFloat("ai_emissionColorB", emissionColorB);
 
+    // Opacity map
+    {
+        MColor opacityCol;
+        std::shared_ptr<kml::Texture> opacityColorTex(nullptr);
+        if (getTextureAndColor(ainode, MString("opacity"), opacityColorTex, opacityCol)) {
+            if (opacityColorTex) {
+                mat->SetTexture("ai_opacity", opacityColorTex);
+            }
+        }
+    }
 
 	// Normal map
 	float depth;
