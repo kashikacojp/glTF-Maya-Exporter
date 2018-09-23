@@ -403,24 +403,53 @@ namespace kml
 			{
 				return materialID_;
 			}
-			std::shared_ptr<Accessor> GetIndices()
+			std::shared_ptr<Accessor> GetIndices()const
 			{
-				return accessors_["indices"];
+				return GetAccessor("indices");
 			}
 			void SetAccessor(const std::string& name, const std::shared_ptr<Accessor>& acc)
 			{
 				accessors_[name] = acc;
 			}
-			std::shared_ptr<Accessor> GetAccessor(const std::string& name)
+			std::shared_ptr<Accessor> GetAccessor(const std::string& name)const
 			{
-				return accessors_[name];
+                typedef std::map<std::string, std::shared_ptr<Accessor> > MapType;
+                typedef MapType::const_iterator iterator;
+                iterator it = accessors_.find(name);
+                if (it != accessors_.end())
+                {
+                    return it->second;
+                }
+                else
+                {
+                    return std::shared_ptr<Accessor>();
+                }
 			}
+            void SetBufferView(const std::string& name, const std::shared_ptr<BufferView>& bv)
+            {
+                bufferViews_[name] = bv;
+            }
+            std::shared_ptr<BufferView> GetBufferView(const std::string& name)const
+            {
+                typedef std::map<std::string, std::shared_ptr<BufferView> > MapType;
+                typedef MapType::const_iterator iterator;
+                iterator it = bufferViews_.find(name);
+                if (it != bufferViews_.end())
+                {
+                    return it->second;
+                }
+                else
+                {
+                    return std::shared_ptr<BufferView>();
+                }
+            }
 		protected:
 			std::string name_;
 			int index_;
 			int mode_;
 			int materialID_;
 			std::map<std::string, std::shared_ptr<Accessor> > accessors_;
+            std::map<std::string, std::shared_ptr<BufferView> > bufferViews_;
 		};
 
         class Skin
@@ -598,8 +627,8 @@ namespace kml
 		{
 			for (int i = 0; i < n; i++)
 			{
-				min[i] = +1e+38f;
-				max[i] = -1e+38f;
+				min[i] = +1e+16;
+				max[i] = -1e+16;
 			}
 			size_t sz = verts.size() / n;
 			for (size_t i = 0; i < sz; i++)
@@ -632,7 +661,7 @@ namespace kml
         {
             for (int i = 0; i < n; i++)
             {
-                min[i] = std::numeric_limits<unsigned short>::max();
+                min[i] = std::numeric_limits<float>::max();
                 max[i] = 0;
             }
             size_t sz = verts.size() / n;
@@ -909,7 +938,7 @@ namespace kml
                                 {
                                     l += wx[j];
                                 }
-                                l = 1.0f / std::max<float>(1e-16f, l);
+                                l = 1.0 / std::max<float>(1e-16f, l);
                                 for (int j = 0; j < 4; j++)
                                 {
                                     wx[j] *= l;
@@ -1097,7 +1126,7 @@ namespace kml
 						acc->Set("type", picojson::value("VEC3"));
 						acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
 																									  //acc->Set("byteOffset", picojson::value((double)0));
-																									  //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
+									    															  //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
 
 						float min[3] = {}, max[3] = {};
 						if (normals.size())
@@ -1153,8 +1182,10 @@ namespace kml
 						nAcc++;
 					}
 
+                    mesh->SetBufferView("draco", bufferView);
+
                     const std::shared_ptr<::kml::SkinWeights> in_skin = in_mesh->skin_weights;
-                    if (in_skin.get())
+                    if (in_skin.get() && this->skins_.size() > 0)
                     {
                         //int nSkin = skins_.size();
                         //std::string skinName = in_skin->name;
@@ -1513,7 +1544,11 @@ namespace kml
         {
             std::vector< std::pair<std::shared_ptr<Node>, std::shared_ptr<::kml::Node> > > node_pairs;
             CreateNodes(node_pairs, reg, node);
-            RegisterSkins(reg, node);
+            //TODO:
+            if (IsOutputBin)
+            {
+                RegisterSkins(reg, node);
+            }
             for (size_t i = 0; i < node_pairs.size(); i++)
             {
                 if (IsOutputBin)
@@ -1768,40 +1803,23 @@ namespace kml
 
 					if (IsOutputDraco)
 					{
-						const std::vector< std::shared_ptr<BufferView> >& bufferViews = reg.GetBufferViews();
-						if (i < bufferViews.size())
+                        std::shared_ptr<BufferView> bufferView = mesh->GetBufferView("draco");
+                        if(bufferView.get())
 						{
-							const std::shared_ptr<BufferView>& bufferview = bufferViews[i];
 							picojson::object KHR_draco_mesh_compression;
-							KHR_draco_mesh_compression["bufferView"] = picojson::value((double)bufferview->GetIndex());//TODO
-							if (false)
+							KHR_draco_mesh_compression["bufferView"] = picojson::value((double)bufferView->GetIndex());
+
+							int nOrder = 0;
+							picojson::object attributes;
+							attributes["POSITION"] = picojson::value((double)nOrder++);
+							std::shared_ptr<Accessor> tex = mesh->GetAccessor("TEXCOORD_0");
+							if (tex.get())
 							{
-								//old style
-								picojson::array attributesOrder;
-								attributesOrder.push_back(picojson::value("POSITION"));
-								std::shared_ptr<Accessor> tex = mesh->GetAccessor("TEXCOORD_0");
-								if (tex.get())
-								{
-									attributesOrder.push_back(picojson::value("TEXCOORD_0"));
-								}
-								attributesOrder.push_back(picojson::value("NORMAL"));
-								KHR_draco_mesh_compression["attributesOrder"] = picojson::value(attributesOrder);
-								KHR_draco_mesh_compression["version"] = picojson::value("0.9.1");
+								attributes["TEXCOORD_0"] = picojson::value((double)nOrder++);
 							}
-							else
-							{
-								//new style
-								int nOrder = 0;
-								picojson::object attributes;
-								attributes["POSITION"] = picojson::value((double)nOrder++);
-								std::shared_ptr<Accessor> tex = mesh->GetAccessor("TEXCOORD_0");
-								if (tex.get())
-								{
-									attributes["TEXCOORD_0"] = picojson::value((double)nOrder++);
-								}
-								attributes["NORMAL"] = picojson::value((double)nOrder++);
-								KHR_draco_mesh_compression["attributes"] = picojson::value(attributes);
-							}
+							attributes["NORMAL"] = picojson::value((double)nOrder++);
+							KHR_draco_mesh_compression["attributes"] = picojson::value(attributes);
+							
 
 							picojson::object extensions;
 							extensions["KHR_draco_mesh_compression"] = picojson::value(KHR_draco_mesh_compression);
@@ -1832,7 +1850,11 @@ namespace kml
 					{
 						nd["bufferView"] = picojson::value((double)bufferView->GetIndex());
 					}
-					nd["byteOffset"] = accessor->Get("byteOffset");
+                    picojson::value offsetObj = accessor->Get("byteOffset");
+                    if (offsetObj.is<double>())
+                    {
+                        nd["byteOffset"] = accessor->Get("byteOffset");
+                    }
 					//nd["byteStride"] = accessor->Get("byteStride");
 					nd["componentType"] = accessor->Get("componentType");
 					nd["count"] = accessor->Get("count");
@@ -2628,7 +2650,7 @@ namespace kml
 				if (!ofs)
 				{
 					std::cerr << "Couldn't write Draco bin outputfile :" << binfile << std::endl;
-					return false;
+					return -1;
 				}
 				ofs.write((const char*)buffer->GetBytesPtr(), buffer->GetByteLength());
 			}
