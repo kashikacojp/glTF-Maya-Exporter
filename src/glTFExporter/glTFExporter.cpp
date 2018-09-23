@@ -83,6 +83,8 @@
 #include <maya/MItGeometry.h>
 #include <maya/MFnMatrixData.h>
 
+#include <maya/MFnBlendShapeDeformer.h>
+
 #include <memory>
 #include <sstream>
 #include <fstream>
@@ -1076,6 +1078,89 @@ std::shared_ptr<kml::Mesh> GetSkinWeights(std::shared_ptr<kml::Mesh>& mesh, cons
 }
 
 static
+std::shared_ptr<kml::MorphTarget> GetMorphTarget(MObject& obj)
+{
+    std::shared_ptr<kml::Mesh> mesh(new kml::Mesh());
+    mesh = GetOriginalVertices(mesh, obj);
+    std::shared_ptr<kml::MorphTarget> target(new kml::MorphTarget());
+    target->mesh = mesh;
+    return target;
+}
+
+static
+std::shared_ptr<kml::Mesh> GetMophTargets(std::shared_ptr<kml::Mesh>& mesh, const MDagPath& dagpath)
+{
+    MFnDependencyNode node(dagpath.node());
+    std::string name1 = node.name().asChar();
+
+    MPlugArray mpa;
+    MPlug mp = node.findPlug("inMesh");
+    mp.connectedTo(mpa, true, false);
+
+    MObject vtxobj = MObject::kNullObj;
+    int isz = mpa.length();
+    if (isz < 1)
+    {
+        return mesh;
+    }
+
+    MFnDependencyNode dnode(mpa[0].node());
+    if (dnode.typeName() != "blendShape")
+    {
+        return mesh;
+    }
+
+
+    MFnBlendShapeDeformer bsd(mpa[0].node());
+
+    MObjectArray baseArray;
+    bsd.getBaseObjects(baseArray);
+
+    int numBase = baseArray.length();
+    MIntArray indexList;
+    bsd.weightIndexList(indexList);
+    int numWeight = indexList.length();
+
+    if (numBase < 1)
+    {
+        return mesh;
+    }
+
+    float envelope = bsd.envelope();
+    {
+        bsd.setEnvelope(0.0f);
+        std::shared_ptr<kml::Mesh> tmesh(new kml::Mesh());
+        tmesh = GetOriginalVertices(tmesh, baseArray[0]);
+        mesh->positions.swap(tmesh->positions);
+        mesh->normals.swap(tmesh->normals);
+        bsd.setEnvelope(envelope);
+    }
+
+    std::shared_ptr<kml::MorphTargets> morph_targets(new kml::MorphTargets());
+    for (int i = 0; i < numWeight; i++)
+    {
+        MObjectArray targetArray;
+        bsd.getTargets(baseArray[0], indexList[i], targetArray);
+        if (targetArray.length() < 1)
+        {
+            continue;
+        }
+        float weight = bsd.weight(indexList[i]) * envelope;
+        for(unsigned int j = 0; j < targetArray.length(); j++)
+        {
+            MObject targetObj = targetArray[j];
+            std::shared_ptr<kml::MorphTarget> target = GetMorphTarget(targetObj);
+            morph_targets->targets.push_back(target);
+            morph_targets->weights.push_back(weight);
+        }
+    }
+
+    mesh->morph_targets = morph_targets;
+
+    return mesh;
+}
+
+static
 glm::vec3 Transform(const glm::mat4& mat, const glm::vec3& v)
 {
     glm::vec4 t = mat * glm::vec4(v, 1.0f);
@@ -1137,6 +1222,8 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
             mesh = GetOriginalVertices(mesh, orgMeshObj);	//dynamic
             mesh = GetSkinWeights(mesh, mdagPath);			//dynamic
         }
+
+        mesh = GetMophTargets(mesh, mdagPath);			//dynamic
 	}
 
 	mesh->name = mdagPath.partialPathName().asChar();

@@ -375,6 +375,55 @@ namespace kml
 			picojson::object obj_;
 		};
 
+        class MorphTarget
+        {
+        public:
+            MorphTarget(const std::string& name, int index)
+                :name_(name), index_(index)
+            {
+                weight_ = 0;
+            }
+            const std::string& GetName()const
+            {
+                return name_;
+            }
+            int GetIndex()const
+            {
+                return index_;
+            }
+            void SetAccessor(const std::string& name, const std::shared_ptr<Accessor>& acc)
+            {
+                accessors_[name] = acc;
+            }
+            std::shared_ptr<Accessor> GetAccessor(const std::string& name)const
+            {
+                typedef std::map<std::string, std::shared_ptr<Accessor> > MapType;
+                typedef MapType::const_iterator iterator;
+                iterator it = accessors_.find(name);
+                if (it != accessors_.end())
+                {
+                    return it->second;
+                }
+                else
+                {
+                    return std::shared_ptr<Accessor>();
+                }
+            }
+            void SetWeight(float w)
+            {
+                weight_ = w;
+            }
+            float GetWeight()const
+            {
+                return weight_;
+            }
+        protected:
+            std::string name_;
+            int index_;
+            float weight_;
+            std::map<std::string, std::shared_ptr<Accessor> > accessors_;
+        };
+
 		class Mesh
 		{
 		public:
@@ -443,6 +492,14 @@ namespace kml
                     return std::shared_ptr<BufferView>();
                 }
             }
+            void AddTarget(const std::shared_ptr<MorphTarget>& target)
+            {
+                morph_targets.push_back(target);
+            }
+            const std::vector<std::shared_ptr<MorphTarget> > GetTargets()const
+            {
+                return morph_targets;
+            }
 		protected:
 			std::string name_;
 			int index_;
@@ -450,6 +507,7 @@ namespace kml
 			int materialID_;
 			std::map<std::string, std::shared_ptr<Accessor> > accessors_;
             std::map<std::string, std::shared_ptr<BufferView> > bufferViews_;
+            std::vector<std::shared_ptr<MorphTarget> > morph_targets;
 		};
 
         class Skin
@@ -484,14 +542,23 @@ namespace kml
             {
                 joints_.push_back(node);
             }
-
             void SetAccessor(const std::string& name, const std::shared_ptr<Accessor>& acc)
             {
                 accessors_[name] = acc;
             }
-            std::shared_ptr<Accessor> GetAccessor(const std::string& name)
+            std::shared_ptr<Accessor> GetAccessor(const std::string& name)const
             {
-                return accessors_[name];
+                typedef std::map<std::string, std::shared_ptr<Accessor> > MapType;
+                typedef MapType::const_iterator iterator;
+                iterator it = accessors_.find(name);
+                if (it != accessors_.end())
+                {
+                    return it->second;
+                }
+                else
+                {
+                    return std::shared_ptr<Accessor>();
+                }
             }
         protected:
             std::string name_;
@@ -892,7 +959,7 @@ namespace kml
 						nAcc++;
 					}
 					
-                    const std::shared_ptr<::kml::SkinWeights> in_skin = in_mesh->skin_weights;
+                    std::shared_ptr<::kml::SkinWeights> in_skin = in_mesh->skin_weights;
                     if (in_skin.get() && this->skins_.size() > 0)
                     {
                         std::shared_ptr<Skin> skin = skins_[0];
@@ -1000,6 +1067,84 @@ namespace kml
                         }
 
                         node->SetSkin(skin);
+                    }
+
+                    int nTar = morph_targets_.size();
+                    std::shared_ptr <::kml::MorphTargets> in_targets = in_mesh->morph_targets;
+                    if (in_targets.get())
+                    {
+                        size_t tsz = in_targets->targets.size();
+                        for (size_t j = 0; j < tsz; j++)
+                        {
+                            const std::shared_ptr <::kml::MorphTarget>& in_target = in_targets->targets[j];
+                            std::vector<float> pos(in_target->mesh->positions.size() * 3);
+                            std::vector<float> nor(in_target->mesh->normals.size() * 3);
+                            for (size_t k = 0; k < in_target->mesh->positions.size(); k++)
+                            {
+                                pos[3 * k + 0] = in_target->mesh->positions[k][0] - in_mesh->positions[k][0];
+                                pos[3 * k + 1] = in_target->mesh->positions[k][1] - in_mesh->positions[k][1];
+                                pos[3 * k + 2] = in_target->mesh->positions[k][2] - in_mesh->positions[k][2];
+                            }
+                            for (size_t k = 0; k < in_target->mesh->normals.size(); k++)
+                            {
+                                nor[3 * k + 0] = in_target->mesh->normals[k][0] - in_mesh->normals[k][0];
+                                nor[3 * k + 1] = in_target->mesh->normals[k][1] - in_mesh->normals[k][1];
+                                nor[3 * k + 2] = in_target->mesh->normals[k][2] - in_mesh->normals[k][2];
+                            }
+
+                            std::string morName = "target_" + IToS(nTar);//
+                            nTar++;
+                            std::shared_ptr<MorphTarget> target(new MorphTarget(morName, nTar));
+                            target->SetWeight(in_targets->weights[j]);
+                            //normal
+                            {
+                                std::string accName = "accessor_" + IToS(nAcc);//
+                                std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
+                                const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(nor);
+                                acc->SetBufferView(bufferView);
+                                acc->Set("count", picojson::value((double)(nor.size() / 3)));
+                                acc->Set("type", picojson::value("VEC3"));
+                                acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
+                                acc->Set("byteOffset", picojson::value((double)0));
+                                //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
+
+                                float min[3] = {}, max[3] = {};
+                                if (nor.size())
+                                {
+                                    GetMinMax(min, max, nor, 3);
+                                }
+                                acc->Set("min", picojson::value(ConvertToArray(min, 3)));
+                                acc->Set("max", picojson::value(ConvertToArray(max, 3)));
+
+                                accessors_.push_back(acc);
+                                target->SetAccessor("NORMAL", acc);
+                                nAcc++;
+                            }
+                            //position
+                            {
+                                std::string accName = "accessor_" + IToS(nAcc);//
+                                std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
+                                const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(pos);
+                                acc->SetBufferView(bufferView);
+                                acc->Set("count", picojson::value((double)(pos.size() / 3)));
+                                acc->Set("type", picojson::value("VEC3"));
+                                acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
+                                acc->Set("byteOffset", picojson::value((double)0));
+                                //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
+
+                                float min[3] = {}, max[3] = {};
+                                GetMinMax(min, max, pos, 3);
+                                acc->Set("min", picojson::value(ConvertToArray(min, 3)));
+                                acc->Set("max", picojson::value(ConvertToArray(max, 3)));
+
+                                accessors_.push_back(acc);
+                                target->SetAccessor("POSITION", acc);
+                                nAcc++;
+                            }
+
+                            mesh->AddTarget(target);
+                            this->morph_targets_.push_back(target);
+                        }
                     }
 
                     node->SetMesh(mesh);
@@ -1353,7 +1498,8 @@ namespace kml
 			std::vector<std::shared_ptr<BufferView> > bufferViews_;
 			std::vector<std::shared_ptr<Buffer> > buffers_;
 			std::vector<std::shared_ptr<Buffer> > dracoBuffers_;
-            std::vector< std::shared_ptr<Skin> > skins_;
+            std::vector<std::shared_ptr<Skin> > skins_;
+            std::vector<std::shared_ptr<MorphTarget> > morph_targets_;
 			std::string basename_;
 		};
 
@@ -1793,13 +1939,30 @@ namespace kml
                             attributes["JOINTS_0"] = picojson::value((double)joints->GetIndex());
                             attributes["WEIGHTS_0"] = picojson::value((double)weights->GetIndex());
                         }
-
 					}
+
 					picojson::object primitive;
 					primitive["attributes"] = picojson::value(attributes);
 					primitive["indices"] = picojson::value((double)mesh->GetIndices()->GetIndex());
 					primitive["mode"] = picojson::value((double)mesh->GetMode());
 					primitive["material"] = picojson::value((double)mesh->GetMaterialID());
+
+                    std::vector<std::shared_ptr<MorphTarget> > targets = mesh->GetTargets();
+                    if (!targets.empty())
+                    {
+                        picojson::array tar;
+                        picojson::array war;
+                        for (size_t j = 0; j < targets.size(); j++)
+                        {
+                            picojson::object tnd;
+                            tnd["NORMAL"] = picojson::value((double)targets[j]->GetAccessor("NORMAL")->GetIndex());
+                            tnd["POSITION"] = picojson::value((double)targets[j]->GetAccessor("POSITION")->GetIndex());
+                            tar.push_back(picojson::value(tnd));
+                            war.push_back(picojson::value((double)targets[j]->GetWeight()));
+                        }
+                        primitive["targets"] = picojson::value(tar);
+                        nd["weights"] = picojson::value(war);
+                    }
 
 					if (IsOutputDraco)
 					{

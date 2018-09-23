@@ -185,6 +185,23 @@ namespace kml
 		return nodes;
 	}
 
+    static
+    std::shared_ptr<Mesh> Clone(const std::shared_ptr<Mesh>& mesh)
+    {
+        std::shared_ptr<Mesh> ret(new Mesh());
+        ret->positions = mesh->positions;
+        ret->normals = mesh->normals;
+        return ret;
+    }
+
+    static
+    std::shared_ptr<MorphTarget> Clone(const std::shared_ptr<MorphTarget>& target)
+    {
+        std::shared_ptr<MorphTarget> ret(new MorphTarget());
+        ret->mesh = Clone(target->mesh);
+        return ret;
+    }
+
 
 	std::vector< std::shared_ptr<kml::Node> > SplitNodeByMaterialID(std::shared_ptr<kml::Node>& node)
 	{
@@ -205,6 +222,10 @@ namespace kml
 				{
 					meshes[i]->skin_weights = std::shared_ptr<kml::SkinWeights>( new kml::SkinWeights() );
 				}
+                if (mesh->morph_targets.get())
+                {
+                    meshes[i]->morph_targets = std::shared_ptr<kml::MorphTargets>(new kml::MorphTargets());
+                }
 			}
 
 			int offset = 0;
@@ -242,6 +263,16 @@ namespace kml
 					meshes[i]->skin_weights->joint_paths = mesh->skin_weights->joint_paths;
 					meshes[i]->skin_weights->weights = mesh->skin_weights->weights;
 				}
+
+                if (mesh->morph_targets.get())
+                {
+                    int tsz = mesh->morph_targets->targets.size();
+                    for (int j = 0; j < tsz; j++)
+                    {
+                        meshes[i]->morph_targets->targets.push_back(Clone(mesh->morph_targets->targets[j]));
+                    }
+                    meshes[i]->morph_targets->weights = mesh->morph_targets->weights;
+                }
 
 				std::shared_ptr<kml::Node> tnode = std::shared_ptr<kml::Node>(new kml::Node());
 				tnode->SetMesh(meshes[i]);
