@@ -7,11 +7,11 @@
 
 namespace kml
 {
-    class Mesh;
     class MorphTarget
     {
     public:
-        std::shared_ptr<Mesh> mesh;
+        std::vector<glm::vec3> positions;
+        std::vector<glm::vec3> normals;
     };
 
     class MorphTargets

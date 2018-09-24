@@ -1083,7 +1083,8 @@ std::shared_ptr<kml::MorphTarget> GetMorphTarget(MObject& obj)
     std::shared_ptr<kml::Mesh> mesh(new kml::Mesh());
     mesh = GetOriginalVertices(mesh, obj);
     std::shared_ptr<kml::MorphTarget> target(new kml::MorphTarget());
-    target->mesh = mesh;
+    target->positions.swap(mesh->positions);
+    target->normals.swap(mesh->normals);
     return target;
 }
 
@@ -1214,13 +1215,16 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
 		return std::shared_ptr<kml::Node>();
 	}
 
-	if (transform_space == 1 && output_animations)
-	{
-        MObject orgMeshObj = GetOriginalMesh(mdagPath);//T-pose
-        if (orgMeshObj.hasFn(MFn::kMesh))
+	if (transform_space == 1)
+    {
+        if (output_animations)
         {
-            mesh = GetOriginalVertices(mesh, orgMeshObj);	//dynamic
-            mesh = GetSkinWeights(mesh, mdagPath);			//dynamic
+            MObject orgMeshObj = GetOriginalMesh(mdagPath);//T-pose
+            if (orgMeshObj.hasFn(MFn::kMesh))
+            {
+                mesh = GetOriginalVertices(mesh, orgMeshObj);	//dynamic
+                mesh = GetSkinWeights(mesh, mdagPath);			//dynamic
+            }
         }
 
         mesh = GetMophTargets(mesh, mdagPath);			//dynamic

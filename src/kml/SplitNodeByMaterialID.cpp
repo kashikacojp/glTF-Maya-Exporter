@@ -186,19 +186,11 @@ namespace kml
 	}
 
     static
-    std::shared_ptr<Mesh> Clone(const std::shared_ptr<Mesh>& mesh)
-    {
-        std::shared_ptr<Mesh> ret(new Mesh());
-        ret->positions = mesh->positions;
-        ret->normals = mesh->normals;
-        return ret;
-    }
-
-    static
     std::shared_ptr<MorphTarget> Clone(const std::shared_ptr<MorphTarget>& target)
     {
         std::shared_ptr<MorphTarget> ret(new MorphTarget());
-        ret->mesh = Clone(target->mesh);
+        ret->positions = target->positions;
+        ret->normals = target->normals;
         return ret;
     }
 

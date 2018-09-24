@@ -42,7 +42,7 @@ namespace kml
 		};
 
 		static
-		int Get4ByteAlign(int x)
+		int Get4BytesAlign(int x)
 		{
 			if ((x % 4) == 0)
 			{
@@ -103,7 +103,7 @@ namespace kml
 				}
 
 				uint32 len = GetLength();
-				uint32 byte4 = Get4ByteAlign(len);
+				uint32 byte4 = Get4BytesAlign(len);
 				if (byte4 != len)
 				{
 					uint32 rem = byte4 - len;
@@ -262,7 +262,7 @@ namespace kml
 
 		//images
 		std::string json_str = value(root).serialize(false);
-		std::vector<uchar> json_buffer(Get4ByteAlign(json_str.size()));
+		std::vector<uchar> json_buffer(Get4BytesAlign(json_str.size()));
 		memset(&json_buffer[0], ' ', sizeof(uchar)*json_buffer.size());
 		memcpy(&json_buffer[0], json_str.c_str(), sizeof(uchar)*json_str.size());
 
@@ -271,7 +271,7 @@ namespace kml
 		chunk0.chunkType = (uint32)0x4E4F534A;//ASCII
 
 		GLBChunk chunk1;
-		chunk1.chunkLength = Get4ByteAlign(bm.GetLength()) * sizeof(uchar);
+		chunk1.chunkLength = Get4BytesAlign(bm.GetLength()) * sizeof(uchar);
 		chunk1.chunkType = (uint32)0x004E4942;//BIN
 
 		GLBHeader header;

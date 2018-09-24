@@ -399,10 +399,8 @@ namespace kml
             for (size_t j = 0; j < mesh->morph_targets->targets.size(); j++)
             {
                 std::shared_ptr<MorphTarget> target(new MorphTarget());
-                std::shared_ptr<Mesh> m(new Mesh);
-                m->positions.resize(sz);
-                m->normals.resize(sz);
-                target->mesh = m;
+                target->positions.resize(sz);
+                target->normals.resize(sz);
                 morph_targets.push_back(target);
             }
         }
@@ -424,16 +422,16 @@ namespace kml
             {
                 for (size_t j = 0; j < morph_targets.size(); j++)
                 {
-                    morph_targets[j]->mesh->positions[index] = mesh->morph_targets->targets[j]->mesh->positions[vidx];
+                    morph_targets[j]->positions[index] = mesh->morph_targets->targets[j]->positions[vidx];
 
                     if (nidx >= 0)
                     {
-                        morph_targets[j]->mesh->normals[index] = mesh->morph_targets->targets[j]->mesh->normals[nidx];
+                        morph_targets[j]->normals[index] = mesh->morph_targets->targets[j]->normals[nidx];
                     }
                     else
                     {
                         assert(0);
-                        morph_targets[j]->mesh->normals[index] = glm::vec3(0, 1, 0);
+                        morph_targets[j]->normals[index] = glm::vec3(0, 1, 0);
                     }
                 }
             }
