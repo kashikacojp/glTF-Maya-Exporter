@@ -368,6 +368,48 @@ bool IsFileExist(const std::string& filepath)
 	return ifs.is_open();
 }
 
+static
+bool IsVisible(MFnDagNode & fnDag)
+{
+    MStatus status;
+    if (fnDag.isIntermediateObject())
+    {
+        return false;
+    }
+
+    MPlug visPlug = fnDag.findPlug("visibility", &status);
+    if (MStatus::kFailure == status) 
+    {
+        return false;
+    }
+    else 
+    {
+        bool visible;
+        status = visPlug.getValue(visible);
+        if (MStatus::kFailure == status) 
+        {
+            return false;
+        }
+        return visible;
+    }
+}
+
+static
+bool IsVisible(MDagPath& path)
+{
+    MStatus status;
+    MFnDagNode node(path, &status);
+    if (MStatus::kFailure == status)
+    {
+        return false;
+    }
+    else
+    {
+        return IsVisible(node);
+    }
+}
+
+
 //////////////////////////////////////////////////////////////
 
 void* glTFExporter::creator()
@@ -533,7 +575,8 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	int convert_texture_format = 0; //0:no convert, 1:jpeg, 2:png
 	int transform_space = 1;		//0:world_space, 1:local_space
     int freeze_skinned_mesh_transform = 0;    //0:no_bake, 1:bake veritces
-    int output_animations = 1;       //0:no output, 1: output animation
+    int output_animations = 1;      //0:no output, 1: output animation
+    int output_invisible_nodes = 0; //0:
 
     std::string vrm_product_title = "notitle";
     std::string vrm_product_version = "1.00";
@@ -598,6 +641,9 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
             }
             if (theOption[0] == MString("output_animations") && theOption.length() > 1) {
                 output_animations = theOption[1].asInt();
+            }
+            if (theOption[0] == MString("output_invisible_nodes") && theOption.length() > 1) {
+                output_invisible_nodes = theOption[1].asInt();
             }
 #ifdef ENABLE_VRM
 
@@ -682,7 +728,8 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	opts->SetInt("transform_space", transform_space);
     opts->SetInt("freeze_skinned_mesh_transform", freeze_skinned_mesh_transform);
     opts->SetInt("output_animations", output_animations);
-
+    opts->SetInt("output_invisible_nodes", output_invisible_nodes);
+    
 	opts->SetInt("vrm_export", vrm_export);
 
     opts->SetString("vrm_product_title", vrm_product_title);
@@ -1284,6 +1331,7 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
 		MDagPath transPath = dagPathList.back();
 		node->SetName(transPath.partialPathName().asChar());
 		node->SetPath(transPath.fullPathName().asChar());
+        node->SetVisiblity(IsVisible(transPath));
 
 		dagPathList.pop_back();//transform
 		if (dagPathList.size() > 0)
@@ -1295,6 +1343,7 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
 				std::shared_ptr < kml::Node > n(new kml::Node());
 				n->SetName(path.partialPathName().asChar());
 				n->SetPath(path.fullPathName().asChar());
+                n->SetVisiblity(IsVisible(path));
 
                 MFnTransform fnTransform(path);
                 MMatrix mmat = fnTransform.transformationMatrix();//local
@@ -2048,6 +2097,23 @@ glm::mat4 GetRootNodeGlobalMatrix(const std::shared_ptr<kml::Node>& node, const 
 }
 
 static
+bool IsVisibleLeafNode(const std::shared_ptr<kml::Node>& node)
+{
+    if (!node->GetVisibility())
+    {
+        return false;
+    }
+    if (node->GetChildren().size() > 0)
+    {
+        return IsVisibleLeafNode(node->GetChildren()[0]);
+    }
+    else
+    {
+        return node->GetVisibility();
+    }
+}
+
+static
 MStatus WriteGLTF(
 	TexturePathManager& texManager,
 	std::map<int, std::shared_ptr<kml::Material> >& materials,
@@ -2056,13 +2122,21 @@ MStatus WriteGLTF(
 {
 	MStatus status = MS::kSuccess;
 
-	std::shared_ptr<kml::Node> root_node = CreateMeshNode(dagPath);
-	std::shared_ptr<kml::Node> node = GetLeafNode(root_node);
+    std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
+    bool onefile = opts->GetInt("output_onefile") > 0;
+    bool recalc_normals = opts->GetInt("recalc_normals") > 0;
+    bool make_preload_texture = opts->GetInt("make_preload_texture") > 0;
+    bool output_invisible_nodes = opts->GetInt("output_invisible_nodes") > 0;
 
-	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
-	bool onefile = opts->GetInt("output_onefile") > 0;
-	bool recalc_normals = opts->GetInt("recalc_normals") > 0;
-	bool make_preload_texture = opts->GetInt("make_preload_texture") > 0;
+	std::shared_ptr<kml::Node> root_node = CreateMeshNode(dagPath);
+    if (!output_invisible_nodes)
+    {
+        if (!IsVisibleLeafNode(root_node))
+        {
+            return status;
+        }
+    }
+	std::shared_ptr<kml::Node> node = GetLeafNode(root_node);
 
 	std::string mesh_name = node->GetMesh()->name;
 
@@ -2527,6 +2601,7 @@ std::shared_ptr<kml::Node> CombineNodes(const std::vector< std::shared_ptr<kml::
 
 	std::shared_ptr<kml::Node> node(new kml::Node());
 	node->GetTransform()->SetMatrix(glm::mat4(1.0f));
+    node->SetVisiblity(true);
 
 	{
 		//Local space
@@ -2801,6 +2876,7 @@ std::vector< std::shared_ptr < kml::Node > > GetJointNodes(const std::vector< st
 			std::shared_ptr < kml::Node > n(new kml::Node());
 			n->SetName(path.partialPathName().asChar());
 			n->SetPath(path.fullPathName().asChar());
+            n->SetVisiblity(IsVisible(path));
 
             MFnTransform fnTransform(path);
 			
@@ -2867,6 +2943,7 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
 	bool onefile = opts->GetInt("output_onefile") > 0;
 	bool glb = opts->GetInt("output_glb") > 0;
 	bool vrm = opts->GetInt("vrm_export") > 0;
+    bool output_invisible_nodes = opts->GetInt("output_invisible_nodes") > 0;
 	
 
 	typedef std::vector< std::shared_ptr<kml::Node> > NodeVecType;
@@ -2886,12 +2963,22 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
 				{
 					return MS::kFailure;
 				}
-
+                bool bProcess = true;
 				MDagPath dagPath = dagPaths[i];
-				if (dagPath.hasFn(MFn::kMesh))
-				{
-					status = WriteGLTF(texManager, materials, nodes, MString(dir_path.c_str()), dagPath);
-				}
+                if (!output_invisible_nodes)
+                {
+                    if (!IsVisible(dagPath))
+                    {
+                        bProcess = false;
+                    }
+                }
+                if (bProcess)
+                {
+                    if (dagPath.hasFn(MFn::kMesh))
+                    {
+                        status = WriteGLTF(texManager, materials, nodes, MString(dir_path.c_str()), dagPath);
+                    }
+                }
 				progWindow->setProgress(prog * (i + 1));
 			}
 		}
