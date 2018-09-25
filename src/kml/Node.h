@@ -3,6 +3,7 @@
 #define _KML_NODE_H_
 
 #include <vector>
+#include <map>
 #include <memory>
 #include <string>
 
@@ -40,6 +41,9 @@ namespace kml
 		void AddMaterial(const std::shared_ptr <Material>& material);
 		void AddChild(const std::shared_ptr<Node>& child);
 		void ClearChildren();
+
+        void SetVisiblity(bool isVisible);
+        bool GetVisibility()const;
 	public:
 		bool IsLeaf()const;
 		bool HasShape()const;
@@ -51,6 +55,7 @@ namespace kml
 		std::shared_ptr < Bound > bound;
 		std::shared_ptr < Mesh > mesh;
 		std::vector< std::shared_ptr <Material> > materials;
+        std::map<std::string, int> iprops;
 	};
 }
 

@@ -7,6 +7,7 @@
 #include <string>
 #include "Compatibility.h"
 #include "SkinWeights.h"
+#include "MorphTargets.h"
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 
@@ -27,6 +28,7 @@ namespace kml
 		std::vector<glm::vec2>				texcoords;
 		std::vector<int>			        materials;
 		std::shared_ptr<SkinWeights>        skin_weights;
+        std::shared_ptr<MorphTargets>       morph_targets;
 	};
 }
 

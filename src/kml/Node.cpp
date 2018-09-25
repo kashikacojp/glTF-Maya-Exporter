@@ -103,4 +103,24 @@ namespace kml
 		this->children.clear();
 	}
 
+    void Node::SetVisiblity(bool isVisible)
+    {
+        this->iprops["Visiblity"] = isVisible;
+    }
+
+    bool Node::GetVisibility()const
+    {
+        typedef std::map<std::string, int> MapType;
+        typedef MapType::const_iterator iterator;
+        iterator it = this->iprops.find("Visiblity");
+        if (it != this->iprops.end())
+        {
+            return it->second;
+        }
+        else
+        {
+            return true;
+        }
+    }
+
 }

@@ -391,7 +391,19 @@ namespace kml
 		std::vector<glm::vec2> texcoords(sz);
 		std::vector<glm::vec3> normals(sz);
 
-		std::vector<kml::SkinWeights::WeightVertex> weight_vertices(sz);
+		std::vector<SkinWeights::WeightVertex> weight_vertices(sz);
+
+        std::vector<std::shared_ptr<MorphTarget> > morph_targets;
+        if (mesh->morph_targets.get())
+        {
+            for (size_t j = 0; j < mesh->morph_targets->targets.size(); j++)
+            {
+                std::shared_ptr<MorphTarget> target(new MorphTarget());
+                target->positions.resize(sz);
+                target->normals.resize(sz);
+                morph_targets.push_back(target);
+            }
+        }
 
 
 		for (size_t i = 0; i < mesh->tex_indices.size(); i++)
@@ -407,6 +419,22 @@ namespace kml
 			{
 				weight_vertices[index] = mesh->skin_weights->weights[vidx];
 			}
+            {
+                for (size_t j = 0; j < morph_targets.size(); j++)
+                {
+                    morph_targets[j]->positions[index] = mesh->morph_targets->targets[j]->positions[vidx];
+
+                    if (nidx >= 0)
+                    {
+                        morph_targets[j]->normals[index] = mesh->morph_targets->targets[j]->normals[nidx];
+                    }
+                    else
+                    {
+                        assert(0);
+                        morph_targets[j]->normals[index] = glm::vec3(0, 1, 0);
+                    }
+                }
+            }
 
 			if (tidx >= 0)
 			{
@@ -441,6 +469,11 @@ namespace kml
 		{
 			mesh->skin_weights->weights.swap(weight_vertices);
 		}
+
+        if (mesh->morph_targets.get())
+        {
+            mesh->morph_targets->targets = morph_targets;
+        }
 
 		return true;
 	}
