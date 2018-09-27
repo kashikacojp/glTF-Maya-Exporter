@@ -1993,10 +1993,10 @@ namespace kml
 					}
 
 
-					picojson::array primitives;
-					primitives.push_back(picojson::value(primitive));
+                    picojson::array primitives;
+                    primitives.push_back(picojson::value(primitive));
 
-					nd["primitives"] = picojson::value(primitives);
+                    nd["primitives"] = picojson::value(primitives);
 
                     if (!extras.empty())
                     {
