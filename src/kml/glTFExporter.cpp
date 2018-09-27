@@ -1460,7 +1460,7 @@ namespace kml
                 return bufferViews_.back();
             }
 
-			const std::shared_ptr<BufferView>& AddBufferViewDraco(const std::shared_ptr<::kml::Mesh>& mesh)
+			std::shared_ptr<BufferView> AddBufferViewDraco(const std::shared_ptr<::kml::Mesh>& mesh)
 			{
                 std::vector<unsigned char> bytes;
                 if (!SaveToDraco(bytes, mesh))
