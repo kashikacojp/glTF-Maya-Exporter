@@ -2,6 +2,7 @@
 #ifndef _KML_MORPHTARGETS_H_
 #define _KML_MORPHTARGETS_H_
 
+#include <string>
 #include <vector>
 #include <memory>
 
@@ -19,6 +20,7 @@ namespace kml
     public:
         std::vector < std::shared_ptr<MorphTarget> > targets;
         std::vector < float > weights;
+        std::vector < std::string > names;
     };
 }
 

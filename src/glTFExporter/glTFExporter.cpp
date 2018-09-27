@@ -1198,8 +1198,13 @@ std::shared_ptr<kml::Mesh> GetMophTargets(std::shared_ptr<kml::Mesh>& mesh, cons
         {
             MObject targetObj = targetArray[j];
             std::shared_ptr<kml::MorphTarget> target = GetMorphTarget(targetObj);
+            MDagPath path;
+            MDagPath::getAPathTo(targetObj, path);
+            path.pop();
+            std::string name = path.partialPathName().asChar();
             morph_targets->targets.push_back(target);
             morph_targets->weights.push_back(weight);
+            morph_targets->names.push_back(name);
         }
     }
 
