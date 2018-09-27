@@ -2297,10 +2297,13 @@ MStatus WriteGLTF(
 	{
 		return MS::kFailure;
 	}
+#ifdef REMOVE_NO_AREA_MESH
+	// Notice: if you use small polygon in small scale, these will be removed.
 	if (!kml::RemoveNoAreaMesh(node->GetMesh()))
 	{
 		return MS::kFailure;
 	}
+#endif
 	if (recalc_normals)
 	{
 		node->GetMesh()->normals.clear();
