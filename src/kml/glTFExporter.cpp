@@ -731,7 +731,7 @@ namespace kml
         {
             for (int i = 0; i < n; i++)
             {
-                min[i] = std::numeric_limits<float>::max();
+                min[i] = std::numeric_limits<unsigned short>::max();
                 max[i] = 0;
             }
             size_t sz = verts.size() / n;
