@@ -827,7 +827,7 @@ namespace kml
                             nor[3 * k + 2] = in_target->normals[k][2] - in_mesh->normals[k][2];
                         }
 
-                        std::string tarName = "target_" + IToS(nTar);//
+                        std::string tarName = in_targets->names[j];     // "target_" + IToS(nTar);
                         std::shared_ptr<MorphTarget> target(new MorphTarget(tarName, nTar));
                         target->SetWeight(in_targets->weights[j]);
                         //normal
@@ -1460,7 +1460,7 @@ namespace kml
                 return bufferViews_.back();
             }
 
-			const std::shared_ptr<BufferView>& AddBufferViewDraco(const std::shared_ptr<::kml::Mesh>& mesh)
+			std::shared_ptr<BufferView> AddBufferViewDraco(const std::shared_ptr<::kml::Mesh>& mesh)
 			{
                 std::vector<unsigned char> bytes;
                 if (!SaveToDraco(bytes, mesh))
@@ -1941,11 +1941,14 @@ namespace kml
 					primitive["mode"] = picojson::value((double)mesh->GetMode());
 					primitive["material"] = picojson::value((double)mesh->GetMaterialID());
 
+                    picojson::object extras;
+
                     std::vector<std::shared_ptr<MorphTarget> > targets = mesh->GetTargets();
                     if (!targets.empty())
                     {
                         picojson::array tar;
                         picojson::array war;
+                        picojson::array nar;
                         for (size_t j = 0; j < targets.size(); j++)
                         {
                             picojson::object tnd;
@@ -1953,10 +1956,15 @@ namespace kml
                             tnd["POSITION"] = picojson::value((double)targets[j]->GetAccessor("POSITION")->GetIndex());
                             tar.push_back(picojson::value(tnd));
                             war.push_back(picojson::value((double)targets[j]->GetWeight()));
+                            nar.push_back(picojson::value(targets[j]->GetName()));
                         }
                         primitive["targets"] = picojson::value(tar);
                         nd["weights"] = picojson::value(war);
+
+                        //nd["targetNames"] = picojson::value(nar);
+                        extras["targetNames"] = picojson::value(nar);
                     }
+
 
 					if (IsOutputDraco)
 					{
@@ -1985,10 +1993,16 @@ namespace kml
 					}
 
 
-					picojson::array primitives;
-					primitives.push_back(picojson::value(primitive));
+                    picojson::array primitives;
+                    primitives.push_back(picojson::value(primitive));
 
-					nd["primitives"] = picojson::value(primitives);
+                    nd["primitives"] = picojson::value(primitives);
+
+                    if (!extras.empty())
+                    {
+                        nd["extras"] = picojson::value(extras);
+                    }
+                    
 					ar.push_back(picojson::value(nd));
 				}
 				root["meshes"] = picojson::value(ar);

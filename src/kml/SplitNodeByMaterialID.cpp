@@ -264,6 +264,7 @@ namespace kml
                         meshes[i]->morph_targets->targets.push_back(Clone(mesh->morph_targets->targets[j]));
                     }
                     meshes[i]->morph_targets->weights = mesh->morph_targets->weights;
+                    meshes[i]->morph_targets->names   = mesh->morph_targets->names;
                 }
 
 				std::shared_ptr<kml::Node> tnode = std::shared_ptr<kml::Node>(new kml::Node());
