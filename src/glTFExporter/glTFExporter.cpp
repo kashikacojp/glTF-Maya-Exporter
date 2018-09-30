@@ -3464,6 +3464,20 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
 			}
 		}
 
+        {
+            for (ShaderMapType::iterator it = materials.begin(); it != materials.end(); it++)
+            {
+                auto& mat = it->second;
+                auto& keys = mat->GetTextureKeys();
+                for (size_t j = 0; j < keys.size(); j++)
+                {
+                    auto tex = mat->GetTexture(keys[j]);
+                    std::string file_path = dir_path + "/" + tex->GetFilePath();
+                    tex->SetFileExists(IsFileExist(file_path));
+                }
+            }
+        }
+
 		NodeVecType all_nodes;
 		for (NodeVecType::iterator it = nodes.begin(); it != nodes.end(); it++)
 		{

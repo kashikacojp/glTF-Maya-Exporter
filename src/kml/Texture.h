@@ -24,7 +24,8 @@ namespace kml
 			m_offsetU(0.0f), m_offsetV(0.0f),
 			m_wrapU(true), m_wrapV(true),
 			m_filter(FILTER_NEAREST),
-			m_udimmode(false)
+			m_udimmode(false),
+            m_exist(true)
 		{};
 
 		~Texture() {};
@@ -119,6 +120,14 @@ namespace kml
 			return m_udimIDs;
 		}
 
+        bool FileExists() const 
+        {
+            return m_exist;
+        }
+        void SetFileExists(bool bExist)
+        {
+            m_exist = bExist;
+        }
 	protected:
 		std::string m_textureFilePath;
 		std::string m_udimTextureFilePath;
@@ -128,6 +137,7 @@ namespace kml
 		FilterType m_filter;
 		bool m_udimmode;
 		std::vector<int> m_udimIDs;
+        bool m_exist;
 	};
 }
 
