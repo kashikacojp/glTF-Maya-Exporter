@@ -278,7 +278,7 @@ namespace kml
 
 				
 				tnode->SetName(node->GetName() + "_" + number); //TODO:
-				tnode->SetPath(node->GetPath() + "_" + number);
+				tnode->SetPath(node->GetPath());
                 tnode->SetVisiblity(node->GetVisibility());
 				tnode->GetTransform()->SetMatrix(node->GetTransform()->GetMatrix());
 				tnode->SetBound(kml::CalculateBound(mesh));

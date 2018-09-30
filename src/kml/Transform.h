@@ -17,6 +17,7 @@ namespace kml
         virtual glm::mat4 GetMatrix()const = 0;
         virtual int GetType()const = 0;
         virtual TransformCore* Clone()const = 0;
+        virtual void SetIdentity() = 0;
     };
 
     class MatrixTransformCore;
@@ -36,6 +37,7 @@ namespace kml
         ~Transform();
 		void SetMatrix(const glm::mat4& m);
         void SetTRS   (const glm::vec3& T, const glm::quat& R, const glm::vec3& S);
+        void SetIdentity();
 		glm::mat4 GetMatrix()const;
         glm::vec3 GetT()const;
         glm::quat GetR()const;

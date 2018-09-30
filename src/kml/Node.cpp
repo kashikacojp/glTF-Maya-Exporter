@@ -123,4 +123,14 @@ namespace kml
         }
     }
 
+    const std::vector< std::shared_ptr <Animation> >& Node::GetAnimations()const
+    {
+        return animations;
+    }
+
+    void Node::AddAnimation(const std::shared_ptr<Animation>& anim)
+    {
+        animations.push_back(anim);
+    }
+
 }

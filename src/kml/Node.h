@@ -12,6 +12,7 @@
 #include "Bound.h"
 #include "Mesh.h"
 #include "Material.h"
+#include "Animation.h"
 
 namespace kml
 {
@@ -32,6 +33,7 @@ namespace kml
 		const std::shared_ptr<Bound>&     GetBound()const;
 
 		const std::vector< std::shared_ptr <Material> >& GetMaterials()const;
+		const std::vector< std::shared_ptr <Animation> >& GetAnimations()const;
 		const std::vector< std::shared_ptr<Node> >& GetChildren()const;
 	public:
 		void SetTransform(const std::shared_ptr<Transform>& trans);
@@ -41,6 +43,7 @@ namespace kml
 		void AddMaterial(const std::shared_ptr <Material>& material);
 		void AddChild(const std::shared_ptr<Node>& child);
 		void ClearChildren();
+        void AddAnimation(const std::shared_ptr<Animation>& anim);
 
         void SetVisiblity(bool isVisible);
         bool GetVisibility()const;
@@ -55,6 +58,7 @@ namespace kml
 		std::shared_ptr < Bound > bound;
 		std::shared_ptr < Mesh > mesh;
 		std::vector< std::shared_ptr <Material> > materials;
+        std::vector< std::shared_ptr<Animation> > animations;
         std::map<std::string, int> iprops;
 	};
 }
