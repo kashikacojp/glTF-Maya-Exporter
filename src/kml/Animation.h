@@ -23,7 +23,6 @@ namespace kml
         AnimationInterporationType interporation_type;
         std::vector< float > keys;
         std::map<std::string, std::vector< float >  > values;
-        std::shared_ptr<Node> target;
     };
 
     class Animation
@@ -31,6 +30,7 @@ namespace kml
     public:
         std::string name;
         std::vector< std::shared_ptr<AnimationCurve> > curves;
+        std::vector< std::shared_ptr<Node> > targets;
     };
 
 }

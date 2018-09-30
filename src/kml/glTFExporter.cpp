@@ -632,6 +632,14 @@ namespace kml
             {
                 return index_;
             }
+            void SetTargetPath(const std::string& path)
+            {
+                targetPath_ = path;
+            }
+            const std::string& GetTargetPath()
+            {
+                return targetPath_;
+            }
             void SetInputAccessor(const std::shared_ptr< Accessor >& in)
             {
                 in_ = in;
@@ -659,6 +667,7 @@ namespace kml
         protected:
             std::string name_;
             int index_;
+            std::string targetPath_;
             std::string interpolation_;
             std::shared_ptr< Accessor > in_;    //key
             std::shared_ptr< Accessor > out_;   //value
@@ -680,13 +689,9 @@ namespace kml
             {
                 return index_;
             }
-            void SetTargetPath(const std::string& path)
-            {
-                targetPath_ = path;
-            }
             const std::string& GetTargetPath()
             {
-                return targetPath_;
+                return sampler_->GetTargetPath();
             }
             void SetTargetNode(const std::shared_ptr<Node>& node)
             {
@@ -918,7 +923,7 @@ namespace kml
             {
                 int nNode = nodes_.size();
                 std::shared_ptr<Node> node(new Node(in_node->GetName(), nNode));
-                node->SetPath(in_node->GetPath());
+                node->SetPath(in_node->GetModifiedPath());
                 if (!in_node->GetTransform()->IsTRS())
                 {
                     node->GetTransform()->SetMatrix(in_node->GetTransform()->GetMatrix());
@@ -1030,13 +1035,11 @@ namespace kml
                     for (size_t i = 0; i < in_animation->curves.size(); i++)
                     {
                         const auto& curve = in_animation->curves[i];
-                        std::shared_ptr<AnimationChannel> channel(new AnimationChannel(in_animation->name, nAC));
-                        channel->SetTargetPath(curve->channel);
-                        channel->SetTargetNode(nodeMap_[curve->target->GetPath()]);
 
                         std::shared_ptr<AnimationSampler> sampler(new AnimationSampler(in_animation->name, nAS));
 
                         std::string path_type = curve->channel;
+                        sampler->SetTargetPath(path_type);
 
                         sampler->SetInterpolation("LINEAR");
                         switch (curve->interporation_type)
@@ -1145,13 +1148,22 @@ namespace kml
                             sampler->SetOutputAccessor(acc);
                             nAcc++;
                         }
-
+                        
                         if (sampler->GetOutputAccessor().get())
                         {
-                            channel->SetSampler(sampler);
-                            animation->AddChannel(channel);
-                            animation->AddSampler(sampler);
+                            animation->AddSampler(sampler); 
                             nAS++;
+                        }
+                    }
+                    for (size_t k = 0; k < in_animation->targets.size(); k++)
+                    {
+                        auto& samplers = animation->GetSamplers();
+                        for (size_t j = 0; j < samplers.size(); j++)
+                        {
+                            std::shared_ptr<AnimationChannel> channel(new AnimationChannel(in_animation->name, nAC));
+                            channel->SetTargetNode(nodeMap_[in_animation->targets[k]->GetModifiedPath()]);
+                            channel->SetSampler(samplers[j]);
+                            animation->AddChannel(channel);
                             nAC++;
                         }
                     }

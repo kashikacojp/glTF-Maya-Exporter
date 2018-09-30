@@ -2616,9 +2616,6 @@ void SetNode(std::map<std::string, std::shared_ptr<kml::Node> >& pathMap, const 
 static
 std::shared_ptr<kml::Node> CombineNodes(const std::vector< std::shared_ptr<kml::Node> >& nodes)
 {
-	std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
-	int transform_space = opts->GetInt("transform_space");
-
 	std::shared_ptr<kml::Node> node(new kml::Node());
 	node->GetTransform()->SetIdentity();
     node->SetVisiblity(true);
@@ -2631,7 +2628,7 @@ std::shared_ptr<kml::Node> CombineNodes(const std::vector< std::shared_ptr<kml::
 		for (size_t i = 0; i < nodes.size(); i++)
 		{
 			auto& node = nodes[i];
-			std::string path = node->GetPath();
+			std::string path = node->GetModifiedPath();
 			std::vector<std::string> pathvec = SplitPath(path, "|");
 			if (pathvec.front() == "")
 			{
@@ -2922,7 +2919,7 @@ void GetJointNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const std::
     if (node->GetTransform().get())
     {
         std::string path = node->GetPath();
-        if (!path.empty())
+        if (!path.empty() && path[0] == '|')
         {
             nodes.push_back(node);
         }
@@ -2943,14 +2940,19 @@ void GetAnimations(std::vector<std::shared_ptr<kml::Animation> >& animations, co
     {
         std::vector< std::shared_ptr<kml::Node> > nodes;
         GetJointNodes(nodes, node);
-        std::map<std::string, std::shared_ptr<kml::Node> > pathNodeMap;
+        typedef std::map<std::string, std::vector< std::shared_ptr<kml::Node> > > MapType;
+        MapType pathNodeMap;
         std::vector<MDagPath> pathList;
         {
             MSelectionList selectionList;
             for (size_t i = 0; i < nodes.size(); i++)
             {
                 std::string path = nodes[i]->GetPath();
-                pathNodeMap[path] = nodes[i];
+                pathNodeMap[path].push_back(nodes[i]);
+            }
+            for(MapType::const_iterator it = pathNodeMap.begin(); it != pathNodeMap.end(); it++)
+            {
+                std::string path = it->first;
                 selectionList.add(MString(path.c_str()));
             }
             MItSelectionList iterator = MItSelectionList(selectionList, MFn::kDagNode);
@@ -2995,7 +2997,6 @@ void GetAnimations(std::vector<std::shared_ptr<kml::Animation> >& animations, co
                     mJO.y = 0.0;
                     mJO.z = 0.0;
                 }
-
 
                 std::vector<double> translationKeys;
                 std::vector<MPlug>  translationPlugs;
@@ -3133,7 +3134,6 @@ void GetAnimations(std::vector<std::shared_ptr<kml::Animation> >& animations, co
                         curve->values["z"].push_back(values[k].z);
                     }
                     curve->channel = "translation";
-                    curve->target = pathNodeMap[pathList[i].fullPathName().asChar()];
                     if (!curve->keys.empty())
                     {
                         animation->curves.push_back(curve);
@@ -3218,7 +3218,7 @@ void GetAnimations(std::vector<std::shared_ptr<kml::Animation> >& animations, co
                         curve->values["w"].push_back(values2[k].w);
                     }
                     curve->channel = "rotation";
-                    curve->target = pathNodeMap[pathList[i].fullPathName().asChar()];
+                    
                     if (!curve->keys.empty())
                     {
                         animation->curves.push_back(curve);
@@ -3290,12 +3290,13 @@ void GetAnimations(std::vector<std::shared_ptr<kml::Animation> >& animations, co
                         curve->values["z"].push_back(values[k].z);
                     }
                     curve->channel = "scale";
-                    curve->target = pathNodeMap[pathList[i].fullPathName().asChar()];
                     if (!curve->keys.empty())
                     {
                         animation->curves.push_back(curve);
                     }
                 }
+
+                animation->targets = pathNodeMap[pathList[i].fullPathName().asChar()];
 
                 if (!animation->curves.empty())
                 {
@@ -3427,11 +3428,7 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
         }
         {
             std::vector<std::shared_ptr<kml::Animation> > animations;
-            auto& children = node->GetChildren();
-            for (size_t i = 0; i < children.size(); i++)
-            {
-                GetAnimations(animations, children[i]);
-            }
+            GetAnimations(animations, node);
             for (size_t i = 0; i < animations.size(); i++)
             {
                 node->AddAnimation(animations[i]);
