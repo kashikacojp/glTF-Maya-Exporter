@@ -1,3 +1,4 @@
+#define _USE_MATH_DEFINES
 #ifdef _MSC_VER
 #pragma warning(disable:4819)
 #endif
@@ -833,11 +834,11 @@ static
 void SetTRS(const MDagPath& path, std::shared_ptr<kml::Node>& node)
 {
     MFnTransform fnTransform(path);
-    MVector mT = fnTransform.getTranslation(MSpace::kObject);
+    MVector mT = fnTransform.getTranslation(MSpace::kTransform);
     MQuaternion mR, mOR, mJO;
-    fnTransform.getRotation(mR, MSpace::kObject);
+    fnTransform.getRotation(mR, MSpace::kTransform);
     MStatus ret;
-    mOR = fnTransform.rotateOrientation(MSpace::kObject, &ret); // get Rotation Axis
+    mOR = fnTransform.rotateOrientation(MSpace::kTransform, &ret); // get Rotation Axis
     if (ret == MS::kSuccess) {
         mR = mOR * mR;
     }
@@ -2935,6 +2936,12 @@ void GetTransformNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const s
 }
 
 static
+double ToDegree(double v)
+{
+    return 180.0 * v / M_PI;
+}
+
+static
 void GetAnimations(std::vector<std::shared_ptr<kml::Animation> >& animations, const std::shared_ptr<kml::Node>& node)
 {
     {
@@ -2978,7 +2985,7 @@ void GetAnimations(std::vector<std::shared_ptr<kml::Animation> >& animations, co
 
                 MFnTransform fnTransform(pathList[i]);
                 MFnIkJoint   fnJoint(pathList[i]);
-                MVector tt = fnTransform.getTranslation(MSpace::kObject);
+                MVector tt = fnTransform.getTranslation(MSpace::kTransform);
 
                 MEulerRotation rr;
                 fnTransform.getRotation(rr);
@@ -2987,7 +2994,8 @@ void GetAnimations(std::vector<std::shared_ptr<kml::Animation> >& animations, co
                 fnTransform.getScale(ss);
 
                 MQuaternion mOR, mJO;
-                mOR = fnTransform.rotateOrientation(MSpace::kObject);
+                
+                mOR = fnTransform.rotateOrientation(MSpace::kTransform);
 
                 MStatus joret = fnJoint.getOrientation(mJO);
                 if (joret != MS::kSuccess)
@@ -3150,6 +3158,13 @@ void GetAnimations(std::vector<std::shared_ptr<kml::Animation> >& animations, co
                     {
                         values[i] = glm::vec3(rr.x, rr.y, rr.z);
                     }
+                    #ifndef NDEBUG
+                    std::vector<glm::vec3> angles(rotationKeys.size());
+                    for (size_t i = 0; i < rotationKeys.size(); i++)
+                    {
+                        angles[i] = glm::vec3(ToDegree(rr.x), ToDegree(rr.y), ToDegree(rr.z));
+                    }
+                    #endif  
 
                     for (int i = 0; i < rotationPlugs.size(); ++i)
                     {
@@ -3175,6 +3190,22 @@ void GetAnimations(std::vector<std::shared_ptr<kml::Animation> >& animations, co
                                 double second = rotationKeys[k];
                                 double value = animCurve.evaluate(MTime(second, MTime::kSeconds));
 
+                                #ifndef NDEBUG
+                                    double angle = ToDegree(value);
+                                    if (typeName == "rotateX")
+                                    {
+                                        angles[k].x = angle;
+                                    }
+                                    else if (typeName == "rotateY")
+                                    {
+                                        angles[k].y = angle;
+                                    }
+                                    else if (typeName == "rotateZ")
+                                    {
+                                        angles[k].z = angle;
+                                    }
+                                #endif
+
                                 if (typeName == "rotateX")
                                 {
                                     values[k].x = value;
@@ -3192,6 +3223,9 @@ void GetAnimations(std::vector<std::shared_ptr<kml::Animation> >& animations, co
                     }
 
                     std::vector<glm::quat> values2(rotationKeys.size());
+                    #ifndef NDEBUG
+                    std::vector<double> angle2(rotationKeys.size());
+                    #endif
                     {
                         for (size_t k = 0; k < values2.size(); k++)
                         {
@@ -3201,6 +3235,9 @@ void GetAnimations(std::vector<std::shared_ptr<kml::Animation> >& animations, co
                             MQuaternion mR = transform.rotation();
                             MQuaternion q = mOR * mR * mJO;
                             values2[k] = glm::quat(q.w, q.x, q.y, q.z);//wxyz
+                            #ifndef NDEBUG
+                            angle2[k] = ToDegree(2.0 * acos(q.w));
+                            #endif
                         }
                     }
 
