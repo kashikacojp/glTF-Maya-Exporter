@@ -77,6 +77,7 @@
 
 
 #include <maya/MMatrix.h>
+#include <maya/MEulerRotation.h>
 #include <maya/MTransformationMatrix.h>
 #include <maya/MStreamUtils.h>
 #include <maya/MFnSkinCluster.h>
@@ -832,11 +833,11 @@ static
 void SetTRS(const MDagPath& path, std::shared_ptr<kml::Node>& node)
 {
     MFnTransform fnTransform(path);
-    MVector mT = fnTransform.getTranslation(MSpace::kTransform);
+    MVector mT = fnTransform.getTranslation(MSpace::kObject);
     MQuaternion mR, mOR, mJO;
-    fnTransform.getRotation(mR, MSpace::kTransform);
+    fnTransform.getRotation(mR, MSpace::kObject);
     MStatus ret;
-    mOR = fnTransform.rotateOrientation(MSpace::kTransform, &ret); // get Rotation Axis
+    mOR = fnTransform.rotateOrientation(MSpace::kObject, &ret); // get Rotation Axis
     if (ret == MS::kSuccess) {
         mR = mOR * mR;
     }
@@ -2973,11 +2974,36 @@ void GetAnimations(std::vector<std::shared_ptr<kml::Animation> >& animations, co
                     continue;
                 }
 
-                MFnTransform trans(pathList[i]);
-                MVector tt = trans.getTranslation(MSpace::kObject);
+                MFnTransform fnTransform(pathList[i]);
+                MFnIkJoint   fnJoint(pathList[i]);
+                MVector tt = fnTransform.getTranslation(MSpace::kObject);
+
+                MEulerRotation rr;
+                fnTransform.getRotation(rr);
+
+                double ss[3] = { 1.0, 1.0, 1.0 };
+                fnTransform.getScale(ss);
+
+                MQuaternion mOR, mJO;
+                mOR = fnTransform.rotateOrientation(MSpace::kObject);
+
+                MStatus joret = fnJoint.getOrientation(mJO);
+                if (joret != MS::kSuccess)
+                {
+                    mJO.w = 1.0;
+                    mJO.x = 0.0;
+                    mJO.y = 0.0;
+                    mJO.z = 0.0;
+                }
+
 
                 std::vector<double> translationKeys;
                 std::vector<MPlug>  translationPlugs;
+                std::vector<double> rotationKeys;
+                std::vector<MPlug>  rotationPlugs;
+                std::vector<double> scaleKeys;
+                std::vector<MPlug>  scalePlugs;
+
                 for (int i = 0; i < numPlugs; ++i) 
                 {
                     MPlug plug = animatedPlugs[i];
@@ -2994,6 +3020,16 @@ void GetAnimations(std::vector<std::shared_ptr<kml::Animation> >& animations, co
                     {
                         keyType = 0;
                         translationPlugs.push_back(plug);
+                    }
+                    else if (typeName == "rotateX" || typeName == "rotateY" || typeName == "rotateZ")
+                    {
+                        keyType = 1;
+                        rotationPlugs.push_back(plug);
+                    }
+                    else if(typeName == "scaleX" || typeName == "scaleY" || typeName == "scaleZ")
+                    {
+                        keyType = 2;
+                        scalePlugs.push_back(plug);
                     }
 
                     const unsigned int numCurves = animation.length();
@@ -3016,6 +3052,14 @@ void GetAnimations(std::vector<std::shared_ptr<kml::Animation> >& animations, co
                             if (keyType == 0)
                             {
                                 translationKeys.push_back(second);
+                            }
+                            else if (keyType == 1)
+                            {
+                                rotationKeys.push_back(second);
+                            }
+                            else if (keyType == 2)
+                            {
+                                scaleKeys.push_back(second);
                             }
                         }
                     }
@@ -3094,7 +3138,163 @@ void GetAnimations(std::vector<std::shared_ptr<kml::Animation> >& animations, co
                     {
                         animation->curves.push_back(curve);
                     }
-                    
+                }
+
+                if (!rotationPlugs.empty())
+                {
+                    std::sort(rotationKeys.begin(), rotationKeys.end());
+                    rotationKeys.erase(std::unique(rotationKeys.begin(), rotationKeys.end()), rotationKeys.end());
+
+                    std::vector<glm::vec3> values(rotationKeys.size());
+                    for (size_t i = 0; i < rotationKeys.size(); i++)
+                    {
+                        values[i] = glm::vec3(rr.x, rr.y, rr.z);
+                    }
+
+                    for (int i = 0; i < rotationPlugs.size(); ++i)
+                    {
+                        MPlug plug = rotationPlugs[i];
+                        MObjectArray animation;
+                        if (!MAnimUtil::findAnimation(plug, animation)) {
+                            continue;
+                        }
+
+                        std::string name = plug.name().asChar();
+                        std::string typeName = name.substr(name.find(".") + 1);
+
+                        unsigned int numCurves = animation.length();
+                        for (unsigned int j = 0; j < numCurves; j++)
+                        {
+                            MObject animCurveNode = animation[j];
+                            if (!animCurveNode.hasFn(MFn::kAnimCurve))
+                                continue;
+                            MFnAnimCurve animCurve(animCurveNode);
+
+                            for (size_t k = 0; k < rotationKeys.size(); k++)
+                            {
+                                double second = rotationKeys[k];
+                                double value = animCurve.evaluate(MTime(second, MTime::kSeconds));
+
+                                if (typeName == "rotateX")
+                                {
+                                    values[k].x = value;
+                                }
+                                else if (typeName == "rotateY")
+                                {
+                                    values[k].y = value;
+                                }
+                                else if (typeName == "rotateZ")
+                                {
+                                    values[k].z = value;
+                                }
+                            }
+                        }
+                    }
+
+                    std::vector<glm::quat> values2(rotationKeys.size());
+                    {
+                        for (size_t k = 0; k < values2.size(); k++)
+                        {
+                            double trot[3] = { values[k].x, values[k].y, values[k].z};
+                            MTransformationMatrix transform;
+                            transform.setRotation(trot, fnTransform.rotationOrder());
+                            MQuaternion mR = transform.rotation();
+                            MQuaternion q = mOR * mR * mJO;
+                            values2[k] = glm::quat(q.w, q.x, q.y, q.z);//wxyz
+                        }
+                    }
+
+                    std::shared_ptr<kml::AnimationCurve> curve(new kml::AnimationCurve());
+
+                    //TODO
+                    curve->interporation_type = kml::AnimationInterporationType::LINEAR;
+
+                    for (size_t k = 0; k < rotationKeys.size(); k++)
+                    {
+                        curve->keys.push_back(rotationKeys[k]);
+                        curve->values["x"].push_back(values2[k].x);
+                        curve->values["y"].push_back(values2[k].y);
+                        curve->values["z"].push_back(values2[k].z);
+                        curve->values["w"].push_back(values2[k].w);
+                    }
+                    curve->channel = "rotation";
+                    curve->target = pathNodeMap[pathList[i].fullPathName().asChar()];
+                    if (!curve->keys.empty())
+                    {
+                        animation->curves.push_back(curve);
+                    }
+                }
+
+                if (!scalePlugs.empty())
+                {
+                    std::sort(scaleKeys.begin(), scaleKeys.end());
+                    scaleKeys.erase(std::unique(scaleKeys.begin(), scaleKeys.end()), scaleKeys.end());
+
+                    std::vector<glm::vec3> values(scaleKeys.size());
+                    for (size_t i = 0; i < scaleKeys.size(); i++)
+                    {
+                        values[i] = glm::vec3(ss[0], ss[1], ss[2]);
+                    }
+
+                    for (int i = 0; i < scalePlugs.size(); ++i)
+                    {
+                        MPlug plug = scalePlugs[i];
+                        MObjectArray animation;
+                        if (!MAnimUtil::findAnimation(plug, animation)) {
+                            continue;
+                        }
+
+                        std::string name = plug.name().asChar();
+                        std::string typeName = name.substr(name.find(".") + 1);
+
+
+                        unsigned int numCurves = animation.length();
+                        for (unsigned int j = 0; j < numCurves; j++)
+                        {
+                            MObject animCurveNode = animation[j];
+                            if (!animCurveNode.hasFn(MFn::kAnimCurve))
+                                continue;
+                            MFnAnimCurve animCurve(animCurveNode);
+
+                            for (size_t k = 0; k < scaleKeys.size(); k++)
+                            {
+                                double second = scaleKeys[k];
+                                double value = animCurve.evaluate(MTime(second, MTime::kSeconds));
+
+                                if (typeName == "scaleX")
+                                {
+                                    values[k].x = value;
+                                }
+                                else if (typeName == "scaleY")
+                                {
+                                    values[k].y = value;
+                                }
+                                else if (typeName == "scaleZ")
+                                {
+                                    values[k].z = value;
+                                }
+                            }
+                        }
+                    }
+
+                    std::shared_ptr<kml::AnimationCurve> curve(new kml::AnimationCurve());
+
+                    //TODO
+                    curve->interporation_type = kml::AnimationInterporationType::LINEAR;
+
+                    for (size_t k = 0; k < scaleKeys.size(); k++)
+                    {
+                        curve->keys.push_back(scaleKeys[k]);
+                        curve->values["x"].push_back(values[k].x);
+                        curve->values["y"].push_back(values[k].y);
+                        curve->values["z"].push_back(values[k].z);
+                    }
+                    curve->channel = "scale";
+                    curve->target = pathNodeMap[pathList[i].fullPathName().asChar()];
+                    if (!curve->keys.empty())
+                    {
+                        animation->curves.push_back(curve);
+                    }
                 }
 
                 if (!animation->curves.empty())

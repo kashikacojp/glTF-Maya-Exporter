@@ -1072,7 +1072,7 @@ namespace kml
                         }
 
 
-                        if (path_type == "translation")
+                        if (path_type == "translation" || path_type == "scale")
                         {
                             const std::vector<float>& x = curve->values["x"];
                             const std::vector<float>& y = curve->values["y"];
@@ -1107,13 +1107,53 @@ namespace kml
                             sampler->SetOutputAccessor(acc);
                             nAcc++;
                         }
+                        else if (path_type == "rotation")
+                        {
+                            const std::vector<float>& x = curve->values["x"];
+                            const std::vector<float>& y = curve->values["y"];
+                            const std::vector<float>& z = curve->values["z"];
+                            const std::vector<float>& w = curve->values["w"];
 
-                        channel->SetSampler(sampler);
-                        animation->AddChannel(channel);
-                        animation->AddSampler(sampler);
+                            std::vector<float> values(4 * x.size());
+                            for (size_t j = 0; j < x.size(); j++)
+                            {
+                                values[4 * j + 0] = x[j];
+                                values[4 * j + 1] = y[j];
+                                values[4 * j + 2] = z[j];
+                                values[4 * j + 3] = w[j];
+                            }
 
-                        nAS++;
-                        nAC++;
+                            std::string accName = "accessor_" + IToS(nAcc);//
+                            std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
+                            const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(values, -1);
+                            acc->SetBufferView(bufferView);
+                            acc->Set("count", picojson::value((double)(values.size() / 4)));
+                            acc->Set("type", picojson::value("VEC4"));
+                            acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
+                            acc->Set("byteOffset", picojson::value((double)0));
+                            //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
+
+                            float min[4] = {}, max[4] = {};
+                            if (values.size())
+                            {
+                                GetMinMax(min, max, values, 4);
+                            }
+                            acc->Set("min", picojson::value(ConvertToArray(min, 4)));
+                            acc->Set("max", picojson::value(ConvertToArray(max, 4)));
+
+                            accessors_.push_back(acc);
+                            sampler->SetOutputAccessor(acc);
+                            nAcc++;
+                        }
+
+                        if (sampler->GetOutputAccessor().get())
+                        {
+                            channel->SetSampler(sampler);
+                            animation->AddChannel(channel);
+                            animation->AddSampler(sampler);
+                            nAS++;
+                            nAC++;
+                        }
                     }
                     this->animations_.push_back(animation);
                 }
@@ -2110,7 +2150,7 @@ namespace kml
                         {
                             nd["translation"] = picojson::value(GetFloatAsArray(glm::value_ptr(T), 3));
                         }
-                        if (!IsZero(R - glm::quat(1, 0, 0, 0)))
+                        if (!IsZero(R - glm::quat(1, 0, 0, 0)))                                     //wxyz
                         {
                             nd["rotation"] = picojson::value(GetFloatAsArray(glm::value_ptr(R), 4));//xyzw
                         }
