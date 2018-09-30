@@ -26,7 +26,7 @@ namespace kml
 		void SetName(const std::string& name);
 		std::string GetName()const;
         std::string GetPath()const;
-        std::string GetModifiedPath()const;
+        std::string GetOriginalPath()const;
 		const std::shared_ptr<Transform>& GetTransform()const;
 		      std::shared_ptr<Mesh>&      GetMesh();
 		const std::shared_ptr<Mesh>&      GetMesh()const;
@@ -39,7 +39,7 @@ namespace kml
 	public:
 		void SetTransform(const std::shared_ptr<Transform>& trans);
 		void SetPath (const std::string& path);
-        void SetModifiedPath(const std::string& path);
+        void SetOriginalPath(const std::string& path);
 		void SetMesh (const std::shared_ptr<Mesh>& mesh);
 		void SetBound(const std::shared_ptr<Bound>& bound);
 		void AddMaterial(const std::shared_ptr <Material>& material);
@@ -55,7 +55,7 @@ namespace kml
 	protected:
 		std::string name;
 		std::string path;
-        std::string modified_path;
+        std::string original_path;
 		std::vector< std::shared_ptr<Node> > children;
 		std::shared_ptr < Transform > transform;
 		std::shared_ptr < Bound > bound;

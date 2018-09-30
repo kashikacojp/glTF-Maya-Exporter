@@ -2628,7 +2628,7 @@ std::shared_ptr<kml::Node> CombineNodes(const std::vector< std::shared_ptr<kml::
 		for (size_t i = 0; i < nodes.size(); i++)
 		{
 			auto& node = nodes[i];
-			std::string path = node->GetModifiedPath();
+			std::string path = node->GetPath();
 			std::vector<std::string> pathvec = SplitPath(path, "|");
 			if (pathvec.front() == "")
 			{
@@ -2914,7 +2914,7 @@ std::vector< std::shared_ptr < kml::Node > > GetJointNodes(const std::vector< st
 }
 
 static
-void GetJointNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const std::shared_ptr<kml::Node>& node)
+void GetTransformNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const std::shared_ptr<kml::Node>& node)
 {
     if (node->GetTransform().get())
     {
@@ -2929,7 +2929,7 @@ void GetJointNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const std::
         auto& children = node->GetChildren();
         for (size_t i = 0; i < children.size(); i++)
         {
-            GetJointNodes(nodes, children[i]);
+            GetTransformNodes(nodes, children[i]);
         }
     }
 }
@@ -2939,7 +2939,7 @@ void GetAnimations(std::vector<std::shared_ptr<kml::Animation> >& animations, co
 {
     {
         std::vector< std::shared_ptr<kml::Node> > nodes;
-        GetJointNodes(nodes, node);
+        GetTransformNodes(nodes, node);
         typedef std::map<std::string, std::vector< std::shared_ptr<kml::Node> > > MapType;
         MapType pathNodeMap;
         std::vector<MDagPath> pathList;
@@ -2947,7 +2947,7 @@ void GetAnimations(std::vector<std::shared_ptr<kml::Animation> >& animations, co
             MSelectionList selectionList;
             for (size_t i = 0; i < nodes.size(); i++)
             {
-                std::string path = nodes[i]->GetPath();
+                std::string path = nodes[i]->GetOriginalPath();
                 pathNodeMap[path].push_back(nodes[i]);
             }
             for(MapType::const_iterator it = pathNodeMap.begin(); it != pathNodeMap.end(); it++)

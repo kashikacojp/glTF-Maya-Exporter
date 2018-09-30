@@ -923,7 +923,7 @@ namespace kml
             {
                 int nNode = nodes_.size();
                 std::shared_ptr<Node> node(new Node(in_node->GetName(), nNode));
-                node->SetPath(in_node->GetModifiedPath());
+                node->SetPath(in_node->GetPath());
                 if (!in_node->GetTransform()->IsTRS())
                 {
                     node->GetTransform()->SetMatrix(in_node->GetTransform()->GetMatrix());
@@ -1157,11 +1157,11 @@ namespace kml
                     }
                     for (size_t k = 0; k < in_animation->targets.size(); k++)
                     {
-                        auto& samplers = animation->GetSamplers();
+                        const auto& samplers = animation->GetSamplers();
                         for (size_t j = 0; j < samplers.size(); j++)
                         {
                             std::shared_ptr<AnimationChannel> channel(new AnimationChannel(in_animation->name, nAC));
-                            channel->SetTargetNode(nodeMap_[in_animation->targets[k]->GetModifiedPath()]);
+                            channel->SetTargetNode(nodeMap_[in_animation->targets[k]->GetPath()]);
                             channel->SetSampler(samplers[j]);
                             animation->AddChannel(channel);
                             nAC++;

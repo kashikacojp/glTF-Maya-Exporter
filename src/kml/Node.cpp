@@ -21,9 +21,9 @@ namespace kml
 	void Node::SetPath(const std::string& n)
 	{
 		this->path = n;
-        if (this->modified_path.empty())
+        if (this->original_path.empty())
         {
-            this->modified_path = n;
+            this->original_path = n;
         }
 	}
 
@@ -32,14 +32,14 @@ namespace kml
 		return this->path;
 	}
 
-    void Node::SetModifiedPath(const std::string& n)
+    void Node::SetOriginalPath(const std::string& n)
     {
-        this->modified_path = n;
+        this->original_path = n;
     }
 
-    std::string Node::GetModifiedPath()const
+    std::string Node::GetOriginalPath()const
     {
-        return this->modified_path;
+        return this->original_path;
     }
 
 	void Node::SetTransform(const std::shared_ptr<Transform>& trans)
