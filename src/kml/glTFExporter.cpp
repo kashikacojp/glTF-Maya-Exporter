@@ -164,7 +164,10 @@ namespace kml
 			for (int i = 0; i < keys.size(); i++)
 			{
 				std::shared_ptr<kml::Texture> tex = mat->GetTexture(keys[i]);
-				texture_set[tex->GetFilePath()] = tex;
+                if (tex->FileExists())
+                {
+                    texture_set[tex->GetFilePath()] = tex;
+                }
 			}
 		}
 	}

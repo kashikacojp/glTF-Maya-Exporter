@@ -252,8 +252,7 @@ namespace kml
 
 				if (mesh->skin_weights.get())
 				{
-					meshes[i]->skin_weights->joint_paths = mesh->skin_weights->joint_paths;
-					meshes[i]->skin_weights->weights = mesh->skin_weights->weights;
+                    *(meshes[i]->skin_weights) = *(mesh->skin_weights);
 				}
 
                 if (mesh->morph_targets.get())
