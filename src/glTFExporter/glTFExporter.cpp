@@ -1327,17 +1327,7 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& mdagPath)
         std::vector<MDagPath> dagPathList = GetDagPathList(mdagPath);
         dagPathList.pop_back();//shape
         MDagPath path = dagPathList.back();
-        if (!freeze_skinned_mesh_transform)
-        {
-            SetTRS(path, node);
-        }
-        else
-        {
-            SetTRS(path, node);
-            glm::mat4 mat = node->GetTransform()->GetMatrix();
-            mesh = TransformMesh(mesh, mat);
-            node->GetTransform()->SetIdentity();
-        }
+        SetTRS(path, node);
 	}
 	node->SetMesh(mesh);
 	node->SetBound(kml::CalculateBound(mesh));
@@ -3344,6 +3334,32 @@ void GetAnimations(std::vector<std::shared_ptr<kml::Animation> >& animations, co
     }
 }
 
+static
+bool FreezeSkinedMeshTransform(const std::shared_ptr<kml::Node>& node, const glm::mat4& gmat = glm::mat4(1.0f))
+{
+    auto& mesh = node->GetMesh();
+    bool bRet = false;
+    glm::mat4 mat = gmat * node->GetTransform()->GetMatrix();
+    if (mesh.get() && mesh->skin_weights.get())
+    {
+        mesh = TransformMesh(mesh, mat);
+        bRet |= true;
+    }
+    auto& children = node->GetChildren();
+    if (!children.empty())
+    {
+        for (size_t i = 0; i < children.size(); i++)
+        {
+            bRet |= FreezeSkinedMeshTransform(children[i], mat);
+        }
+    }
+    if (bRet)
+    {
+        node->GetTransform()->SetIdentity();
+    }
+    return bRet;
+}
+
 MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDagPath >& dagPaths)
 {
 	MStatus status = MS::kSuccess;
@@ -3358,6 +3374,7 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
 	bool vrm = opts->GetInt("vrm_export") > 0;
     bool output_invisible_nodes = opts->GetInt("output_invisible_nodes") > 0;
     bool output_animations = opts->GetInt("output_animations") > 0;
+    bool freeze_skinned_mesh_transform = opts->GetInt("freeze_skinned_mesh_transform") > 0;
 
 	typedef std::vector< std::shared_ptr<kml::Node> > NodeVecType;
 	TexturePathManager texManager;
@@ -3463,6 +3480,12 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
                 node->AddMaterial(mat);
             }
         }
+
+        if(freeze_skinned_mesh_transform)
+        {
+            FreezeSkinedMeshTransform(node);
+        }
+
         if(output_animations)
         {
             std::vector<std::shared_ptr<kml::Animation> > animations;
