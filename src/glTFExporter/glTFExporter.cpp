@@ -578,7 +578,7 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 	int output_buffer = 1;			//0:bin, 1:draco, 2:bin/draco
 	int convert_texture_format = 0; //0:no convert, 1:jpeg, 2:png
 	int transform_space = 1;		//0:world_space, 1:local_space
-    int freeze_skinned_mesh_transform = 0;    //0:no_bake, 1:bake veritces
+    int freeze_skinned_mesh_transform = 1;    //0:no_bake, 1:bake veritces
     int output_animations = 1;      //0:no output, 1: output animation
     int output_invisible_nodes = 0; //0:
 
@@ -3357,7 +3357,7 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
 	bool glb = opts->GetInt("output_glb") > 0;
 	bool vrm = opts->GetInt("vrm_export") > 0;
     bool output_invisible_nodes = opts->GetInt("output_invisible_nodes") > 0;
-	
+    bool output_animations = opts->GetInt("output_animations") > 0;
 
 	typedef std::vector< std::shared_ptr<kml::Node> > NodeVecType;
 	TexturePathManager texManager;
@@ -3463,6 +3463,7 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
                 node->AddMaterial(mat);
             }
         }
+        if(output_animations)
         {
             std::vector<std::shared_ptr<kml::Animation> > animations;
             GetAnimations(animations, node);
