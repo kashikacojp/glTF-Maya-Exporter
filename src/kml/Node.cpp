@@ -21,12 +21,26 @@ namespace kml
 	void Node::SetPath(const std::string& n)
 	{
 		this->path = n;
+        if (this->original_path.empty())
+        {
+            this->original_path = n;
+        }
 	}
 
 	std::string Node::GetPath()const
 	{
 		return this->path;
 	}
+
+    void Node::SetOriginalPath(const std::string& n)
+    {
+        this->original_path = n;
+    }
+
+    std::string Node::GetOriginalPath()const
+    {
+        return this->original_path;
+    }
 
 	void Node::SetTransform(const std::shared_ptr<Transform>& trans)
 	{
@@ -121,6 +135,16 @@ namespace kml
         {
             return true;
         }
+    }
+
+    const std::vector< std::shared_ptr <Animation> >& Node::GetAnimations()const
+    {
+        return animations;
+    }
+
+    void Node::AddAnimation(const std::shared_ptr<Animation>& anim)
+    {
+        animations.push_back(anim);
     }
 
 }

@@ -26,6 +26,10 @@ namespace kml
         {
             return new MatrixTransformCore(mat_);
         }
+        virtual void SetIdentity()
+        {
+            mat_ = glm::mat4(1.0f);
+        }
     protected:
         glm::mat4 mat_;
     };
@@ -47,6 +51,12 @@ namespace kml
         virtual TransformCore* Clone()const
         {
             return new TRSTransformCore(T_, R_, S_);
+        }
+        virtual void SetIdentity()
+        {
+            T_ = glm::vec3(0.0f, 0.0f, 0.0f);
+            R_ = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+            S_ = glm::vec3(1.0f, 1.0f, 1.0f);
         }
 
         glm::vec3 GetT()const { return T_; }
@@ -93,6 +103,11 @@ namespace kml
         TransformCore* tmp = core_;
         core_ = new TRSTransformCore(T, R, S);
         delete tmp;
+    }
+
+    void Transform::SetIdentity()
+    {
+        core_->SetIdentity();
     }
 
 	glm::mat4 Transform::GetMatrix()const

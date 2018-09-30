@@ -616,6 +616,146 @@ namespace kml
             glm::vec3 S_;
         };
 
+        class AnimationSampler
+        {
+        public:
+            AnimationSampler(const std::string& name, int index)
+                :name_(name), index_(index)
+            {
+                ;
+            }
+            const std::string& GetName()const
+            {
+                return name_;
+            }
+            int GetIndex()const
+            {
+                return index_;
+            }
+            void SetTargetPath(const std::string& path)
+            {
+                targetPath_ = path;
+            }
+            const std::string& GetTargetPath()
+            {
+                return targetPath_;
+            }
+            void SetInputAccessor(const std::shared_ptr< Accessor >& in)
+            {
+                in_ = in;
+            }
+            const std::shared_ptr< Accessor >& GetInputAccessor()const
+            {
+                return in_;
+            }
+            void SetOutputAccessor(const std::shared_ptr< Accessor >& out)
+            {
+                out_ = out;
+            }
+            const std::shared_ptr< Accessor >& GetOutputAccessor()const
+            {
+                return out_;
+            }
+            void SetInterpolation(const std::string& inter)
+            {
+                interpolation_ = inter;
+            }
+            std::string GetInterpolation()const
+            {
+                return interpolation_;
+            }
+        protected:
+            std::string name_;
+            int index_;
+            std::string targetPath_;
+            std::string interpolation_;
+            std::shared_ptr< Accessor > in_;    //key
+            std::shared_ptr< Accessor > out_;   //value
+        };
+
+        class AnimationChannel
+        {
+        public:
+            AnimationChannel(const std::string& name, int index)
+                :name_(name), index_(index)
+            {
+                ;
+            }
+            const std::string& GetName()const
+            {
+                return name_;
+            }
+            int GetIndex()const
+            {
+                return index_;
+            }
+            const std::string& GetTargetPath()
+            {
+                return sampler_->GetTargetPath();
+            }
+            void SetTargetNode(const std::shared_ptr<Node>& node)
+            {
+                targetNode_ = node;
+            }
+            const std::shared_ptr<Node>& GetTargetNode()const
+            {
+                return targetNode_;
+            }
+            void SetSampler(const std::shared_ptr<AnimationSampler>& s)
+            {
+                sampler_ = s;
+            }
+            const std::shared_ptr<AnimationSampler>& GetSampler()const
+            {
+                return sampler_;
+            }
+        protected:
+            std::string name_;
+            int index_;
+            std::string targetPath_;
+            std::shared_ptr<Node> targetNode_;
+            std::shared_ptr<AnimationSampler> sampler_;
+        };
+
+        class Animation
+        {
+        public:
+            Animation(const std::string& name, int index)
+                :name_(name), index_(index)
+            {
+                ;
+            }
+            const std::string& GetName()const
+            {
+                return name_;
+            }
+            int GetIndex()const
+            {
+                return index_;
+            }
+            void AddChannel(const std::shared_ptr<AnimationChannel>& chan)
+            {
+                channels_.push_back(chan);
+            }
+            void AddSampler(const std::shared_ptr<AnimationSampler>& s)
+            {
+                samplers_.push_back(s);
+            }
+            const std::vector<std::shared_ptr<AnimationChannel> >& GetChannels()const
+            {
+                return channels_;
+            }
+            const std::vector<std::shared_ptr<AnimationSampler> > GetSamplers()const
+            {
+                return samplers_;
+            }
+        private:
+            std::string name_;
+            int index_;
+            std::vector<std::shared_ptr<AnimationChannel> > channels_;
+            std::vector<std::shared_ptr<AnimationSampler> > samplers_;
+        };
+
 		class Node
 		{
 		public:
@@ -881,6 +1021,154 @@ namespace kml
                     }
                 }
                 return targets;
+            }
+
+            void RegisterAnimation(const std::shared_ptr<::kml::Animation>& in_animation)
+            {
+                int nAcc = this->accessors_.size();
+                int nAS = 0;
+                int nAC = 0;
+                int nAn = this->animations_.size();
+                if (in_animation->curves.size() > 0)
+                {
+                    std::shared_ptr<Animation> animation(new Animation(in_animation->name, nAC));
+                    for (size_t i = 0; i < in_animation->curves.size(); i++)
+                    {
+                        const auto& curve = in_animation->curves[i];
+
+                        std::shared_ptr<AnimationSampler> sampler(new AnimationSampler(in_animation->name, nAS));
+
+                        std::string path_type = curve->channel;
+                        sampler->SetTargetPath(path_type);
+
+                        sampler->SetInterpolation("LINEAR");
+                        switch (curve->interporation_type)
+                        {
+                        case kml::AnimationInterporationType::LINEAR:sampler->SetInterpolation("LINEAR"); break;
+                        case kml::AnimationInterporationType::STEP:sampler->SetInterpolation("STEP"); break;
+                        case kml::AnimationInterporationType::CUBICSPLINE:sampler->SetInterpolation("CUBICSPLINE"); break;
+                        }
+                        
+                        {
+                            std::vector<float> values = curve->keys;
+                            std::string accName = "accessor_" + IToS(nAcc);//
+                            std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
+                            const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(values, -1);
+                            acc->SetBufferView(bufferView);
+                            acc->Set("count", picojson::value((double)(values.size())));
+                            acc->Set("type", picojson::value("SCALAR"));
+                            acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
+                            acc->Set("byteOffset", picojson::value((double)0));
+                            //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
+
+                            float min[3] = {}, max[3] = {};
+                            if (values.size())
+                            {
+                                GetMinMax(min, max, values, 1);
+                            }
+                            acc->Set("min", picojson::value(ConvertToArray(min, 1)));
+                            acc->Set("max", picojson::value(ConvertToArray(max, 1)));
+
+                            accessors_.push_back(acc);
+                            sampler->SetInputAccessor(acc);
+                            nAcc++;
+                        }
+
+
+                        if (path_type == "translation" || path_type == "scale")
+                        {
+                            const std::vector<float>& x = curve->values["x"];
+                            const std::vector<float>& y = curve->values["y"];
+                            const std::vector<float>& z = curve->values["z"];
+                            std::vector<float> values(3 * x.size());
+                            for (size_t j = 0; j < x.size(); j++)
+                            {
+                                values[3 * j + 0] = x[j];
+                                values[3 * j + 1] = y[j];
+                                values[3 * j + 2] = z[j];
+                            }
+
+                            std::string accName = "accessor_" + IToS(nAcc);//
+                            std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
+                            const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(values, -1);
+                            acc->SetBufferView(bufferView);
+                            acc->Set("count", picojson::value((double)(values.size() / 3)));
+                            acc->Set("type", picojson::value("VEC3"));
+                            acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
+                            acc->Set("byteOffset", picojson::value((double)0));
+                            //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
+
+                            float min[3] = {}, max[3] = {};
+                            if (values.size())
+                            {
+                                GetMinMax(min, max, values, 3);
+                            }
+                            acc->Set("min", picojson::value(ConvertToArray(min, 3)));
+                            acc->Set("max", picojson::value(ConvertToArray(max, 3)));
+
+                            accessors_.push_back(acc);
+                            sampler->SetOutputAccessor(acc);
+                            nAcc++;
+                        }
+                        else if (path_type == "rotation")
+                        {
+                            const std::vector<float>& x = curve->values["x"];
+                            const std::vector<float>& y = curve->values["y"];
+                            const std::vector<float>& z = curve->values["z"];
+                            const std::vector<float>& w = curve->values["w"];
+
+                            std::vector<float> values(4 * x.size());
+                            for (size_t j = 0; j < x.size(); j++)
+                            {
+                                values[4 * j + 0] = x[j];
+                                values[4 * j + 1] = y[j];
+                                values[4 * j + 2] = z[j];
+                                values[4 * j + 3] = w[j];
+                            }
+
+                            std::string accName = "accessor_" + IToS(nAcc);//
+                            std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
+                            const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(values, -1);
+                            acc->SetBufferView(bufferView);
+                            acc->Set("count", picojson::value((double)(values.size() / 4)));
+                            acc->Set("type", picojson::value("VEC4"));
+                            acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
+                            acc->Set("byteOffset", picojson::value((double)0));
+                            //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
+
+                            float min[4] = {}, max[4] = {};
+                            if (values.size())
+                            {
+                                GetMinMax(min, max, values, 4);
+                            }
+                            acc->Set("min", picojson::value(ConvertToArray(min, 4)));
+                            acc->Set("max", picojson::value(ConvertToArray(max, 4)));
+
+                            accessors_.push_back(acc);
+                            sampler->SetOutputAccessor(acc);
+                            nAcc++;
+                        }
+                        
+                        if (sampler->GetOutputAccessor().get())
+                        {
+                            animation->AddSampler(sampler); 
+                            nAS++;
+                        }
+                    }
+                    for (size_t k = 0; k < in_animation->targets.size(); k++)
+                    {
+                        const auto& samplers = animation->GetSamplers();
+                        for (size_t j = 0; j < samplers.size(); j++)
+                        {
+                            std::shared_ptr<AnimationChannel> channel(new AnimationChannel(in_animation->name, nAC));
+                            channel->SetTargetNode(nodeMap_[in_animation->targets[k]->GetPath()]);
+                            channel->SetSampler(samplers[j]);
+                            animation->AddChannel(channel);
+                            nAC++;
+                        }
+                    }
+                    this->animations_.push_back(animation);
+                }
             }
 
 			void RegisterComponents(std::shared_ptr<Node>& node, const std::shared_ptr<::kml::Node>& in_node)
@@ -1387,6 +1675,11 @@ namespace kml
                 return skins_;
             }
         public:
+            std::vector<std::shared_ptr<Animation> > GetAnimations()const
+            {
+                return animations_;
+            }
+        public:
             void AddSkin(const std::shared_ptr<Skin>& skin)
             {
                 skins_.push_back(skin);
@@ -1406,6 +1699,7 @@ namespace kml
 			}
 			void AddNode(const std::shared_ptr<Node>& node)
 			{
+                nodeMap_[node->GetPath()] = node;
 				nodes_.push_back(node);
 			}
 
@@ -1488,6 +1782,7 @@ namespace kml
 				return bufferViews_.back();
 			}
 		protected:
+            std::map<std::string, std::shared_ptr<Node> > nodeMap_;
 			std::vector<std::shared_ptr<Node> > nodes_;
 			std::vector<std::shared_ptr<Mesh> > meshes_;
 			std::vector<std::shared_ptr<Accessor> > accessors_;
@@ -1495,6 +1790,8 @@ namespace kml
 			std::vector<std::shared_ptr<Buffer> > buffers_;
             std::vector<std::shared_ptr<Skin> > skins_;
             std::vector<std::shared_ptr<MorphTarget> > morph_targets_;
+            std::vector<std::shared_ptr<Animation> > animations_;
+
 			std::string basename_;
 		};
 
@@ -1701,6 +1998,13 @@ namespace kml
                     reg.RegisterComponentsDraco(node_pairs[i].first, node_pairs[i].second);
                 }
             }
+            {
+                const auto& animations = node->GetAnimations();
+                for (size_t i = 0; i < animations.size(); i++)
+                {
+                    reg.RegisterAnimation(animations[i]);
+                }
+            }
         }
 
         static
@@ -1858,7 +2162,7 @@ namespace kml
                         {
                             nd["translation"] = picojson::value(GetFloatAsArray(glm::value_ptr(T), 3));
                         }
-                        if (!IsZero(R - glm::quat(1, 0, 0, 0)))
+                        if (!IsZero(R - glm::quat(1, 0, 0, 0)))                                     //wxyz
                         {
                             nd["rotation"] = picojson::value(GetFloatAsArray(glm::value_ptr(R), 4));//xyzw
                         }
@@ -2119,6 +2423,52 @@ namespace kml
                 if (!ar.empty())
                 {
                     root["skins"] = picojson::value(ar);
+                }
+            }
+
+            {
+                const auto& animations    = reg.GetAnimations();
+                picojson::array ar;
+                for (size_t i = 0; i < animations.size(); i++)
+                {
+                    const std::shared_ptr<Animation>& animation = animations[i];
+                    picojson::object nd;
+                    nd["name"] = picojson::value(animation->GetName());
+                    {
+                        picojson::array nchans;
+                        const auto& chans = animation->GetChannels();
+                        for (size_t j = 0; j < chans.size(); j++)
+                        {
+                            picojson::object n;
+                            n["sampler"] = picojson::value((double)chans[j]->GetSampler()->GetIndex());
+                            {
+                                picojson::object ntarget;
+                                ntarget["node"] = picojson::value((double)chans[j]->GetTargetNode()->GetIndex());
+                                ntarget["path"] = picojson::value(chans[j]->GetTargetPath());
+                                n["target"] = picojson::value(ntarget);
+                            }
+                            nchans.push_back(picojson::value(n));
+                        }
+
+                        picojson::array nsamps;
+                        const auto& samplers = animation->GetSamplers();
+                        for (size_t j = 0; j < samplers.size(); j++)
+                        {
+                            picojson::object n;
+                            n["input"] = picojson::value((double)samplers[j]->GetInputAccessor()->GetIndex());
+                            n["output"] = picojson::value((double)samplers[j]->GetOutputAccessor()->GetIndex());
+                            n["interpolation"] = picojson::value(samplers[j]->GetInterpolation());
+                            nsamps.push_back(picojson::value(n));
+                        }
+
+                        nd["channels"] = picojson::value(nchans);
+                        nd["samplers"] = picojson::value(nsamps);
+                    }
+                    ar.push_back(picojson::value(nd));
+                }
+                if (!ar.empty())
+                {
+                    root["animations"] = picojson::value(ar);
                 }
             }
 
