@@ -1,5 +1,11 @@
 #include "SaveToDraco.h"
 
+#include <vector>
+#include <string>
+#include <memory>
+#include <algorithm>
+#include <cstdint>
+
 #include <glm/glm.hpp>
 
 #ifdef ENABLE_BUILD_WITH_DRACO
@@ -10,9 +16,6 @@
 #include <draco/io/point_cloud_io.h>
 #include <draco/io/obj_decoder.h>
 #endif
-
-#include <fstream>
-#include <sstream>
 
 namespace kml
 {
@@ -27,6 +30,8 @@ namespace kml
 			bool tex_coords_deleted;
 			int normals_quantization_bits;
 			bool normals_deleted;
+            int color_quantization_bits;
+            int generic_quantization_bits;
 			int compression_level;
 			bool use_metadata;
 			std::string input;
@@ -40,249 +45,188 @@ namespace kml
 			tex_coords_deleted(false),
 			normals_quantization_bits(10),
 			normals_deleted(false),
+            color_quantization_bits(10),
+            generic_quantization_bits(14),
 			compression_level(7) {}
 
 	}
 
-	static
-	int IdxAdjust(int x)
-	{
-		if (x >= 0)
-		{
-			return x + 1;
-		}
-		else
-		{
-			return x;
-		}
-	}
-
-	static
-	void WriteToStream(std::ostream& os, const std::shared_ptr<Mesh>& mesh)
-	{
-		assert(mesh->positions.size() > 0);
-		if (mesh->positions.size()  > 0)
-		{
-			for (int j = 0; j < mesh->positions.size(); j++)
-			{
-				os << "v " << mesh->positions[j][0] << " " << mesh->positions[j][1] << " " << mesh->positions[j][2] << "\n";
-			}
-		}
-
-		if (mesh->texcoords.size()  > 0)
-		{
-			for (int j = 0; j < mesh->texcoords.size(); j++)
-			{
-				os << "vt " << mesh->texcoords[j][0] << " " << mesh->texcoords[j][1] << "\n";
-			}
-		}
-
-		if (mesh->normals.size()  > 0)
-		{
-			for (int j = 0; j < mesh->normals.size(); j++)
-			{
-				glm::vec3 n = glm::normalize(mesh->normals[j]);
-				os << "vn " << n[0] << " " << n[1] << " " << n[2] << "\n";
-			}
-		}
-
-		os << "\n";
-
-		int nFacePattern = 0;
-		if (mesh->positions.size() > 0) nFacePattern |= 1;
-		if (mesh->texcoords.size() > 0) nFacePattern |= 2;
-		if (mesh->normals.size()   > 0) nFacePattern |= 4;
-
-		switch (nFacePattern)
-		{
-			case 1:
-			{
-				size_t offset = 0;
-				for (size_t i = 0; i < mesh->facenums.size(); i++)
-				{
-					os << "f ";
-					int fsz = mesh->facenums[i];
-					for (int j = 0; j < fsz; j++)
-					{
-						int pidx = mesh->pos_indices[offset + j];
-						os << IdxAdjust(pidx);
-						if (j != fsz - 1)
-						{
-							os << " ";
-						}
-						else
-						{
-							os << "\n";
-						}
-					}
-					offset += fsz;
-				}
-			}
-			break;
-			case 3: // 1 | 2
-			{//p/t
-				size_t offset = 0;
-				for (size_t i = 0; i < mesh->facenums.size(); i++)
-				{
-					os << "f ";
-					int fsz = mesh->facenums[i];
-					for (int j = 0; j < fsz; j++)
-					{
-						int pidx = mesh->pos_indices[offset + j];
-						int tidx = mesh->tex_indices[offset + j];
-						os << IdxAdjust(pidx) << "/" << IdxAdjust(tidx);
-						if (j != fsz - 1)
-						{
-							os << " ";
-						}
-						else
-						{
-							os << "\n";
-						}
-					}
-					offset += fsz;
-				}
-			}
-			break;
-			case 5:
-			{//p//n
-				size_t offset = 0;
-				for (size_t i = 0; i < mesh->facenums.size(); i++)
-				{
-					os << "f ";
-					int fsz = mesh->facenums[i];
-					for (int j = 0; j < fsz; j++)
-					{
-						int pidx = mesh->pos_indices[offset + j];
-						int nidx = mesh->nor_indices[offset + j];
-						os << IdxAdjust(pidx) << "//" << IdxAdjust(nidx);
-						if (j != fsz - 1)
-						{
-							os << " ";
-						}
-						else
-						{
-							os << "\n";
-						}
-					}
-					offset += fsz;
-				}
-			}
-			break;
-			case 7:
-			{
-				size_t offset = 0;
-				for (size_t i = 0; i < mesh->facenums.size(); i++)
-				{
-					os << "f ";
-					int fsz = mesh->facenums[i];
-					for (int j = 0; j < fsz; j++)
-					{
-						int pidx = mesh->pos_indices[offset + j];
-						int tidx = mesh->tex_indices[offset + j];
-						int nidx = mesh->nor_indices[offset + j];
-						os << IdxAdjust(pidx) << "/" << IdxAdjust(tidx) << "/" << IdxAdjust(nidx);
-						if (j != fsz - 1)
-						{
-							os << " ";
-						}
-						else
-						{
-							os << "\n";
-						}
-					}
-					offset += fsz;
-				}
-			}
-			break;
-		}
-	}
-
 #ifdef ENABLE_BUILD_WITH_DRACO
-	static
-	int EncodeMeshToFile(std::ostream& os, const draco::Mesh &mesh, draco::Encoder *encoder)
+
+    template<class T>
+    struct DracoTraits {};
+
+    template<>
+    struct DracoTraits<int8_t>
+    {
+        static draco::DataType GetDataType(){return draco::DataType::DT_INT8;}
+    };
+
+    template<>
+    struct DracoTraits<uint8_t>
+    {
+        static draco::DataType GetDataType() { return draco::DataType::DT_UINT8; }
+    };
+
+    template<>
+    struct DracoTraits<int16_t>
+    {
+        static draco::DataType GetDataType() { return draco::DataType::DT_INT16; }
+    };
+
+    template<>
+    struct DracoTraits<uint16_t>
+    {
+        static draco::DataType GetDataType() { return draco::DataType::DT_UINT16; }
+    };
+
+    template<>
+    struct DracoTraits<int32_t>
+    {
+        static draco::DataType GetDataType() { return draco::DataType::DT_INT32; }
+    };
+
+    template<>
+    struct DracoTraits<uint32_t>
+    {
+        static draco::DataType GetDataType() { return draco::DataType::DT_UINT32; }
+    };
+
+    template<>
+    struct DracoTraits<float>
+    {
+        static draco::DataType GetDataType() { return draco::DataType::DT_FLOAT32; }
+    };
+
+    template<class T>
+    int CreateDracoBuffer(draco::Mesh& dracoMesh, draco::GeometryAttribute::Type attrType, int numComponents, bool normalized, const std::vector<T>& values)
+    {
+        uint32_t count  = int(values.size()) / numComponents;
+        uint32_t stride = sizeof(T) * numComponents;
+        draco::PointAttribute pointAttr;
+        pointAttr.Init(attrType, nullptr, numComponents, DracoTraits<T>::GetDataType(), normalized, stride, 0);
+        int attId = dracoMesh.AddAttribute(pointAttr, true, static_cast<unsigned int>(count));
+        auto attrActual = dracoMesh.attribute(attId);
+
+        if (dracoMesh.num_points() == 0)
+        {
+            dracoMesh.set_num_points(count);
+        }
+        for (draco::PointIndex i(0); i < count; i++)
+        {
+            attrActual->SetAttributeValue(attrActual->mapped_index(i), &values[i.value() * numComponents]);
+        }
+
+        return attId;
+    }
+
+	bool SaveToDraco(std::vector<unsigned char>& bytes, const std::shared_ptr<Mesh>& mesh)
 	{
-		draco::EncoderBuffer buffer;
-		const draco::Status status = encoder->EncodeMeshToBuffer(mesh, &buffer);
-		if (!status.ok()) 
-		{
-			return -1;
-		}
-		os.write(buffer.data(), buffer.size());
-		return 0;
-	}
+        std::unique_ptr<ns::Options> options(new ns::Options());
 
-	static
-	void WriteDebug(std::string& s)
-	{
-		std::ofstream ofs("c:/src/Debug/debug.obj");
-		if (ofs)
-		{
-			ofs << s << std::endl;
-		}
-	}
+        std::unique_ptr<draco::Encoder> dracoEncoder(new draco::Encoder());
+        {
+            dracoEncoder->SetAttributeQuantization(draco::GeometryAttribute::POSITION, options->pos_quantization_bits);
+            dracoEncoder->SetAttributeQuantization(draco::GeometryAttribute::TEX_COORD, options->tex_coords_quantization_bits);
+            dracoEncoder->SetAttributeQuantization(draco::GeometryAttribute::NORMAL, options->normals_quantization_bits);
+            dracoEncoder->SetAttributeQuantization(draco::GeometryAttribute::COLOR, options->color_quantization_bits);
+            dracoEncoder->SetAttributeQuantization(draco::GeometryAttribute::GENERIC, options->generic_quantization_bits);
+            dracoEncoder->SetSpeedOptions(options->compression_level, options->compression_level);
+            //dracoEncoder->SetTrackEncodedProperties(true);
+        }
 
-	static
-	int EncodeMeshToFile(std::vector<unsigned char>& bytes, const draco::Mesh &mesh, draco::Encoder *encoder)
-	{
-		draco::EncoderBuffer buffer;
-		const draco::Status status = encoder->EncodeMeshToBuffer(mesh, &buffer);
-		if (!status.ok())
-		{
-			return -1;
-		}
-		std::copy(buffer.data(), buffer.data() + buffer.size(), back_inserter(bytes));
-		return 0;
-	}
+		std::unique_ptr<draco::Mesh> dracoMesh(new draco::Mesh());
 
-	bool SaveToDraco(std::vector<unsigned char>& bytes, const std::shared_ptr<Mesh>& m)
-	{
-		using namespace draco;
-		//------------------------------------
-		std::unique_ptr<draco::Mesh> mesh(new draco::Mesh());
+        size_t numFaces = mesh->facenums.size();
+        dracoMesh->SetNumFaces(numFaces);
+        for (uint32_t i = 0; i < numFaces; i++)
+        {
+            draco::Mesh::Face face;
+            face[0] = mesh->pos_indices[(i * 3) + 0];
+            face[1] = mesh->pos_indices[(i * 3) + 1];
+            face[2] = mesh->pos_indices[(i * 3) + 2];
+            dracoMesh->SetFace(draco::FaceIndex(i), face);
+        }
 
-		std::stringstream ss;
-		WriteToStream(ss, m);
-		std::string s = ss.str();
-		//WriteDebug(s);
-		//return false;
+        //Add buffers
+        {
+            //index
+            //N
+            //P
+            //T
+            {
+                //std::vector<unsigned int> buf(mesh->pos_indices.size());
+                //for (size_t i = 0; i < buf.size(); i++)
+                //{
+                //    buf[i] = (unsigned int)mesh->pos_indices[i];
+                //}
+                //int attId = CreateDracoBuffer(*dracoMesh, 1, false, buf);
+            }
+            {
+                std::vector<float> buf(mesh->normals.size() * 3);
+                for (size_t i = 0; i < mesh->normals.size(); i++)
+                {
+                    buf[3 * i + 0] = (float)mesh->normals[i][0];
+                    buf[3 * i + 1] = (float)mesh->normals[i][1];
+                    buf[3 * i + 2] = (float)mesh->normals[i][2];
+                }
+                for (size_t i = 0; i < mesh->normals.size(); i++)
+                {
+                    float x = buf[3 * i + 0];
+                    float y = buf[3 * i + 1];
+                    float z = buf[3 * i + 2];
+                    float l = (x*x + y * y + z * z);
+                    if (fabs(l) > 1e-6f)
+                    {
+                        l = 1.0f / std::sqrt(l);
+                        buf[3 * i + 0] = x * l;
+                        buf[3 * i + 1] = y * l;
+                        buf[3 * i + 2] = z * l;
+                    }
+                }
+                int attId = CreateDracoBuffer(*dracoMesh, draco::GeometryAttribute::Type::NORMAL, 3, true, buf);
+            }
+            {
+                std::vector<float> buf(mesh->positions.size() * 3);
+                for (size_t i = 0; i < mesh->positions.size(); i++)
+                {
+                    buf[3 * i + 0] = (float)mesh->positions[i][0];
+                    buf[3 * i + 1] = (float)mesh->positions[i][1];
+                    buf[3 * i + 2] = (float)mesh->positions[i][2];
+                }
+                int attId = CreateDracoBuffer(*dracoMesh, draco::GeometryAttribute::Type::POSITION, 3, false, buf);
+            }
+            
+            if (mesh->texcoords.size() > 0)
+            {
+                std::vector<float> buf(mesh->texcoords.size() * 2);
+                for (size_t i = 0; i < mesh->texcoords.size(); i++)
+                {
+                    buf[2 * i + 0] = (float)mesh->texcoords[i][0];
+                    buf[2 * i + 1] = (float)mesh->texcoords[i][1];
+                }
+                int attId = CreateDracoBuffer(*dracoMesh, draco::GeometryAttribute::Type::TEX_COORD, 2, false, buf);
+            }
+            
+        }
 
-		draco::DecoderBuffer buffer;
-		buffer.Init(s.c_str(), s.size());
-		draco::ObjDecoder obj_decoder;
-		if (!obj_decoder.DecodeFromBuffer(&buffer, mesh.get()).ok())
-		{
-			return false;
-		}
-		
-		ns::Options options;
+        //Encode
+        dracoMesh->DeduplicateAttributeValues();
+        dracoMesh->DeduplicatePointIds();
 
-		// Convert compression level to speed (that 0 = slowest, 10 = fastest).
-		const int speed = 10 - options.compression_level;
+        draco::EncoderBuffer buffer;
+        const draco::Status status = dracoEncoder->EncodeMeshToBuffer(*dracoMesh, &buffer);
+        if (!status.ok()) 
+        {
+            return false;
+        }
 
-		// Setup encoder options.
-		draco::Encoder encoder;
-		if (options.pos_quantization_bits > 0) {
-			encoder.SetAttributeQuantization(draco::GeometryAttribute::POSITION,
-				options.pos_quantization_bits);
-		}
-		if (options.tex_coords_quantization_bits > 0) {
-			encoder.SetAttributeQuantization(draco::GeometryAttribute::TEX_COORD,
-				options.tex_coords_quantization_bits);
-		}
-		if (options.normals_quantization_bits > 0) {
-			encoder.SetAttributeQuantization(draco::GeometryAttribute::NORMAL,
-				options.normals_quantization_bits);
-		}
-		encoder.SetSpeedOptions(speed, speed);
-
-		int ret = EncodeMeshToFile(bytes, *mesh, &encoder);
-
-		if (ret == -1)
-		{
-			printf("\nFailed to EncodedMeshToFile\n\n");
-			return false;
-		}
+        //Copy
+        {
+            const unsigned char* data_begin = (const unsigned char*)(buffer.data());
+            const unsigned char* data_end = data_begin + buffer.size();
+            std::copy(data_begin, data_end, std::back_inserter(bytes));
+        }
 
 		return true;
 	}

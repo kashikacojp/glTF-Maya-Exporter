@@ -1529,7 +1529,11 @@ namespace kml
 						}
 					}
 
-					int nAcc = accessors_.size();
+                    int nAcc = accessors_.size();
+
+                    std::shared_ptr<BufferView> bufferView = this->AddBufferViewDraco(in_mesh);
+                    mesh->SetBufferView("draco", bufferView);
+
 					{
 						//indices
 						std::string accName = "accessor_" + IToS(nAcc);//
@@ -1618,8 +1622,7 @@ namespace kml
 						nAcc++;
 					}
 
-                    std::shared_ptr<BufferView> bufferView = this->AddBufferViewDraco(in_mesh);
-                    mesh->SetBufferView("draco", bufferView);
+                    
 
                     const std::shared_ptr<::kml::SkinWeights> in_skin = in_mesh->skin_weights;
                     if (in_skin.get() && this->skins_.size() > 0)
@@ -1633,6 +1636,7 @@ namespace kml
                     }
 
                     {
+                        /*
                         std::vector<std::shared_ptr<MorphTarget> > targets = this->RegisterMorphTargets(in_mesh);
                         if (!targets.empty())
                         {
@@ -1641,6 +1645,7 @@ namespace kml
                                 mesh->AddTarget(targets[i]);
                             }
                         }
+                        */
                     }
 
 					node->SetMesh(mesh);
