@@ -1,3 +1,5 @@
+#define GLM_ENABLE_EXPERIMENTAL 1
+
 #include "SaveToDraco.h"
 
 #include <vector>
@@ -98,10 +100,76 @@ namespace kml
         static draco::DataType GetDataType() { return draco::DataType::DT_FLOAT32; }
     };
 
-    template<class T>
-    int CreateDracoBuffer(draco::Mesh& dracoMesh, draco::GeometryAttribute::Type attrType, int numComponents, bool normalized, const std::vector<T>& values)
+    template<>
+    struct DracoTraits<double>
     {
-        uint32_t count  = int(values.size()) / numComponents;
+        static draco::DataType GetDataType() { return draco::DataType::DT_FLOAT64; }
+    };
+
+    static
+    int GetNumComponents(const std::string& type)
+    {
+        if (type == "VEC2")return 2;
+        if (type == "VEC3")return 3;
+        if (type == "VEC4")return 4;
+        return 1;
+    }
+
+    static
+    bool GetNormalized(const std::string& attr)
+    {
+        if (attr == "NORMAL") return true;
+        if (attr == "TANGENT")return true;
+        return false;
+    }
+
+    static
+    draco::GeometryAttribute::Type GetAttributeType(const std::string& name)
+    {
+        if (name == "POSITION")
+        {
+            return draco::GeometryAttribute::Type::POSITION;
+        }
+        if (name == "NORMAL")
+        {
+            return draco::GeometryAttribute::Type::NORMAL;
+        }
+        if (name == "TEXCOORD_0")
+        {
+            return draco::GeometryAttribute::Type::TEX_COORD;
+        }
+        if (name == "TEXCOORD_1")
+        {
+            return draco::GeometryAttribute::Type::TEX_COORD;
+        }
+        if (name == "COLOR_0")
+        {
+            return draco::GeometryAttribute::Type::COLOR;
+        }
+        if (name == "JOINTS_0")
+        {
+            return draco::GeometryAttribute::Type::GENERIC;
+        }
+        if (name == "WEIGHTS_0")
+        {
+            return draco::GeometryAttribute::Type::GENERIC;
+        }
+        if (name == "TANGENT")
+        {
+            return draco::GeometryAttribute::Type::GENERIC;
+        }
+        return draco::GeometryAttribute::Type::GENERIC;
+    }
+
+    template<class T>
+    int CreateDracoBuffer(draco::Mesh& dracoMesh, const std::string& attr, const std::shared_ptr<gltf::Accessor>& acc)
+    {
+        draco::GeometryAttribute::Type attrType = GetAttributeType(attr);
+        std::shared_ptr<gltf::DracoTemporaryBuffer> buf = acc->GetDracoTemporaryBuffer();
+        T* values = (T*)(buf->GetBytesPtr());
+        bool normalized = GetNormalized(attr);
+        int numComponents = GetNumComponents(acc->GetType());
+        uint32_t count = acc->GetCount();
         uint32_t stride = sizeof(T) * numComponents;
         draco::PointAttribute pointAttr;
         pointAttr.Init(attrType, nullptr, numComponents, DracoTraits<T>::GetDataType(), normalized, stride, 0);
@@ -120,8 +188,8 @@ namespace kml
         return attId;
     }
 
-	bool SaveToDraco(std::vector<unsigned char>& bytes, const std::shared_ptr<Mesh>& mesh)
-	{
+    bool SaveToDraco(std::vector<unsigned char>& bytes, const std::shared_ptr<gltf::Mesh>& mesh)
+    {
         std::unique_ptr<ns::Options> options(new ns::Options());
         int speed = 10 - options->compression_level;
         std::unique_ptr<draco::Encoder> dracoEncoder(new draco::Encoder());
@@ -135,81 +203,53 @@ namespace kml
             //dracoEncoder->SetTrackEncodedProperties(true);
         }
 
-		std::unique_ptr<draco::Mesh> dracoMesh(new draco::Mesh());
+        std::unique_ptr<draco::Mesh> dracoMesh(new draco::Mesh());
 
-        size_t numFaces = mesh->facenums.size();
-        dracoMesh->SetNumFaces(numFaces);
-        for (uint32_t i = 0; i < numFaces; i++)
         {
-            draco::Mesh::Face face;
-            face[0] = mesh->pos_indices[(i * 3) + 0];
-            face[1] = mesh->pos_indices[(i * 3) + 1];
-            face[2] = mesh->pos_indices[(i * 3) + 2];
-            dracoMesh->SetFace(draco::FaceIndex(i), face);
+            std::shared_ptr<gltf::Accessor> accIndices = mesh->GetIndices();
+            std::shared_ptr<gltf::DracoTemporaryBuffer> bufIndices = accIndices->GetDracoTemporaryBuffer();
+            unsigned int* indices = (unsigned int*)(bufIndices->GetBytesPtr());
+            size_t numFaces = accIndices->GetCount() / 3;
+            dracoMesh->SetNumFaces(numFaces);
+            for (uint32_t i = 0; i < numFaces; i++)
+            {
+                draco::Mesh::Face face;
+                face[0] = indices[(i * 3) + 0];
+                face[1] = indices[(i * 3) + 1];
+                face[2] = indices[(i * 3) + 2];
+                dracoMesh->SetFace(draco::FaceIndex(i), face);
+            }
         }
 
         //Add buffers
         {
-            //index
-            //P
-            //T
-            //V
+            static const char* ATTRS[] = {
+                "POSITION", "TEXCOORD_0", "TEXCOORD_1", "NORMAL", "COLOR_0", "JOINTS_0", "WEIGHTS_0", "TANGENT", NULL
+            };
+            int i = 0; 
+            while(ATTRS[i])
             {
-                //std::vector<unsigned int> buf(mesh->pos_indices.size());
-                //for (size_t i = 0; i < buf.size(); i++)
-                //{
-                //    buf[i] = (unsigned int)mesh->pos_indices[i];
-                //}
-                //int attId = CreateDracoBuffer(*dracoMesh, 1, false, buf);
-            }
-            
-            {
-                std::vector<float> buf(mesh->positions.size() * 3);
-                for (size_t i = 0; i < mesh->positions.size(); i++)
+                std::shared_ptr<gltf::Accessor> acc = mesh->GetAccessor(ATTRS[i]);
+                int attId = 0;
+                if (acc.get())
                 {
-                    buf[3 * i + 0] = (float)mesh->positions[i][0];
-                    buf[3 * i + 1] = (float)mesh->positions[i][1];
-                    buf[3 * i + 2] = (float)mesh->positions[i][2];
-                }
-                int attId = CreateDracoBuffer(*dracoMesh, draco::GeometryAttribute::Type::POSITION, 3, false, buf);
-            }
-            
-            if (mesh->texcoords.size() > 0)
-            {
-                std::vector<float> buf(mesh->texcoords.size() * 2);
-                for (size_t i = 0; i < mesh->texcoords.size(); i++)
-                {
-                    buf[2 * i + 0] = (float)mesh->texcoords[i][0];
-                    buf[2 * i + 1] = (float)mesh->texcoords[i][1];
-                }
-                int attId = CreateDracoBuffer(*dracoMesh, draco::GeometryAttribute::Type::TEX_COORD, 2, false, buf);
-            }
-
-            {
-                std::vector<float> buf(mesh->normals.size() * 3);
-                for (size_t i = 0; i < mesh->normals.size(); i++)
-                {
-                    buf[3 * i + 0] = (float)mesh->normals[i][0];
-                    buf[3 * i + 1] = (float)mesh->normals[i][1];
-                    buf[3 * i + 2] = (float)mesh->normals[i][2];
-                }
-                for (size_t i = 0; i < mesh->normals.size(); i++)
-                {
-                    float x = buf[3 * i + 0];
-                    float y = buf[3 * i + 1];
-                    float z = buf[3 * i + 2];
-                    float l = (x*x + y * y + z * z);
-                    if (fabs(l) > 1e-6f)
+                    switch (acc->GetComponentType())
                     {
-                        l = 1.0f / std::sqrt(l);
-                        buf[3 * i + 0] = x * l;
-                        buf[3 * i + 1] = y * l;
-                        buf[3 * i + 2] = z * l;
+                    case GLTF_COMPONENT_TYPE_BYTE:          attId = CreateDracoBuffer<  int8_t>(*dracoMesh, ATTRS[i], acc); break;
+                    case GLTF_COMPONENT_TYPE_UNSIGNED_BYTE: attId = CreateDracoBuffer< uint8_t>(*dracoMesh, ATTRS[i], acc); break;
+                    case GLTF_COMPONENT_TYPE_SHORT:         attId = CreateDracoBuffer< int16_t>(*dracoMesh, ATTRS[i], acc); break;
+                    case GLTF_COMPONENT_TYPE_UNSIGNED_SHORT:attId = CreateDracoBuffer<uint16_t>(*dracoMesh, ATTRS[i], acc); break;
+                    case GLTF_COMPONENT_TYPE_INT:           attId = CreateDracoBuffer< int32_t>(*dracoMesh, ATTRS[i], acc); break;
+                    case GLTF_COMPONENT_TYPE_UNSIGNED_INT:  attId = CreateDracoBuffer<uint32_t>(*dracoMesh, ATTRS[i], acc); break;
+                    case GLTF_COMPONENT_TYPE_FLOAT:         attId = CreateDracoBuffer<   float>(*dracoMesh, ATTRS[i], acc); break;
+                    case GLTF_COMPONENT_TYPE_DOUBLE:        attId = CreateDracoBuffer<  double>(*dracoMesh, ATTRS[i], acc); break;
                     }
+
+                    int order = dracoMesh->attribute(attId)->unique_id();
+                    mesh->SetOrderInDraco(ATTRS[i], order);
                 }
-                int attId = CreateDracoBuffer(*dracoMesh, draco::GeometryAttribute::Type::NORMAL, 3, true, buf);
+                i++;
             }
-            
         }
 
         //Encode
@@ -218,7 +258,7 @@ namespace kml
 
         draco::EncoderBuffer buffer;
         const draco::Status status = dracoEncoder->EncodeMeshToBuffer(*dracoMesh, &buffer);
-        if (!status.ok()) 
+        if (!status.ok())
         {
             return false;
         }
@@ -230,14 +270,14 @@ namespace kml
             std::copy(data_begin, data_end, std::back_inserter(bytes));
         }
 
-		return true;
-	}
+        return true;
+    }
 #else
-	bool SaveToDraco(std::vector<unsigned char>& bytes, const std::shared_ptr<Mesh>& m)
-	{
-		// Disable ENABLE_BUILD_WITH_DRACO option
-		return false;
-	}
+    bool SaveToDraco(std::vector<unsigned char>& bytes, const std::shared_ptr<gltf::Mesh>& mesh)
+    {
+        // Disable ENABLE_BUILD_WITH_DRACO option
+        return false;
+    }
 #endif
 }
 

@@ -910,10 +910,28 @@ namespace kml
 
                     if (isDraco)
                     {
-                        std::shared_ptr<BufferView> bufferView = this->AddBufferViewDraco(in_mesh);
+                        std::shared_ptr<BufferView> bufferView = this->AddBufferViewDraco(mesh);
                         mesh->SetBufferView("draco", bufferView);
-                        //mesh->SetBufferView("draco", this->AddBufferViewDraco(mesh));
-                        //clear temporay
+                        {
+                            //clear temporay
+                            static const char* ATTRS[] = {
+                                "POSITION", "TEXCOORD_0", "NORMAL", "JOINTS_0", "WEIGHTS_0", NULL
+                            };
+                            int i = 0;
+                            while (ATTRS[i])
+                            {
+                                std::shared_ptr<Accessor> acc = mesh->GetAccessor(ATTRS[i]);
+                                if (acc.get())
+                                {
+                                    std::shared_ptr<DracoTemporaryBuffer> bv = acc->GetDracoTemporaryBuffer();
+                                    if (bv.get())
+                                    {
+                                        bv->ClearBytes();
+                                    }
+                                }
+                                i++;
+                            }
+                        }
                     }
 
                     node->SetMesh(mesh);
@@ -1030,8 +1048,8 @@ namespace kml
                 return bufferViews_.back();
             }
 
-			std::shared_ptr<BufferView> AddBufferViewDraco(const std::shared_ptr<::kml::Mesh>& mesh)
-			{
+            std::shared_ptr<BufferView> AddBufferViewDraco(const std::shared_ptr<Mesh>& mesh)
+            {
                 std::vector<unsigned char> bytes;
                 if (!SaveToDraco(bytes, mesh))
                 {
@@ -1039,9 +1057,9 @@ namespace kml
                 }
 
                 std::shared_ptr<Buffer> buffer = this->GetLastBuffer();
-				int nBV = bufferViews_.size();
-				std::string name = "bufferView_" + IToS(nBV);//
-				std::shared_ptr<BufferView> bufferView(new BufferView(name, nBV));
+                int nBV = bufferViews_.size();
+                std::string name = "bufferView_" + IToS(nBV);//
+                std::shared_ptr<BufferView> bufferView(new BufferView(name, nBV));
                 size_t offset = buffer->GetSize();
                 size_t length = bytes.size();
 
@@ -1049,14 +1067,14 @@ namespace kml
                 Pad4BytesAlign(bytes);
                 buffer->AddBytes(&bytes[0], bytes.size());
 
-				bufferView->SetByteOffset(offset);
-				bufferView->SetByteLength(length);
-				bufferView->SetBuffer(buffer);
-				bufferView->SetTarget(GLTF_TARGET_ARRAY_BUFFER);
-				bufferViews_.push_back(bufferView);
+                bufferView->SetByteOffset(offset);
+                bufferView->SetByteLength(length);
+                bufferView->SetBuffer(buffer);
+                bufferView->SetTarget(GLTF_TARGET_ARRAY_BUFFER);
+                bufferViews_.push_back(bufferView);
 
-				return bufferViews_.back();
-			}
+                return bufferViews_.back();
+            }
 		protected:
             std::map<std::string, std::shared_ptr<Node> > nodeMap_;
 			std::vector<std::shared_ptr<Node> > nodes_;
@@ -1258,11 +1276,9 @@ namespace kml
         {
             std::vector< std::pair<std::shared_ptr<Node>, std::shared_ptr<::kml::Node> > > node_pairs;
             CreateNodes(node_pairs, reg, node);
-            //TODO:
-            if (IsOutputBin)
-            {
-                RegisterSkins(reg, node);
-            }
+
+            RegisterSkins(reg, node);
+            
             for (size_t i = 0; i < node_pairs.size(); i++)
             {
                 if (IsOutputBin)
@@ -1561,6 +1577,15 @@ namespace kml
 							attributes["TEXCOORD_0"] = picojson::value((double)nOrder++);
 						}
 						attributes["NORMAL"] = picojson::value((double)nOrder++);
+
+                        std::shared_ptr<Accessor> joints = mesh->GetAccessor("JOINTS_0");
+                        std::shared_ptr<Accessor> weights = mesh->GetAccessor("WEIGHTS_0");
+                        if (joints.get() && weights.get())
+                        {
+                            attributes["JOINTS_0"] = picojson::value((double)nOrder++);
+                            attributes["WEIGHTS_0"] = picojson::value((double)nOrder++);
+                        }
+
 						KHR_draco_mesh_compression["attributes"] = picojson::value(attributes);
 							
 
@@ -1568,7 +1593,6 @@ namespace kml
 						extensions["KHR_draco_mesh_compression"] = picojson::value(KHR_draco_mesh_compression);
 						primitive["extensions"] = picojson::value(extensions);
 					}
-					
 
 
                     picojson::array primitives;

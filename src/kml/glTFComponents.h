@@ -402,6 +402,24 @@ namespace kml
             {
                 return morph_targets;
             }
+            void SetOrderInDraco(const std::string& name, int order)
+            {
+                orderInDraco_[name] = order;
+            }
+            int GetOrderInDraco(const std::string& name)const
+            {
+                typedef std::map<std::string, int> MapType;
+                typedef MapType::const_iterator iterator;
+                iterator it = orderInDraco_.find(name);
+                if (it != orderInDraco_.end())
+                {
+                    return it->second;
+                }
+                else
+                {
+                    return -1;
+                }
+            }
         protected:
             std::string name_;
             int index_;
@@ -410,6 +428,7 @@ namespace kml
             std::map<std::string, std::shared_ptr<Accessor> > accessors_;
             std::map<std::string, std::shared_ptr<BufferView> > bufferViews_;
             std::vector<std::shared_ptr<MorphTarget> > morph_targets;
+            mutable std::map<std::string, int> orderInDraco_;
         };
 
         class Skin

@@ -707,11 +707,6 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 		make_preload_texture = 0;	//no cache texture
 	}
 
-    if (output_buffer == 1)
-    {
-        output_animations = 0;      //TODO:draco animation
-    }
-
 #ifdef ENABLE_VRM
     if (
         (vrm_license_license_type != "Other" && vrm_license_license_type != "Redistribution_Prohibited")
