@@ -7,7 +7,10 @@
 #endif
 
 #include "glTFExporter.h"
+#include "glTFConstants.h"
+#include "glTFComponents.h"
 
+#include "Texture.h"
 #include "TriangulateMesh.h"
 #include "Options.h"
 #include "SaveToDraco.h"
@@ -17,7 +20,6 @@
 #include <set>
 #include <fstream>
 
-#include "gltfConstants.h"
 
 #include <picojson/picojson.h>
 
@@ -29,6 +31,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+
 
 
 namespace {
@@ -181,7 +184,7 @@ namespace kml
 	}
 
 	static
-        unsigned int GetImageFormat(const std::string& path)
+    unsigned int GetImageFormat(const std::string& path)
     {
         std::string ext = GetExt(path);
         if (ext == ".jpg" || ext == ".jpeg")
@@ -235,606 +238,7 @@ namespace kml
     }
 
 	namespace gltf
-	{
-        class Node;
-
-		class Buffer
-		{
-		public:
-			Buffer(const std::string& name, int index)
-				:name_(name), index_(index)
-			{}
-			const std::string& GetName()const
-			{
-				return name_;
-			}
-			int GetIndex()const
-			{
-				return index_;
-			}
-			std::string GetURI()const
-			{
-                return name_ + ".bin";
-			}
-			void AddBytes(const unsigned char bytes[], size_t sz)
-			{
-				size_t offset = bytes_.size();
-				bytes_.resize(offset + sz);
-				memcpy(&bytes_[offset], bytes, sz);
-			}
-			size_t GetSize()const
-			{
-				return bytes_.size();
-			}
-			size_t GetByteLength()const
-			{
-				return GetSize();
-			}
-			const unsigned char* GetBytesPtr()const
-			{
-				return &bytes_[0];
-			}
-		protected:
-			std::string name_;
-			int index_;
-			std::vector<unsigned char> bytes_;
-		};
-
-		class BufferView
-		{
-		public:
-			BufferView(const std::string& name, int index)
-				:name_(name), index_(index)
-			{}
-			const std::string& GetName()const
-			{
-				return name_;
-			}
-			int GetIndex()const
-			{
-				return index_;
-			}
-			void SetBuffer(const std::shared_ptr<Buffer>& bv)
-			{
-				buffer_ = bv;
-			}
-			const std::shared_ptr<Buffer>& GetBuffer()const
-			{
-				return buffer_;
-			}
-			void SetByteOffset(size_t sz)
-			{
-				byteOffset_ = sz;
-			}
-			void SetByteLength(size_t sz)
-			{
-				byteLength_ = sz;
-			}
-			size_t GetByteOffset()const
-			{
-				return byteOffset_;
-			}
-			size_t GetByteLength()const
-			{
-				return byteLength_;
-			}
-			void SetTarget(int t)
-			{
-				target_ = t;
-			}
-			int GetTarget()const
-			{
-				return target_;
-			}
-		protected:
-			std::string name_;
-			int index_;
-			std::shared_ptr<Buffer> buffer_;
-			size_t byteOffset_;
-			size_t byteLength_;
-			int target_;
-		};
-
-
-		class Accessor
-		{
-		public:
-			Accessor(const std::string& name, int index)
-				:name_(name), index_(index)
-			{}
-			const std::string& GetName()const
-			{
-				return name_;
-			}
-			int GetIndex()const
-			{
-				return index_;
-			}
-			void SetBufferView(const std::shared_ptr<BufferView>& bv)
-			{
-				bufferView_ = bv;
-			}
-			const std::shared_ptr<BufferView>& GetBufferView()const
-			{
-				return bufferView_;
-			}
-			void Set(const std::string& key, const picojson::value& v)
-			{
-				obj_[key] = v;
-			}
-			picojson::value Get(const std::string& key)const
-			{
-				picojson::object::const_iterator it = obj_.find(key);
-				if (it != obj_.end())
-				{
-					return it->second;
-				}
-				else
-				{
-					return picojson::value();
-				}
-			}
-		protected:
-			std::string name_;
-			int index_;
-			std::shared_ptr<BufferView> bufferView_;
-			picojson::object obj_;
-		};
-
-        class MorphTarget
-        {
-        public:
-            MorphTarget(const std::string& name, int index)
-                :name_(name), index_(index)
-            {
-                weight_ = 0;
-            }
-            const std::string& GetName()const
-            {
-                return name_;
-            }
-            int GetIndex()const
-            {
-                return index_;
-            }
-            void SetAccessor(const std::string& name, const std::shared_ptr<Accessor>& acc)
-            {
-                accessors_[name] = acc;
-            }
-            std::shared_ptr<Accessor> GetAccessor(const std::string& name)const
-            {
-                typedef std::map<std::string, std::shared_ptr<Accessor> > MapType;
-                typedef MapType::const_iterator iterator;
-                iterator it = accessors_.find(name);
-                if (it != accessors_.end())
-                {
-                    return it->second;
-                }
-                else
-                {
-                    return std::shared_ptr<Accessor>();
-                }
-            }
-            void SetWeight(float w)
-            {
-                weight_ = w;
-            }
-            float GetWeight()const
-            {
-                return weight_;
-            }
-        protected:
-            std::string name_;
-            int index_;
-            float weight_;
-            std::map<std::string, std::shared_ptr<Accessor> > accessors_;
-        };
-
-		class Mesh
-		{
-		public:
-			Mesh(const std::string& name, int index)
-				:name_(name), index_(index)
-			{
-				mode_ = GLTF_MODE_TRIANGLES;
-			}
-			const std::string& GetName()const
-			{
-				return name_;
-			}
-			int GetIndex()const
-			{
-				return index_;
-			}
-			int GetMode()const
-			{
-				return mode_;
-			}
-			void SetMaterialID(int id)
-			{
-				materialID_ = id;
-			}
-			int GetMaterialID()
-			{
-				return materialID_;
-			}
-			std::shared_ptr<Accessor> GetIndices()const
-			{
-				return GetAccessor("indices");
-			}
-			void SetAccessor(const std::string& name, const std::shared_ptr<Accessor>& acc)
-			{
-				accessors_[name] = acc;
-			}
-			std::shared_ptr<Accessor> GetAccessor(const std::string& name)const
-			{
-                typedef std::map<std::string, std::shared_ptr<Accessor> > MapType;
-                typedef MapType::const_iterator iterator;
-                iterator it = accessors_.find(name);
-                if (it != accessors_.end())
-                {
-                    return it->second;
-                }
-                else
-                {
-                    return std::shared_ptr<Accessor>();
-                }
-			}
-            void SetBufferView(const std::string& name, const std::shared_ptr<BufferView>& bv)
-            {
-                bufferViews_[name] = bv;
-            }
-            std::shared_ptr<BufferView> GetBufferView(const std::string& name)const
-            {
-                typedef std::map<std::string, std::shared_ptr<BufferView> > MapType;
-                typedef MapType::const_iterator iterator;
-                iterator it = bufferViews_.find(name);
-                if (it != bufferViews_.end())
-                {
-                    return it->second;
-                }
-                else
-                {
-                    return std::shared_ptr<BufferView>();
-                }
-            }
-            void AddTarget(const std::shared_ptr<MorphTarget>& target)
-            {
-                morph_targets.push_back(target);
-            }
-            const std::vector<std::shared_ptr<MorphTarget> > GetTargets()const
-            {
-                return morph_targets;
-            }
-		protected:
-			std::string name_;
-			int index_;
-			int mode_;
-			int materialID_;
-			std::map<std::string, std::shared_ptr<Accessor> > accessors_;
-            std::map<std::string, std::shared_ptr<BufferView> > bufferViews_;
-            std::vector<std::shared_ptr<MorphTarget> > morph_targets;
-		};
-
-        class Skin
-        {
-        public:
-            typedef std::map<std::string, float> PathWeight;
-            typedef std::vector<int, float> IndexWeight;
-        public:
-            Skin(const std::string& name, int index)
-                :name_(name), index_(index)
-            {
-                ;
-            }
-            const std::string& GetName()const
-            {
-                return name_;
-            }
-            int GetIndex()const
-            {
-                return index_;
-            }
-
-            const std::vector< std::shared_ptr<Node> > GetJoints()const
-            {
-                return joints_;
-            }
-            const std::shared_ptr<Node> GetRootJoint()const
-            {
-                return joints_[0];
-            }
-            void AddJoint(const std::shared_ptr<Node>& node)
-            {
-                joints_.push_back(node);
-            }
-            void SetAccessor(const std::string& name, const std::shared_ptr<Accessor>& acc)
-            {
-                accessors_[name] = acc;
-            }
-            std::shared_ptr<Accessor> GetAccessor(const std::string& name)const
-            {
-                typedef std::map<std::string, std::shared_ptr<Accessor> > MapType;
-                typedef MapType::const_iterator iterator;
-                iterator it = accessors_.find(name);
-                if (it != accessors_.end())
-                {
-                    return it->second;
-                }
-                else
-                {
-                    return std::shared_ptr<Accessor>();
-                }
-            }
-        protected:
-            std::string name_;
-            int index_;
-            std::shared_ptr<Mesh> mesh_;
-            std::vector< std::shared_ptr<Node> > joints_;
-            std::map<std::string, std::shared_ptr<Accessor> > accessors_;
-        };
-
-        class Transform
-        {
-        public:
-            Transform()
-                :isTRS_(false)
-            {
-                mat_ = glm::mat4(1.0f);
-            }
-            const glm::mat4 GetMatrix()const
-            {
-                return mat_;                
-            }
-            void SetMatrix(const glm::mat4& mat)
-            {
-                mat_ = mat;
-                isTRS_ = false;
-            }
-            void SetTRS(const glm::vec3& T, const glm::quat& R, const glm::vec3& S)
-            {
-                T_ = T;
-                R_ = R;
-                S_ = S;
-                glm::mat4 TT = glm::translate(glm::mat4(1.0f), T);
-                glm::mat4 RR = glm::toMat4(R);
-                glm::mat4 SS = glm::scale(glm::mat4(1.0f), S);
-
-                mat_ = TT * RR * SS;
-
-                isTRS_ = true;
-            }
-            bool IsTRS()const
-            {
-                return isTRS_;
-            }
-            glm::vec3 GetT()const { return T_; }
-            glm::quat GetR()const { return R_; }
-            glm::vec3 GetS()const { return S_; }
-        protected:
-            bool isTRS_;
-            glm::mat4 mat_;
-            glm::vec3 T_;
-            glm::quat R_;
-            glm::vec3 S_;
-        };
-
-        class AnimationSampler
-        {
-        public:
-            AnimationSampler(const std::string& name, int index)
-                :name_(name), index_(index)
-            {
-                ;
-            }
-            const std::string& GetName()const
-            {
-                return name_;
-            }
-            int GetIndex()const
-            {
-                return index_;
-            }
-            void SetTargetPath(const std::string& path)
-            {
-                targetPath_ = path;
-            }
-            const std::string& GetTargetPath()
-            {
-                return targetPath_;
-            }
-            void SetInputAccessor(const std::shared_ptr< Accessor >& in)
-            {
-                in_ = in;
-            }
-            const std::shared_ptr< Accessor >& GetInputAccessor()const
-            {
-                return in_;
-            }
-            void SetOutputAccessor(const std::shared_ptr< Accessor >& out)
-            {
-                out_ = out;
-            }
-            const std::shared_ptr< Accessor >& GetOutputAccessor()const
-            {
-                return out_;
-            }
-            void SetInterpolation(const std::string& inter)
-            {
-                interpolation_ = inter;
-            }
-            std::string GetInterpolation()const
-            {
-                return interpolation_;
-            }
-        protected:
-            std::string name_;
-            int index_;
-            std::string targetPath_;
-            std::string interpolation_;
-            std::shared_ptr< Accessor > in_;    //key
-            std::shared_ptr< Accessor > out_;   //value
-        };
-
-        class AnimationChannel
-        {
-        public:
-            AnimationChannel(const std::string& name, int index)
-                :name_(name), index_(index)
-            {
-                ;
-            }
-            const std::string& GetName()const
-            {
-                return name_;
-            }
-            int GetIndex()const
-            {
-                return index_;
-            }
-            const std::string& GetTargetPath()
-            {
-                return sampler_->GetTargetPath();
-            }
-            void SetTargetNode(const std::shared_ptr<Node>& node)
-            {
-                targetNode_ = node;
-            }
-            const std::shared_ptr<Node>& GetTargetNode()const
-            {
-                return targetNode_;
-            }
-            void SetSampler(const std::shared_ptr<AnimationSampler>& s)
-            {
-                sampler_ = s;
-            }
-            const std::shared_ptr<AnimationSampler>& GetSampler()const
-            {
-                return sampler_;
-            }
-        protected:
-            std::string name_;
-            int index_;
-            std::string targetPath_;
-            std::shared_ptr<Node> targetNode_;
-            std::shared_ptr<AnimationSampler> sampler_;
-        };
-
-        class Animation
-        {
-        public:
-            Animation(const std::string& name, int index)
-                :name_(name), index_(index)
-            {
-                ;
-            }
-            const std::string& GetName()const
-            {
-                return name_;
-            }
-            int GetIndex()const
-            {
-                return index_;
-            }
-            void AddChannel(const std::shared_ptr<AnimationChannel>& chan)
-            {
-                channels_.push_back(chan);
-            }
-            void AddSampler(const std::shared_ptr<AnimationSampler>& s)
-            {
-                samplers_.push_back(s);
-            }
-            const std::vector<std::shared_ptr<AnimationChannel> >& GetChannels()const
-            {
-                return channels_;
-            }
-            const std::vector<std::shared_ptr<AnimationSampler> > GetSamplers()const
-            {
-                return samplers_;
-            }
-        private:
-            std::string name_;
-            int index_;
-            std::vector<std::shared_ptr<AnimationChannel> > channels_;
-            std::vector<std::shared_ptr<AnimationSampler> > samplers_;
-        };
-
-		class Node
-		{
-		public:
-			Node(const std::string& name, int index)
-				:name_(name), index_(index)
-			{
-                trans_.reset(new Transform());
-            }
-			const std::string& GetName()const
-			{
-				return name_;
-			}
-            void SetPath(const std::string& path)
-            {
-                path_ = path;
-            }
-            const std::string& GetPath()const
-            {
-                return path_;
-            }
-			int GetIndex()const
-			{
-				return index_;
-			}
-			void SetMesh(const std::shared_ptr<Mesh>& mesh)
-			{
-				mesh_ = mesh;
-			}
-			const std::shared_ptr<Mesh>& GetMesh()const
-			{
-				return mesh_;
-			}
-            void SetSkin(const std::shared_ptr<Skin>& skin)
-            {
-                skin_ = skin;
-            }
-            const std::shared_ptr<Skin>& GetSkin()const
-            {
-                return skin_;
-            }
-			void AddChild(const std::shared_ptr<Node>& node)
-			{
-				children_.push_back(node);
-			}
-			std::vector< std::shared_ptr<Node> >& GetChildren()
-			{
-				return children_;
-			}
-			const std::vector< std::shared_ptr<Node> >& GetChildren()const
-			{
-				return children_;
-			}
-
-            std::shared_ptr<Transform>& GetTransform()
-            {
-                return trans_;
-            }
-            const std::shared_ptr<Transform>& GetTransform()const
-            {
-                return trans_;
-            }
-
-            glm::mat4 GetMatrix()const
-            {
-                return trans_->GetMatrix();
-            }
-		protected:
-			std::string name_;
-			int index_;
-            std::string path_;
-            std::shared_ptr<Transform> trans_;
-			std::shared_ptr<Mesh> mesh_;
-            std::shared_ptr<Skin> skin_;
-			std::vector< std::shared_ptr<Node> > children_;
-		};
-
+    {
 		static
 		void GetMinMax(float min[], float max[], const std::vector<float>& verts, int n)
 		{
@@ -1174,10 +578,9 @@ namespace kml
                 }
             }
 
-			void RegisterComponents(std::shared_ptr<Node>& node, const std::shared_ptr<::kml::Node>& in_node)
+			void RegisterMesh(std::shared_ptr<Node>& node, const std::shared_ptr<::kml::Node>& in_node, bool isDraco = false)
 			{
-				const std::shared_ptr<::kml::Mesh>& in_mesh = in_node->GetMesh();
-
+                const std::shared_ptr<::kml::Mesh>& in_mesh = in_node->GetMesh();
 				if (in_mesh.get() != NULL)
 				{
 					int nMesh = meshes_.size();
@@ -1247,12 +650,21 @@ namespace kml
 						//indices
 						std::string accName = "accessor_" + IToS(nAcc);//
 						std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
-						const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(indices, GLTF_TARGET_ELEMENT_ARRAY_BUFFER);
-						acc->SetBufferView(bufferView);
+                        if (!isDraco)
+                        {
+                            std::shared_ptr<BufferView> bv = this->AddBufferView(indices, GLTF_TARGET_ELEMENT_ARRAY_BUFFER);
+                            acc->SetBufferView(bv);
+
+                            acc->Set("byteOffset", picojson::value((double)0));
+                        }
+                        else
+                        {
+                            std::shared_ptr<DracoTemporaryBuffer> bv(new DracoTemporaryBuffer((unsigned char*)(&indices[0]), sizeof(unsigned int)*indices.size()));
+                            acc->SetDracoTemporaryBuffer(bv);
+                        }
 						acc->Set("count", picojson::value((double)(indices.size())));
 						acc->Set("type", picojson::value("SCALAR"));
 						acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_UNSIGNED_INT));//5125
-						acc->Set("byteOffset", picojson::value((double)0));
 						//acc->Set("byteStride", picojson::value((double)sizeof(unsigned int)));
 
 						unsigned int min, max;
@@ -1271,12 +683,21 @@ namespace kml
 						//normal
 						std::string accName = "accessor_" + IToS(nAcc);//
 						std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
-						const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(normals);
-						acc->SetBufferView(bufferView);
+                        if (!isDraco)
+                        {
+                            std::shared_ptr<BufferView> bv = this->AddBufferView(normals, GLTF_TARGET_ARRAY_BUFFER);
+                            acc->SetBufferView(bv);
+
+                            acc->Set("byteOffset", picojson::value((double)0));
+                        }
+                        else
+                        {
+                            std::shared_ptr<DracoTemporaryBuffer> bv(new DracoTemporaryBuffer((unsigned char*)(&normals[0]), sizeof(float)*normals.size()));
+                            acc->SetDracoTemporaryBuffer(bv);
+                        }
 						acc->Set("count", picojson::value((double)(normals.size() / 3)));
 						acc->Set("type", picojson::value("VEC3"));
 						acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
-						acc->Set("byteOffset", picojson::value((double)0));
 						//acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
 
 						float min[3] = {}, max[3] = {};
@@ -1295,12 +716,21 @@ namespace kml
 						//position
 						std::string accName = "accessor_" + IToS(nAcc);//
 						std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
-						const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(positions);
-						acc->SetBufferView(bufferView);
+                        if (!isDraco)
+                        {
+                            std::shared_ptr<BufferView> bv = this->AddBufferView(positions, GLTF_TARGET_ARRAY_BUFFER);
+                            acc->SetBufferView(bv);
+
+                            acc->Set("byteOffset", picojson::value((double)0));
+                        }
+                        else
+                        {
+                            std::shared_ptr<DracoTemporaryBuffer> bv(new DracoTemporaryBuffer((unsigned char*)(&positions[0]), sizeof(float)*positions.size()));
+                            acc->SetDracoTemporaryBuffer(bv);
+                        }
 						acc->Set("count", picojson::value((double)(positions.size() / 3)));
 						acc->Set("type", picojson::value("VEC3"));
 						acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
-						acc->Set("byteOffset", picojson::value((double)0));
 						//acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
 
 						float min[3] = {}, max[3] = {};
@@ -1317,12 +747,21 @@ namespace kml
 						//texcoord
 						std::string accName = "accessor_" + IToS(nAcc);//
 						std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
-						const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(texcoords);
-						acc->SetBufferView(bufferView);
+                        if (!isDraco)
+                        {
+                            std::shared_ptr<BufferView> bv = this->AddBufferView(texcoords, GLTF_TARGET_ARRAY_BUFFER);
+                            acc->SetBufferView(bv);
+
+                            acc->Set("byteOffset", picojson::value((double)0));
+                        }
+                        else
+                        {
+                            std::shared_ptr<DracoTemporaryBuffer> bv(new DracoTemporaryBuffer((unsigned char*)(&texcoords[0]), sizeof(float)*texcoords.size()));
+                            acc->SetDracoTemporaryBuffer(bv);
+                        }
 						acc->Set("count", picojson::value((double)(texcoords.size() / 2)));
 						acc->Set("type", picojson::value("VEC2"));
 						acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
-						acc->Set("byteOffset", picojson::value((double)0));
 						//acc->Set("byteStride", picojson::value((double)2 * sizeof(float)));
 
 						float min[3] = {}, max[3] = {};
@@ -1395,15 +834,23 @@ namespace kml
 
                             if(joints.size() > 0)
                             {
-                                //indices
                                 std::string accName = "accessor_" + IToS(nAcc);//
                                 std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
-                                const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(joints, GLTF_TARGET_ARRAY_BUFFER);
-                                acc->SetBufferView(bufferView);
+                                if (!isDraco)
+                                {
+                                    const std::shared_ptr<BufferView> bv = this->AddBufferView(joints, GLTF_TARGET_ARRAY_BUFFER);
+                                    acc->SetBufferView(bv);
+
+                                    acc->Set("byteOffset", picojson::value((double)0));
+                                }
+                                else
+                                {
+                                    std::shared_ptr<DracoTemporaryBuffer> bv(new DracoTemporaryBuffer((unsigned char*)(&joints[0]), sizeof(unsigned short)*joints.size()));
+                                    acc->SetDracoTemporaryBuffer(bv);
+                                }
                                 acc->Set("count", picojson::value((double)(joints.size() / 4)));
                                 acc->Set("type", picojson::value("VEC4"));
                                 acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_UNSIGNED_SHORT));//5123
-                                acc->Set("byteOffset", picojson::value((double)0));
                                 //acc->Set("byteStride", picojson::value((double)sizeof(unsigned int)));
                                 /*
                                 unsigned short min[4] = {}, max[4] = {};
@@ -1418,15 +865,23 @@ namespace kml
 
                             if (weights.size() > 0)
                             {
-                                //indices
                                 std::string accName = "accessor_" + IToS(nAcc);//
                                 std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
-                                const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(weights, GLTF_TARGET_ARRAY_BUFFER);
-                                acc->SetBufferView(bufferView);
+                                if (!isDraco)
+                                {
+                                    const std::shared_ptr<BufferView> bv = this->AddBufferView(weights, GLTF_TARGET_ARRAY_BUFFER);
+                                    acc->SetBufferView(bv);
+
+                                    acc->Set("byteOffset", picojson::value((double)0));
+                                }
+                                else
+                                {
+                                    std::shared_ptr<DracoTemporaryBuffer> bv(new DracoTemporaryBuffer((unsigned char*)(&weights[0]), sizeof(float)*weights.size()));
+                                    acc->SetDracoTemporaryBuffer(bv);
+                                }
                                 acc->Set("count", picojson::value((double)(weights.size() / 4)));
                                 acc->Set("type", picojson::value("VEC4"));
                                 acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
-                                acc->Set("byteOffset", picojson::value((double)0));
                                 //acc->Set("byteStride", picojson::value((double)sizeof(unsigned int)));
                                 /*
                                 float min[4] = {}, max[4] = {};
@@ -1456,200 +911,16 @@ namespace kml
                         }
                     }
 
+                    if (isDraco)
+                    {
+                        std::shared_ptr<BufferView> bufferView = this->AddBufferViewDraco(in_mesh);
+                        mesh->SetBufferView("draco", bufferView);
+                        //mesh->SetBufferView("draco", this->AddBufferViewDraco(mesh));
+                        //clear temporay
+                    }
+
                     node->SetMesh(mesh);
                     this->meshes_.push_back(mesh);
-				}
-			}
-
-			void RegisterComponentsDraco(std::shared_ptr<Node>& node, const std::shared_ptr<::kml::Node>& in_node)
-			{
-				const std::shared_ptr<::kml::Mesh>& in_mesh = in_node->GetMesh();
-
-				if (in_mesh.get() != NULL)
-				{
-					int nMesh = meshes_.size();
-                    std::string meshName = in_mesh->name;
-					std::shared_ptr<Mesh> mesh(new Mesh(meshName, nMesh));
-
-					if (in_mesh->materials.size())
-					{
-						int material_id = in_mesh->materials[0];
-						mesh->SetMaterialID(material_id);
-					}
-					else
-					{
-						int material_id = 0;
-						mesh->SetMaterialID(material_id);
-					}
-
-					std::vector<unsigned int> indices(in_mesh->pos_indices.size());
-					for (size_t i = 0; i < indices.size(); i++)
-					{
-						indices[i] = (unsigned int)in_mesh->pos_indices[i];
-					}
-
-					std::vector<float> positions(in_mesh->positions.size() * 3);
-					for (size_t i = 0; i < in_mesh->positions.size(); i++)
-					{
-						positions[3 * i + 0] = (float)in_mesh->positions[i][0];
-						positions[3 * i + 1] = (float)in_mesh->positions[i][1];
-						positions[3 * i + 2] = (float)in_mesh->positions[i][2];
-					}
-
-					std::vector<float> normals(in_mesh->normals.size() * 3);
-					for (size_t i = 0; i < in_mesh->normals.size(); i++)
-					{
-						normals[3 * i + 0] = (float)in_mesh->normals[i][0];
-						normals[3 * i + 1] = (float)in_mesh->normals[i][1];
-						normals[3 * i + 2] = (float)in_mesh->normals[i][2];
-					}
-					for (size_t i = 0; i < in_mesh->normals.size(); i++)
-					{
-						float x = normals[3 * i + 0];
-						float y = normals[3 * i + 1];
-						float z = normals[3 * i + 2];
-						float l = (x*x + y * y + z * z);
-						if (fabs(l) > 1e-6f)
-						{
-							l = 1.0f / std::sqrt(l);
-							normals[3 * i + 0] = x * l;
-							normals[3 * i + 1] = y * l;
-							normals[3 * i + 2] = z * l;
-						}
-					}
-
-					std::vector<float> texcoords;
-					if (in_mesh->texcoords.size() > 0)
-					{
-						texcoords.resize(in_mesh->texcoords.size() * 2);
-						for (size_t i = 0; i < in_mesh->texcoords.size(); i++)
-						{
-							texcoords[2 * i + 0] = (float)in_mesh->texcoords[i][0];
-							texcoords[2 * i + 1] = (float)in_mesh->texcoords[i][1];
-						}
-					}
-
-                    int nAcc = accessors_.size();
-
-                    std::shared_ptr<BufferView> bufferView = this->AddBufferViewDraco(in_mesh);
-                    mesh->SetBufferView("draco", bufferView);
-
-					{
-						//indices
-						std::string accName = "accessor_" + IToS(nAcc);//
-						std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
-						//acc->SetBufferView(bufferView);
-						acc->Set("count", picojson::value((double)(indices.size())));
-						acc->Set("type", picojson::value("SCALAR"));
-						acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_UNSIGNED_INT));//5125
-																											 //acc->Set("byteOffset", picojson::value((double)0));
-																											 //acc->Set("byteStride", picojson::value((double)sizeof(unsigned int)));
-
-						unsigned int min, max;
-						GetMinMax(min, max, indices);
-						picojson::array amin, amax;
-						amin.push_back(picojson::value((double)min));
-						amax.push_back(picojson::value((double)max));
-						acc->Set("min", picojson::value(amin));
-						acc->Set("max", picojson::value(amax));
-
-						accessors_.push_back(acc);
-						mesh->SetAccessor("indices", acc);
-						nAcc++;
-					}
-					{
-						//normal
-						std::string accName = "accessor_" + IToS(nAcc);//
-						std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
-						//acc->SetBufferView(bufferView);
-						acc->Set("count", picojson::value((double)(normals.size() / 3)));
-						acc->Set("type", picojson::value("VEC3"));
-						acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
-																									  //acc->Set("byteOffset", picojson::value((double)0));
-									    															  //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
-
-						float min[3] = {}, max[3] = {};
-						if (normals.size())
-						{
-							GetMinMax(min, max, normals, 3);
-						}
-						acc->Set("min", picojson::value(ConvertToArray(min, 3)));
-						acc->Set("max", picojson::value(ConvertToArray(max, 3)));
-
-						accessors_.push_back(acc);
-						mesh->SetAccessor("NORMAL", acc);
-						nAcc++;
-					}
-					{
-						//position
-						std::string accName = "accessor_" + IToS(nAcc);//
-						std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
-						//acc->SetBufferView(bufferView);
-						acc->Set("count", picojson::value((double)(positions.size() / 3)));
-						acc->Set("type", picojson::value("VEC3"));
-						acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
-																									  //acc->Set("byteOffset", picojson::value((double)0));
-																									  //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
-
-						float min[3] = {}, max[3] = {};
-						GetMinMax(min, max, positions, 3);
-						acc->Set("min", picojson::value(ConvertToArray(min, 3)));
-						acc->Set("max", picojson::value(ConvertToArray(max, 3)));
-
-						accessors_.push_back(acc);
-						mesh->SetAccessor("POSITION", acc);
-						nAcc++;
-					}
-					if (texcoords.size() > 0)
-					{
-						//texcoord
-						std::string accName = "accessor_" + IToS(nAcc);//
-						std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
-						//acc->SetBufferView(bufferView);
-						acc->Set("count", picojson::value((double)(texcoords.size() / 2)));
-						acc->Set("type", picojson::value("VEC2"));
-						acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
-																									  //acc->Set("byteOffset", picojson::value((double)0));
-																									  //acc->Set("byteStride", picojson::value((double)2 * sizeof(float)));
-
-						float min[3] = {}, max[3] = {};
-						GetMinMax(min, max, texcoords, 2);
-						acc->Set("min", picojson::value(ConvertToArray(min, 2)));
-						acc->Set("max", picojson::value(ConvertToArray(max, 2)));
-
-						accessors_.push_back(acc);
-						mesh->SetAccessor("TEXCOORD_0", acc);
-						nAcc++;
-					}
-
-                    
-
-                    const std::shared_ptr<::kml::SkinWeights> in_skin = in_mesh->skin_weights;
-                    if (in_skin.get() && this->skins_.size() > 0)
-                    {
-                        //int nSkin = skins_.size();
-                        //std::string skinName = in_skin->name;
-                        //std::shared_ptr<Skin> skin(new Skin(skinName, nSkin));
-
-                        //node->SetSkin(skin);
-                        //this->skins_.push_back(skin);
-                    }
-
-                    {
-                        /*
-                        std::vector<std::shared_ptr<MorphTarget> > targets = this->RegisterMorphTargets(in_mesh);
-                        if (!targets.empty())
-                        {
-                            for (size_t i = 0; i < targets.size(); i++)
-                            {
-                                mesh->AddTarget(targets[i]);
-                            }
-                        }
-                        */
-                    }
-
-					node->SetMesh(mesh);
-					this->meshes_.push_back(mesh);
 				}
 			}
 		public:
@@ -1999,11 +1270,11 @@ namespace kml
             {
                 if (IsOutputBin)
                 {
-                    reg.RegisterComponents(node_pairs[i].first, node_pairs[i].second);
+                    reg.RegisterMesh(node_pairs[i].first, node_pairs[i].second, false);
                 }
                 else if (IsOutputDraco)
                 {
-                    reg.RegisterComponentsDraco(node_pairs[i].first, node_pairs[i].second);
+                    reg.RegisterMesh(node_pairs[i].first, node_pairs[i].second, true);
                 }
             }
             {
@@ -2278,31 +1549,29 @@ namespace kml
                     }
 
 
-					if (IsOutputDraco)
+                    std::shared_ptr<BufferView> bufferView = mesh->GetBufferView("draco");
+                    if(bufferView.get())
 					{
-                        std::shared_ptr<BufferView> bufferView = mesh->GetBufferView("draco");
-                        if(bufferView.get())
-						{
-							picojson::object KHR_draco_mesh_compression;
-							KHR_draco_mesh_compression["bufferView"] = picojson::value((double)bufferView->GetIndex());
+						picojson::object KHR_draco_mesh_compression;
+						KHR_draco_mesh_compression["bufferView"] = picojson::value((double)bufferView->GetIndex());
 
-							int nOrder = 0;
-							picojson::object attributes;
-							attributes["POSITION"] = picojson::value((double)nOrder++);
-							std::shared_ptr<Accessor> tex = mesh->GetAccessor("TEXCOORD_0");
-							if (tex.get())
-							{
-								attributes["TEXCOORD_0"] = picojson::value((double)nOrder++);
-							}
-							attributes["NORMAL"] = picojson::value((double)nOrder++);
-							KHR_draco_mesh_compression["attributes"] = picojson::value(attributes);
+						int nOrder = 0;
+						picojson::object attributes;
+						attributes["POSITION"] = picojson::value((double)nOrder++);
+						std::shared_ptr<Accessor> tex = mesh->GetAccessor("TEXCOORD_0");
+						if (tex.get())
+						{
+							attributes["TEXCOORD_0"] = picojson::value((double)nOrder++);
+						}
+						attributes["NORMAL"] = picojson::value((double)nOrder++);
+						KHR_draco_mesh_compression["attributes"] = picojson::value(attributes);
 							
 
-							picojson::object extensions;
-							extensions["KHR_draco_mesh_compression"] = picojson::value(KHR_draco_mesh_compression);
-							primitive["extensions"] = picojson::value(extensions);
-						}
+						picojson::object extensions;
+						extensions["KHR_draco_mesh_compression"] = picojson::value(KHR_draco_mesh_compression);
+						primitive["extensions"] = picojson::value(extensions);
 					}
+					
 
 
                     picojson::array primitives;
