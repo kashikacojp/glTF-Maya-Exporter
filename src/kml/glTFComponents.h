@@ -11,7 +11,6 @@
 #include <fstream>
 
 #include <glm/glm.hpp>
-#include <picojson/picojson.h>
 
 #include "glTFConstants.h"
 
@@ -163,7 +162,12 @@ namespace kml
         public:
             Accessor(const std::string& name, int index)
                 :name_(name), index_(index)
-            {}
+            {
+                type_ = "SCALAR";
+                componentType_ = GLTF_COMPONENT_TYPE_FLOAT;
+                count_ = 1;
+                byteOffset_ = 0;
+            }
             const std::string& GetName()const
             {
                 return name_;
@@ -198,26 +202,77 @@ namespace kml
                 return dracoBuffer_;
             }
 
-            void Set(const std::string& key, const picojson::value& v)
+            bool IsDraco()const
             {
-                obj_[key] = v;
+                return (dracoBuffer_.get());
             }
-            picojson::value Get(const std::string& key)const
+
+            void SetType(const std::string& type)
             {
-                picojson::object::const_iterator it = obj_.find(key);
-                if (it != obj_.end())
-                {
-                    return it->second;
-                }
-                else
-                {
-                    return picojson::value();
-                }
+                type_ = type;
+            }
+
+            std::string GetType()const
+            {
+                return type_;
+            }
+
+            void SetComponentType(int c)
+            {
+                componentType_ = c;
+            }
+
+            int GetComponentType()const
+            {
+                return componentType_;
+            }
+
+            void SetCount(size_t c)
+            {
+                count_ = c;
+            }
+
+            size_t GetCount()const
+            {
+                return count_;
+            }
+
+            void SetByteOffset(size_t offset)
+            {
+                byteOffset_ = offset;
+            }
+
+            size_t GetByteOffset()const
+            {
+                return byteOffset_;
+            }
+
+            void SetMin(const std::vector<float>& v)
+            {
+                min_ = v;
+            }
+
+            void SetMax(const std::vector<float>& v)
+            {
+                max_ = v;
+            }
+            std::vector<float> GetMin()const
+            {
+                return min_;
+            }
+            std::vector<float> GetMax()const
+            {
+                return max_;
             }
         protected:
             std::string name_;
             int index_;
-            picojson::object obj_;
+            std::string type_;
+            int componentType_;
+            size_t count_;
+            size_t byteOffset_;
+            std::vector<float> min_;
+            std::vector<float> max_;
             std::shared_ptr<BufferView> bufferView_;
             std::shared_ptr<DracoTemporaryBuffer> dracoBuffer_;
         };

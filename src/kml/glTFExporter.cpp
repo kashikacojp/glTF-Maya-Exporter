@@ -305,6 +305,17 @@ namespace kml
 		}
 
         static
+        picojson::array ConvertToArray(std::vector<float>& v)
+        {
+            picojson::array a;
+            for (int j = 0; j < v.size(); j++)
+            {
+                a.push_back(picojson::value((double)v[j]));
+            }
+            return a;
+        }
+
+        static
         int GetIndexOfJoint(const std::shared_ptr<Skin>& skin, const std::string& path)
         {
             const auto& joints = skin->GetJoints();
@@ -383,19 +394,17 @@ namespace kml
                             std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
                             const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(nor);
                             acc->SetBufferView(bufferView);
-                            acc->Set("count", picojson::value((double)(nor.size() / 3)));
-                            acc->Set("type", picojson::value("VEC3"));
-                            acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
-                            acc->Set("byteOffset", picojson::value((double)0));
+                            acc->SetCount(nor.size() / 3);
+                            acc->SetType("VEC3");
+                            acc->SetComponentType(GLTF_COMPONENT_TYPE_FLOAT);//5126
+                            acc->SetByteOffset(0);
                             //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
 
-                            float min[3] = {}, max[3] = {};
-                            if (nor.size())
-                            {
-                                GetMinMax(min, max, nor, 3);
-                            }
-                            acc->Set("min", picojson::value(ConvertToArray(min, 3)));
-                            acc->Set("max", picojson::value(ConvertToArray(max, 3)));
+                            std::vector<float> min(3);
+                            std::vector<float> max(3);
+                            GetMinMax(&min[0], &max[0], nor, 3);
+                            acc->SetMin(min);
+                            acc->SetMax(max);
 
                             accessors_.push_back(acc);
                             target->SetAccessor("NORMAL", acc);
@@ -407,16 +416,17 @@ namespace kml
                             std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
                             const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(pos);
                             acc->SetBufferView(bufferView);
-                            acc->Set("count", picojson::value((double)(pos.size() / 3)));
-                            acc->Set("type", picojson::value("VEC3"));
-                            acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
-                            acc->Set("byteOffset", picojson::value((double)0));
+                            acc->SetCount(pos.size() / 3);
+                            acc->SetType("VEC3");
+                            acc->SetComponentType(GLTF_COMPONENT_TYPE_FLOAT);//5126
+                            acc->SetByteOffset(0);
                             //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
 
-                            float min[3] = {}, max[3] = {};
-                            GetMinMax(min, max, pos, 3);
-                            acc->Set("min", picojson::value(ConvertToArray(min, 3)));
-                            acc->Set("max", picojson::value(ConvertToArray(max, 3)));
+                            std::vector<float> min(3);
+                            std::vector<float> max(3);
+                            GetMinMax(&min[0], &max[0], pos, 3);
+                            acc->SetMin(min);
+                            acc->SetMax(max);
 
                             accessors_.push_back(acc);
                             target->SetAccessor("POSITION", acc);
@@ -462,19 +472,17 @@ namespace kml
                             std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
                             const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(values, -1);
                             acc->SetBufferView(bufferView);
-                            acc->Set("count", picojson::value((double)(values.size())));
-                            acc->Set("type", picojson::value("SCALAR"));
-                            acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
-                            acc->Set("byteOffset", picojson::value((double)0));
+                            acc->SetCount(values.size());
+                            acc->SetType("SCALAR");
+                            acc->SetComponentType(GLTF_COMPONENT_TYPE_FLOAT);//5126
+                            acc->SetByteOffset(0);
                             //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
 
-                            float min[3] = {}, max[3] = {};
-                            if (values.size())
-                            {
-                                GetMinMax(min, max, values, 1);
-                            }
-                            acc->Set("min", picojson::value(ConvertToArray(min, 1)));
-                            acc->Set("max", picojson::value(ConvertToArray(max, 1)));
+                            std::vector<float> min(1);
+                            std::vector<float> max(1);
+                            GetMinMax(&min[0], &max[0], values, 1);
+                            acc->SetMin(min);
+                            acc->SetMax(max);
 
                             accessors_.push_back(acc);
                             sampler->SetInputAccessor(acc);
@@ -499,19 +507,17 @@ namespace kml
                             std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
                             const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(values, -1);
                             acc->SetBufferView(bufferView);
-                            acc->Set("count", picojson::value((double)(values.size() / 3)));
-                            acc->Set("type", picojson::value("VEC3"));
-                            acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
-                            acc->Set("byteOffset", picojson::value((double)0));
+                            acc->SetCount(values.size() / 3);
+                            acc->SetType("VEC3");
+                            acc->SetComponentType(GLTF_COMPONENT_TYPE_FLOAT);//5126
+                            acc->SetByteOffset(0);
                             //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
 
-                            float min[3] = {}, max[3] = {};
-                            if (values.size())
-                            {
-                                GetMinMax(min, max, values, 3);
-                            }
-                            acc->Set("min", picojson::value(ConvertToArray(min, 3)));
-                            acc->Set("max", picojson::value(ConvertToArray(max, 3)));
+                            std::vector<float> min(3);
+                            std::vector<float> max(3);
+                            GetMinMax(&min[0], &max[0], values, 3);
+                            acc->SetMin(min);
+                            acc->SetMax(max);
 
                             accessors_.push_back(acc);
                             sampler->SetOutputAccessor(acc);
@@ -537,19 +543,17 @@ namespace kml
                             std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
                             const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(values, -1);
                             acc->SetBufferView(bufferView);
-                            acc->Set("count", picojson::value((double)(values.size() / 4)));
-                            acc->Set("type", picojson::value("VEC4"));
-                            acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
-                            acc->Set("byteOffset", picojson::value((double)0));
+                            acc->SetCount(values.size() / 4);
+                            acc->SetType("VEC4");
+                            acc->SetComponentType(GLTF_COMPONENT_TYPE_FLOAT);//5126
+                            acc->SetByteOffset(0);
                             //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
 
-                            float min[4] = {}, max[4] = {};
-                            if (values.size())
-                            {
-                                GetMinMax(min, max, values, 4);
-                            }
-                            acc->Set("min", picojson::value(ConvertToArray(min, 4)));
-                            acc->Set("max", picojson::value(ConvertToArray(max, 4)));
+                            std::vector<float> min(4);
+                            std::vector<float> max(4);
+                            GetMinMax(&min[0], &max[0], values, 4);
+                            acc->SetMin(min);
+                            acc->SetMax(max);
 
                             accessors_.push_back(acc);
                             sampler->SetOutputAccessor(acc);
@@ -654,26 +658,24 @@ namespace kml
                         {
                             std::shared_ptr<BufferView> bv = this->AddBufferView(indices, GLTF_TARGET_ELEMENT_ARRAY_BUFFER);
                             acc->SetBufferView(bv);
-
-                            acc->Set("byteOffset", picojson::value((double)0));
                         }
                         else
                         {
                             std::shared_ptr<DracoTemporaryBuffer> bv(new DracoTemporaryBuffer((unsigned char*)(&indices[0]), sizeof(unsigned int)*indices.size()));
                             acc->SetDracoTemporaryBuffer(bv);
                         }
-						acc->Set("count", picojson::value((double)(indices.size())));
-						acc->Set("type", picojson::value("SCALAR"));
-						acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_UNSIGNED_INT));//5125
+                        acc->SetCount(indices.size());
+                        acc->SetType("SCALAR");
+                        acc->SetComponentType(GLTF_COMPONENT_TYPE_UNSIGNED_INT);//5126
+                        acc->SetByteOffset(0);
 						//acc->Set("byteStride", picojson::value((double)sizeof(unsigned int)));
 
-						unsigned int min, max;
-						GetMinMax(min, max, indices);
-						picojson::array amin, amax;
-						amin.push_back(picojson::value((double)min));
-						amax.push_back(picojson::value((double)max));
-						acc->Set("min", picojson::value(amin));
-						acc->Set("max", picojson::value(amax));
+						unsigned int imin, imax;
+						GetMinMax(imin, imax, indices);
+                        std::vector<float> min = { (float)imin };
+                        std::vector<float> max = { (float)imax };
+                        acc->SetMin(min);
+                        acc->SetMax(max);
 
 						accessors_.push_back(acc);
 						mesh->SetAccessor("indices", acc);
@@ -687,26 +689,23 @@ namespace kml
                         {
                             std::shared_ptr<BufferView> bv = this->AddBufferView(normals, GLTF_TARGET_ARRAY_BUFFER);
                             acc->SetBufferView(bv);
-
-                            acc->Set("byteOffset", picojson::value((double)0));
                         }
                         else
                         {
                             std::shared_ptr<DracoTemporaryBuffer> bv(new DracoTemporaryBuffer((unsigned char*)(&normals[0]), sizeof(float)*normals.size()));
                             acc->SetDracoTemporaryBuffer(bv);
                         }
-						acc->Set("count", picojson::value((double)(normals.size() / 3)));
-						acc->Set("type", picojson::value("VEC3"));
-						acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
+                        acc->SetCount(normals.size() / 3);
+                        acc->SetType("VEC3");
+                        acc->SetComponentType(GLTF_COMPONENT_TYPE_FLOAT);//5126
+                        acc->SetByteOffset(0);
 						//acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
 
-						float min[3] = {}, max[3] = {};
-						if (normals.size())
-						{
-							GetMinMax(min, max, normals, 3);
-						}
-						acc->Set("min", picojson::value(ConvertToArray(min, 3)));
-						acc->Set("max", picojson::value(ConvertToArray(max, 3)));
+                        std::vector<float> min(3);
+                        std::vector<float> max(3);
+                        GetMinMax(&min[0], &max[0], normals, 3);
+                        acc->SetMin(min);
+                        acc->SetMax(max);
 
 						accessors_.push_back(acc);
 						mesh->SetAccessor("NORMAL", acc);
@@ -720,23 +719,23 @@ namespace kml
                         {
                             std::shared_ptr<BufferView> bv = this->AddBufferView(positions, GLTF_TARGET_ARRAY_BUFFER);
                             acc->SetBufferView(bv);
-
-                            acc->Set("byteOffset", picojson::value((double)0));
                         }
                         else
                         {
                             std::shared_ptr<DracoTemporaryBuffer> bv(new DracoTemporaryBuffer((unsigned char*)(&positions[0]), sizeof(float)*positions.size()));
                             acc->SetDracoTemporaryBuffer(bv);
                         }
-						acc->Set("count", picojson::value((double)(positions.size() / 3)));
-						acc->Set("type", picojson::value("VEC3"));
-						acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
+                        acc->SetCount(positions.size() / 3);
+                        acc->SetType("VEC3");
+                        acc->SetComponentType(GLTF_COMPONENT_TYPE_FLOAT);//5126
+                        acc->SetByteOffset(0);
 						//acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
 
-						float min[3] = {}, max[3] = {};
-						GetMinMax(min, max, positions, 3);
-						acc->Set("min", picojson::value(ConvertToArray(min, 3)));
-						acc->Set("max", picojson::value(ConvertToArray(max, 3)));
+                        std::vector<float> min(3);
+                        std::vector<float> max(3);
+                        GetMinMax(&min[0], &max[0], positions, 3);
+                        acc->SetMin(min);
+                        acc->SetMax(max);
 
 						accessors_.push_back(acc);
 						mesh->SetAccessor("POSITION", acc);
@@ -751,23 +750,23 @@ namespace kml
                         {
                             std::shared_ptr<BufferView> bv = this->AddBufferView(texcoords, GLTF_TARGET_ARRAY_BUFFER);
                             acc->SetBufferView(bv);
-
-                            acc->Set("byteOffset", picojson::value((double)0));
                         }
                         else
                         {
                             std::shared_ptr<DracoTemporaryBuffer> bv(new DracoTemporaryBuffer((unsigned char*)(&texcoords[0]), sizeof(float)*texcoords.size()));
                             acc->SetDracoTemporaryBuffer(bv);
                         }
-						acc->Set("count", picojson::value((double)(texcoords.size() / 2)));
-						acc->Set("type", picojson::value("VEC2"));
-						acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
+                        acc->SetCount(texcoords.size() / 2);
+                        acc->SetType("VEC2");
+                        acc->SetComponentType(GLTF_COMPONENT_TYPE_FLOAT);//5126
+                        acc->SetByteOffset(0);
 						//acc->Set("byteStride", picojson::value((double)2 * sizeof(float)));
 
-						float min[3] = {}, max[3] = {};
-						GetMinMax(min, max, texcoords, 2);
-						acc->Set("min", picojson::value(ConvertToArray(min, 2)));
-						acc->Set("max", picojson::value(ConvertToArray(max, 2)));
+                        std::vector<float> min(2);
+                        std::vector<float> max(2);
+						GetMinMax(&min[0], &max[0], texcoords, 2);
+                        acc->SetMin(min);
+                        acc->SetMax(max);
 
 						accessors_.push_back(acc);
 						mesh->SetAccessor("TEXCOORD_0", acc);
@@ -840,17 +839,16 @@ namespace kml
                                 {
                                     const std::shared_ptr<BufferView> bv = this->AddBufferView(joints, GLTF_TARGET_ARRAY_BUFFER);
                                     acc->SetBufferView(bv);
-
-                                    acc->Set("byteOffset", picojson::value((double)0));
                                 }
                                 else
                                 {
                                     std::shared_ptr<DracoTemporaryBuffer> bv(new DracoTemporaryBuffer((unsigned char*)(&joints[0]), sizeof(unsigned short)*joints.size()));
                                     acc->SetDracoTemporaryBuffer(bv);
                                 }
-                                acc->Set("count", picojson::value((double)(joints.size() / 4)));
-                                acc->Set("type", picojson::value("VEC4"));
-                                acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_UNSIGNED_SHORT));//5123
+                                acc->SetCount(joints.size() / 4);
+                                acc->SetType("VEC4");
+                                acc->SetComponentType(GLTF_COMPONENT_TYPE_UNSIGNED_SHORT);//5126
+                                acc->SetByteOffset(0);
                                 //acc->Set("byteStride", picojson::value((double)sizeof(unsigned int)));
                                 /*
                                 unsigned short min[4] = {}, max[4] = {};
@@ -871,17 +869,16 @@ namespace kml
                                 {
                                     const std::shared_ptr<BufferView> bv = this->AddBufferView(weights, GLTF_TARGET_ARRAY_BUFFER);
                                     acc->SetBufferView(bv);
-
-                                    acc->Set("byteOffset", picojson::value((double)0));
                                 }
                                 else
                                 {
                                     std::shared_ptr<DracoTemporaryBuffer> bv(new DracoTemporaryBuffer((unsigned char*)(&weights[0]), sizeof(float)*weights.size()));
                                     acc->SetDracoTemporaryBuffer(bv);
                                 }
-                                acc->Set("count", picojson::value((double)(weights.size() / 4)));
-                                acc->Set("type", picojson::value("VEC4"));
-                                acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
+                                acc->SetCount(weights.size() / 4);
+                                acc->SetType("VEC4");
+                                acc->SetComponentType(GLTF_COMPONENT_TYPE_FLOAT);//5126
+                                acc->SetByteOffset(0);
                                 //acc->Set("byteStride", picojson::value((double)sizeof(unsigned int)));
                                 /*
                                 float min[4] = {}, max[4] = {};
@@ -1232,10 +1229,10 @@ namespace kml
                     std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
                     const std::shared_ptr<BufferView>& bufferView = reg.AddBufferView(inverseMatrices, -1);
                     acc->SetBufferView(bufferView);
-                    acc->Set("count", picojson::value((double)(inverseMatrices.size() / 16)));
-                    acc->Set("type", picojson::value("MAT4"));
-                    acc->Set("componentType", picojson::value((double)GLTF_COMPONENT_TYPE_FLOAT));//5126
-                    acc->Set("byteOffset", picojson::value((double)0));
+                    acc->SetCount(inverseMatrices.size() / 16);
+                    acc->SetType("MAT4");
+                    acc->SetComponentType(GLTF_COMPONENT_TYPE_FLOAT);//5126
+                    acc->SetByteOffset(0);
                     //acc->Set("byteStride", picojson::value((double)sizeof(unsigned int)));
                     /*
                     float min[16] = {}, max[16] = {};
@@ -1602,24 +1599,23 @@ namespace kml
 					{
 						nd["bufferView"] = picojson::value((double)bufferView->GetIndex());
 					}
-                    picojson::value offsetObj = accessor->Get("byteOffset");
-                    if (offsetObj.is<double>())
+                    if (!accessor->IsDraco())
                     {
-                        nd["byteOffset"] = accessor->Get("byteOffset");
+                        nd["byteOffset"] = picojson::value((double)accessor->GetByteOffset());
                     }
 					//nd["byteStride"] = accessor->Get("byteStride");
-					nd["componentType"] = accessor->Get("componentType");
-					nd["count"] = accessor->Get("count");
-					nd["type"] = accessor->Get("type");
-                    auto min_ = accessor->Get("min");
-                    if (!min_.is<picojson::null>())
+					nd["componentType"] = picojson::value((double)accessor->GetComponentType());
+					nd["count"] = picojson::value((double)accessor->GetCount());
+					nd["type"] = picojson::value(accessor->GetType());
+                    auto min_ = accessor->GetMin();
+                    if (!min_.empty())
                     {
-                        nd["min"] = min_;
+                        nd["min"] = picojson::value(ConvertToArray(min_));
                     }
-                    auto max_ = accessor->Get("max");
-                    if (!max_.is<picojson::null>())
+                    auto max_ = accessor->GetMax();
+                    if (!max_.empty())
                     {
-                        nd["max"] = max_;
+                        nd["max"] = picojson::value(ConvertToArray(max_));
                     }
 					ar.push_back(picojson::value(nd));
 				}
