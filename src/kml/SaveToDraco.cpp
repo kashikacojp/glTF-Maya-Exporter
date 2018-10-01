@@ -123,7 +123,7 @@ namespace kml
 	bool SaveToDraco(std::vector<unsigned char>& bytes, const std::shared_ptr<Mesh>& mesh)
 	{
         std::unique_ptr<ns::Options> options(new ns::Options());
-
+        int speed = 10 - options->compression_level;
         std::unique_ptr<draco::Encoder> dracoEncoder(new draco::Encoder());
         {
             dracoEncoder->SetAttributeQuantization(draco::GeometryAttribute::POSITION, options->pos_quantization_bits);
@@ -131,7 +131,7 @@ namespace kml
             dracoEncoder->SetAttributeQuantization(draco::GeometryAttribute::NORMAL, options->normals_quantization_bits);
             dracoEncoder->SetAttributeQuantization(draco::GeometryAttribute::COLOR, options->color_quantization_bits);
             dracoEncoder->SetAttributeQuantization(draco::GeometryAttribute::GENERIC, options->generic_quantization_bits);
-            dracoEncoder->SetSpeedOptions(options->compression_level, options->compression_level);
+            dracoEncoder->SetSpeedOptions(speed, speed);
             //dracoEncoder->SetTrackEncodedProperties(true);
         }
 
@@ -151,9 +151,9 @@ namespace kml
         //Add buffers
         {
             //index
-            //N
             //P
             //T
+            //V
             {
                 //std::vector<unsigned int> buf(mesh->pos_indices.size());
                 //for (size_t i = 0; i < buf.size(); i++)
@@ -162,6 +162,29 @@ namespace kml
                 //}
                 //int attId = CreateDracoBuffer(*dracoMesh, 1, false, buf);
             }
+            
+            {
+                std::vector<float> buf(mesh->positions.size() * 3);
+                for (size_t i = 0; i < mesh->positions.size(); i++)
+                {
+                    buf[3 * i + 0] = (float)mesh->positions[i][0];
+                    buf[3 * i + 1] = (float)mesh->positions[i][1];
+                    buf[3 * i + 2] = (float)mesh->positions[i][2];
+                }
+                int attId = CreateDracoBuffer(*dracoMesh, draco::GeometryAttribute::Type::POSITION, 3, false, buf);
+            }
+            
+            if (mesh->texcoords.size() > 0)
+            {
+                std::vector<float> buf(mesh->texcoords.size() * 2);
+                for (size_t i = 0; i < mesh->texcoords.size(); i++)
+                {
+                    buf[2 * i + 0] = (float)mesh->texcoords[i][0];
+                    buf[2 * i + 1] = (float)mesh->texcoords[i][1];
+                }
+                int attId = CreateDracoBuffer(*dracoMesh, draco::GeometryAttribute::Type::TEX_COORD, 2, false, buf);
+            }
+
             {
                 std::vector<float> buf(mesh->normals.size() * 3);
                 for (size_t i = 0; i < mesh->normals.size(); i++)
@@ -185,27 +208,6 @@ namespace kml
                     }
                 }
                 int attId = CreateDracoBuffer(*dracoMesh, draco::GeometryAttribute::Type::NORMAL, 3, true, buf);
-            }
-            {
-                std::vector<float> buf(mesh->positions.size() * 3);
-                for (size_t i = 0; i < mesh->positions.size(); i++)
-                {
-                    buf[3 * i + 0] = (float)mesh->positions[i][0];
-                    buf[3 * i + 1] = (float)mesh->positions[i][1];
-                    buf[3 * i + 2] = (float)mesh->positions[i][2];
-                }
-                int attId = CreateDracoBuffer(*dracoMesh, draco::GeometryAttribute::Type::POSITION, 3, false, buf);
-            }
-            
-            if (mesh->texcoords.size() > 0)
-            {
-                std::vector<float> buf(mesh->texcoords.size() * 2);
-                for (size_t i = 0; i < mesh->texcoords.size(); i++)
-                {
-                    buf[2 * i + 0] = (float)mesh->texcoords[i][0];
-                    buf[2 * i + 1] = (float)mesh->texcoords[i][1];
-                }
-                int attId = CreateDracoBuffer(*dracoMesh, draco::GeometryAttribute::Type::TEX_COORD, 2, false, buf);
             }
             
         }
