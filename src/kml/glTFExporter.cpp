@@ -35,12 +35,12 @@
 
 
 namespace {
-	enum ImageFormat {
-		FORMAT_JPEG = 0,
-		FORMAT_PNG,
-		FORMAT_BMP,
-		FORMAT_GIF
-	};
+    enum ImageFormat {
+        FORMAT_JPEG = 0,
+        FORMAT_PNG,
+        FORMAT_BMP,
+        FORMAT_GIF
+    };
 }
 
 namespace kml
@@ -72,118 +72,118 @@ namespace kml
         }
     }
 
-	static
-	std::string IToS(int n)
-	{
-		char buffer[16] = {};
+    static
+    std::string IToS(int n)
+    {
+        char buffer[16] = {};
 #ifdef _WIN32
-		_snprintf(buffer, 16, "%03d", n);
+        _snprintf(buffer, 16, "%03d", n);
 #else
-		snprintf(buffer, 16, "%03d", n);
+        snprintf(buffer, 16, "%03d", n);
 #endif
-		return buffer;
-	}
+        return buffer;
+    }
 
-	static
-	std::string GetBaseDir(const std::string& filepath)
-	{
+    static
+    std::string GetBaseDir(const std::string& filepath)
+    {
 #ifdef _WIN32
-		char dir[MAX_PATH + 1] = {};
-		char drv[MAX_PATH + 1] = {};
-		_splitpath(filepath.c_str(), drv, dir, NULL, NULL);
-		return std::string(drv) + std::string(dir);
+        char dir[MAX_PATH + 1] = {};
+        char drv[MAX_PATH + 1] = {};
+        _splitpath(filepath.c_str(), drv, dir, NULL, NULL);
+        return std::string(drv) + std::string(dir);
 #else
-		if (filepath.find_last_of("/") != std::string::npos)
-			return filepath.substr(0, filepath.find_last_of("/")) + "/";
+        if (filepath.find_last_of("/") != std::string::npos)
+            return filepath.substr(0, filepath.find_last_of("/")) + "/";
 #endif
-		return "";
-	}
+        return "";
+    }
 
-	static
-	std::string RemoveExt(const std::string& filepath)
-	{
-		if (filepath.find_last_of(".") != std::string::npos)
-			return filepath.substr(0, filepath.find_last_of("."));
-		return filepath;
-	}
+    static
+    std::string RemoveExt(const std::string& filepath)
+    {
+        if (filepath.find_last_of(".") != std::string::npos)
+            return filepath.substr(0, filepath.find_last_of("."));
+        return filepath;
+    }
 
-	static
+    static
     std::string GetBaseName(const std::string& filepath)
-	{
+    {
 #ifdef _WIN32
-		char fname[MAX_PATH + 1] = {};
-		_splitpath(filepath.c_str(), NULL, NULL, fname, NULL);
-		return fname;
+        char fname[MAX_PATH + 1] = {};
+        _splitpath(filepath.c_str(), NULL, NULL, fname, NULL);
+        return fname;
 #else
-		if (filepath.find_last_of("/") != std::string::npos)
-			return RemoveExt(filepath.substr(filepath.find_last_of("/") + 1));
+        if (filepath.find_last_of("/") != std::string::npos)
+            return RemoveExt(filepath.substr(filepath.find_last_of("/") + 1));
 #endif
-		return filepath;
-	}
+        return filepath;
+    }
 
-	static
-	std::string GetImageID(const std::string& imagePath)
-	{
-		return GetBaseName(imagePath);
-	}
+    static
+    std::string GetImageID(const std::string& imagePath)
+    {
+        return GetBaseName(imagePath);
+    }
 
-	static
-	std::string GetTextureID(const std::string& imagePath)
-	{
-		return "texture_" + GetImageID(imagePath);
-	}
+    static
+    std::string GetTextureID(const std::string& imagePath)
+    {
+        return "texture_" + GetImageID(imagePath);
+    }
 
-	static
-	std::string GetFileExtName(const std::string& path)
-	{
+    static
+    std::string GetFileExtName(const std::string& path)
+    {
 #ifdef _WIN32
-		char szFname[_MAX_FNAME];
-		char szExt[_MAX_EXT];
-		_splitpath(path.c_str(), NULL, NULL, szFname, szExt);
-		std::string strRet1;
-		strRet1 += szFname;
-		strRet1 += szExt;
-		return strRet1;
+        char szFname[_MAX_FNAME];
+        char szExt[_MAX_EXT];
+        _splitpath(path.c_str(), NULL, NULL, szFname, szExt);
+        std::string strRet1;
+        strRet1 += szFname;
+        strRet1 += szExt;
+        return strRet1;
 #else
-		int i = path.find_last_of('/');
-		if (i != std::string::npos)
-		{
-			return path.substr(i + 1);
-		}
-		else
-		{
-			return path;
-		}
+        int i = path.find_last_of('/');
+        if (i != std::string::npos)
+        {
+            return path.substr(i + 1);
+        }
+        else
+        {
+            return path;
+        }
 #endif
-	}
+    }
 
-	static
+    static
     void GetTextures(std::map<std::string, std::shared_ptr<kml::Texture> >& texture_set, const std::vector< std::shared_ptr<::kml::Material> >& materials)
-	{
-		for (size_t j = 0; j < materials.size(); j++)
-		{
-			const auto& mat = materials[j];
-			auto keys = mat->GetTextureKeys();
-			for (int i = 0; i < keys.size(); i++)
-			{
-				std::shared_ptr<kml::Texture> tex = mat->GetTexture(keys[i]);
+    {
+        for (size_t j = 0; j < materials.size(); j++)
+        {
+            const auto& mat = materials[j];
+            auto keys = mat->GetTextureKeys();
+            for (int i = 0; i < keys.size(); i++)
+            {
+                std::shared_ptr<kml::Texture> tex = mat->GetTexture(keys[i]);
                 if (tex->FileExists())
                 {
                     texture_set[tex->GetFilePath()] = tex;
                 }
-			}
-		}
-	}
+            }
+        }
+    }
 
-	static
+    static
     std::string GetExt(const std::string& filepath)
-	{
-		if (filepath.find_last_of(".") != std::string::npos)
-			return filepath.substr(filepath.find_last_of("."));
-		return "";
-	}
+    {
+        if (filepath.find_last_of(".") != std::string::npos)
+            return filepath.substr(filepath.find_last_of("."));
+        return "";
+    }
 
-	static
+    static
     unsigned int GetImageFormat(const std::string& path)
     {
         std::string ext = GetExt(path);
@@ -237,41 +237,41 @@ namespace kml
         return IsZero(glm::value_ptr(p), 16, eps);
     }
 
-	namespace gltf
+    namespace gltf
     {
-		static
-		void GetMinMax(float min[], float max[], const std::vector<float>& verts, int n)
-		{
-			for (int i = 0; i < n; i++)
-			{
-				min[i] = +1e+16;
-				max[i] = -1e+16;
-			}
-			size_t sz = verts.size() / n;
-			for (size_t i = 0; i < sz; i++)
-			{
-				for (int j = 0; j < n; j++)
-				{
-					min[j] = std::min<float>(min[j], verts[n * i + j]);
-					max[j] = std::max<float>(max[j], verts[n * i + j]);
-				}
-			}
-		}
+        static
+        void GetMinMax(float min[], float max[], const std::vector<float>& verts, int n)
+        {
+            for (int i = 0; i < n; i++)
+            {
+                min[i] = +1e+16;
+                max[i] = -1e+16;
+            }
+            size_t sz = verts.size() / n;
+            for (size_t i = 0; i < sz; i++)
+            {
+                for (int j = 0; j < n; j++)
+                {
+                    min[j] = std::min<float>(min[j], verts[n * i + j]);
+                    max[j] = std::max<float>(max[j], verts[n * i + j]);
+                }
+            }
+        }
 
-		static
-		void GetMinMax(unsigned int& min, unsigned int& max, const std::vector<unsigned int>& verts)
-		{
-			{
-				min = std::numeric_limits<unsigned int>::max();
-				max = 0;
-			}
-			size_t sz = verts.size();
-			for (size_t i = 0; i < sz; i++)
-			{
-				min = std::min<unsigned int>(min, verts[i]);
-				max = std::max<unsigned int>(max, verts[i]);
-			}
-		}
+        static
+        void GetMinMax(unsigned int& min, unsigned int& max, const std::vector<unsigned int>& verts)
+        {
+            {
+                min = std::numeric_limits<unsigned int>::max();
+                max = 0;
+            }
+            size_t sz = verts.size();
+            for (size_t i = 0; i < sz; i++)
+            {
+                min = std::min<unsigned int>(min, verts[i]);
+                max = std::max<unsigned int>(max, verts[i]);
+            }
+        }
 
         static
         void GetMinMax(unsigned short min[], unsigned short max[], const std::vector<unsigned short>& verts, int n)
@@ -293,16 +293,16 @@ namespace kml
         }
 
         template<class T>
-		static
-		picojson::array ConvertToArray(T v[], int n)
-		{
-			picojson::array a;
-			for (int j = 0; j < n; j++)
-			{
-				a.push_back(picojson::value((double)v[j]));
-			}
-			return a;
-		}
+        static
+        picojson::array ConvertToArray(T v[], int n)
+        {
+            picojson::array a;
+            for (int j = 0; j < n; j++)
+            {
+                a.push_back(picojson::value((double)v[j]));
+            }
+            return a;
+        }
 
         static
         picojson::array ConvertToArray(std::vector<float>& v)
@@ -329,13 +329,13 @@ namespace kml
             return -1;
         }
 
-		class ObjectRegisterer
-		{
-		public:
+        class ObjectRegisterer
+        {
+        public:
             ObjectRegisterer(const std::string& basename)
-			{
-				basename_ = basename;
-			}
+            {
+                basename_ = basename;
+            }
 
             std::shared_ptr<Node> CreateNode(const std::shared_ptr<::kml::Node>& in_node)
             {
@@ -446,214 +446,235 @@ namespace kml
                 int nAS = 0;
                 int nAC = 0;
                 int nAn = this->animations_.size();
-                if (in_animation->curves.size() > 0)
+                const auto& in_instructions = in_animation->GetInstructions();
+                if (in_instructions.size() > 0)
                 {
                     std::shared_ptr<Animation> animation(new Animation(in_animation->name, nAC));
-                    for (size_t i = 0; i < in_animation->curves.size(); i++)
+            
+                    for (size_t i = 0; i < in_instructions.size(); i++)
                     {
-                        const auto& curve = in_animation->curves[i];
+                        const auto& in_instruction = in_instructions[i];
 
-                        std::shared_ptr<AnimationSampler> sampler(new AnimationSampler(in_animation->name, nAS));
-
-                        std::string path_type = curve->channel;
-                        sampler->SetTargetPath(path_type);
-
-                        sampler->SetInterpolation("LINEAR");
-                        switch (curve->interporation_type)
+                        std::vector< std::shared_ptr<AnimationSampler> > samplers;
+                        const auto& in_channels = in_instruction->GetChannels();
+                        for (size_t j = 0; j < in_channels.size(); j++)
                         {
-                        case kml::AnimationInterporationType::LINEAR:sampler->SetInterpolation("LINEAR"); break;
-                        case kml::AnimationInterporationType::STEP:sampler->SetInterpolation("STEP"); break;
-                        case kml::AnimationInterporationType::CUBICSPLINE:sampler->SetInterpolation("CUBICSPLINE"); break;
-                        }
-                        
-                        {
-                            std::vector<float> values = curve->keys;
-                            std::string accName = "accessor_" + IToS(nAcc);//
-                            std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
-                            const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(values, -1);
-                            acc->SetBufferView(bufferView);
-                            acc->SetCount(values.size());
-                            acc->SetType("SCALAR");
-                            acc->SetComponentType(GLTF_COMPONENT_TYPE_FLOAT);//5126
-                            acc->SetByteOffset(0);
-                            //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
+                            const auto& in_channel = in_channels[j];
 
-                            std::vector<float> min(1);
-                            std::vector<float> max(1);
-                            GetMinMax(&min[0], &max[0], values, 1);
-                            acc->SetMin(min);
-                            acc->SetMax(max);
+                            const auto key_curve = in_channel->GetCurve("k");
 
-                            accessors_.push_back(acc);
-                            sampler->SetInputAccessor(acc);
-                            nAcc++;
-                        }
-
-
-                        if (path_type == "translation" || path_type == "scale")
-                        {
-                            const std::vector<float>& x = curve->values["x"];
-                            const std::vector<float>& y = curve->values["y"];
-                            const std::vector<float>& z = curve->values["z"];
-                            std::vector<float> values(3 * x.size());
-                            for (size_t j = 0; j < x.size(); j++)
+                            std::string path_type = in_channel->GetChannelType();
+                            std::shared_ptr<AnimationSampler> sampler(new AnimationSampler(in_animation->name, nAS));
+                            sampler->SetTargetPath(path_type);
+                            sampler->SetInterpolation("LINEAR");
+                            switch (key_curve->GetInterpolationType())
                             {
-                                values[3 * j + 0] = x[j];
-                                values[3 * j + 1] = y[j];
-                                values[3 * j + 2] = z[j];
+                            case kml::AnimationInterporationType::LINEAR:sampler->SetInterpolation("LINEAR"); break;
+                            case kml::AnimationInterporationType::STEP:sampler->SetInterpolation("STEP"); break;
+                            case kml::AnimationInterporationType::CUBICSPLINE:sampler->SetInterpolation("CUBICSPLINE"); break;
+                            }
+                            
+                            {
+                                std::vector<float> values = key_curve->GetValues();
+                                std::string accName = "accessor_" + IToS(nAcc);//
+                                std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
+                                const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(values, -1);
+                                acc->SetBufferView(bufferView);
+                                acc->SetCount(values.size());
+                                acc->SetType("SCALAR");
+                                acc->SetComponentType(GLTF_COMPONENT_TYPE_FLOAT);//5126
+                                acc->SetByteOffset(0);
+                                //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
+
+                                std::vector<float> min(1);
+                                std::vector<float> max(1);
+                                GetMinMax(&min[0], &max[0], values, 1);
+                                acc->SetMin(min);
+                                acc->SetMax(max);
+
+                                accessors_.push_back(acc);
+                                sampler->SetInputAccessor(acc);
+                                nAcc++;
                             }
 
-                            std::string accName = "accessor_" + IToS(nAcc);//
-                            std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
-                            const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(values, -1);
-                            acc->SetBufferView(bufferView);
-                            acc->SetCount(values.size() / 3);
-                            acc->SetType("VEC3");
-                            acc->SetComponentType(GLTF_COMPONENT_TYPE_FLOAT);//5126
-                            acc->SetByteOffset(0);
-                            //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
-
-                            std::vector<float> min(3);
-                            std::vector<float> max(3);
-                            GetMinMax(&min[0], &max[0], values, 3);
-                            acc->SetMin(min);
-                            acc->SetMax(max);
-
-                            accessors_.push_back(acc);
-                            sampler->SetOutputAccessor(acc);
-                            nAcc++;
-                        }
-                        else if (path_type == "rotation")
-                        {
-                            const std::vector<float>& x = curve->values["x"];
-                            const std::vector<float>& y = curve->values["y"];
-                            const std::vector<float>& z = curve->values["z"];
-                            const std::vector<float>& w = curve->values["w"];
-
-                            std::vector<float> values(4 * x.size());
-                            for (size_t j = 0; j < x.size(); j++)
+                            if (path_type == "translation" || path_type == "scale")
                             {
-                                values[4 * j + 0] = x[j];
-                                values[4 * j + 1] = y[j];
-                                values[4 * j + 2] = z[j];
-                                values[4 * j + 3] = w[j];
+                                const std::vector<float>& x = in_channel->GetCurve("x")->GetValues();
+                                const std::vector<float>& y = in_channel->GetCurve("y")->GetValues();
+                                const std::vector<float>& z = in_channel->GetCurve("z")->GetValues();
+                                std::vector<float> values(3 * x.size());
+                                for (size_t j = 0; j < x.size(); j++)
+                                {
+                                    values[3 * j + 0] = x[j];
+                                    values[3 * j + 1] = y[j];
+                                    values[3 * j + 2] = z[j];
+                                }
+
+                                std::string accName = "accessor_" + IToS(nAcc);//
+                                std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
+                                const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(values, -1);
+                                acc->SetBufferView(bufferView);
+                                acc->SetCount(values.size() / 3);
+                                acc->SetType("VEC3");
+                                acc->SetComponentType(GLTF_COMPONENT_TYPE_FLOAT);//5126
+                                acc->SetByteOffset(0);
+                                //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
+
+                                std::vector<float> min(3);
+                                std::vector<float> max(3);
+                                GetMinMax(&min[0], &max[0], values, 3);
+                                acc->SetMin(min);
+                                acc->SetMax(max);
+
+                                accessors_.push_back(acc);
+                                sampler->SetOutputAccessor(acc);
+                                nAcc++;
                             }
+                            else if (path_type == "rotation")
+                            {
+                                const std::vector<float>& x = in_channel->GetCurve("x")->GetValues();
+                                const std::vector<float>& y = in_channel->GetCurve("y")->GetValues();
+                                const std::vector<float>& z = in_channel->GetCurve("z")->GetValues();
+                                const std::vector<float>& w = in_channel->GetCurve("w")->GetValues();
 
-                            std::string accName = "accessor_" + IToS(nAcc);//
-                            std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
-                            const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(values, -1);
-                            acc->SetBufferView(bufferView);
-                            acc->SetCount(values.size() / 4);
-                            acc->SetType("VEC4");
-                            acc->SetComponentType(GLTF_COMPONENT_TYPE_FLOAT);//5126
-                            acc->SetByteOffset(0);
-                            //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
+                                std::vector<float> values(4 * x.size());
+                                for (size_t j = 0; j < x.size(); j++)
+                                {
+                                    values[4 * j + 0] = x[j];
+                                    values[4 * j + 1] = y[j];
+                                    values[4 * j + 2] = z[j];
+                                    values[4 * j + 3] = w[j];
+                                }
 
-                            std::vector<float> min(4);
-                            std::vector<float> max(4);
-                            GetMinMax(&min[0], &max[0], values, 4);
-                            acc->SetMin(min);
-                            acc->SetMax(max);
+                                std::string accName = "accessor_" + IToS(nAcc);//
+                                std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
+                                const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(values, -1);
+                                acc->SetBufferView(bufferView);
+                                acc->SetCount(values.size() / 4);
+                                acc->SetType("VEC4");
+                                acc->SetComponentType(GLTF_COMPONENT_TYPE_FLOAT);//5126
+                                acc->SetByteOffset(0);
+                                //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
 
-                            accessors_.push_back(acc);
-                            sampler->SetOutputAccessor(acc);
-                            nAcc++;
+                                std::vector<float> min(4);
+                                std::vector<float> max(4);
+                                GetMinMax(&min[0], &max[0], values, 4);
+                                acc->SetMin(min);
+                                acc->SetMax(max);
+
+                                accessors_.push_back(acc);
+                                sampler->SetOutputAccessor(acc);
+                                nAcc++;
+                            }
+                            
+                            if (sampler->GetOutputAccessor().get())
+                            {
+                                samplers.push_back(sampler);
+                                nAS++;
+                            }
                         }
-                        
-                        if (sampler->GetOutputAccessor().get())
+
+                        std::vector< std::shared_ptr<AnimationChannel> > channels;
+                        const auto& targets = in_instruction->GetTargets();
+                        for (size_t j = 0; j < targets.size(); j++)
                         {
-                            animation->AddSampler(sampler); 
-                            nAS++;
+                            for (size_t k = 0; k < samplers.size(); k++)
+                            {
+                                std::shared_ptr<AnimationChannel> channel(new AnimationChannel(in_animation->name, nAC));
+                                channel->SetTargetNode(nodeMap_[targets[j]->GetPath()]);
+                                channel->SetSampler(samplers[k]);
+                                channels.push_back(channel);
+                                nAC++;
+                            }
                         }
-                    }
-                    for (size_t k = 0; k < in_animation->targets.size(); k++)
-                    {
-                        const auto& samplers = animation->GetSamplers();
+
+                        for (size_t j = 0; j < channels.size(); j++)
+                        {
+                            animation->AddChannel(channels[j]);
+                        }
                         for (size_t j = 0; j < samplers.size(); j++)
                         {
-                            std::shared_ptr<AnimationChannel> channel(new AnimationChannel(in_animation->name, nAC));
-                            channel->SetTargetNode(nodeMap_[in_animation->targets[k]->GetPath()]);
-                            channel->SetSampler(samplers[j]);
-                            animation->AddChannel(channel);
-                            nAC++;
+                            animation->AddSampler(samplers[j]);
                         }
                     }
+
+                    
                     this->animations_.push_back(animation);
                 }
             }
 
-			void RegisterMesh(std::shared_ptr<Node>& node, const std::shared_ptr<::kml::Node>& in_node, bool isDraco = false)
-			{
+            void RegisterMesh(std::shared_ptr<Node>& node, const std::shared_ptr<::kml::Node>& in_node, bool isDraco = false)
+            {
                 const std::shared_ptr<::kml::Mesh>& in_mesh = in_node->GetMesh();
-				if (in_mesh.get() != NULL)
-				{
-					int nMesh = meshes_.size();
-					std::string meshName = in_mesh->name;
-					std::shared_ptr<Mesh> mesh(new Mesh(meshName, nMesh));
+                if (in_mesh.get() != NULL)
+                {
+                    int nMesh = meshes_.size();
+                    std::string meshName = in_mesh->name;
+                    std::shared_ptr<Mesh> mesh(new Mesh(meshName, nMesh));
 
-					if (in_mesh->materials.size())
-					{
-						int material_id = in_mesh->materials[0];
-						mesh->SetMaterialID(material_id);
-					}
-					else
-					{
-						int material_id = 0;
-						mesh->SetMaterialID(material_id);
-					}
+                    if (in_mesh->materials.size())
+                    {
+                        int material_id = in_mesh->materials[0];
+                        mesh->SetMaterialID(material_id);
+                    }
+                    else
+                    {
+                        int material_id = 0;
+                        mesh->SetMaterialID(material_id);
+                    }
 
-					std::vector<unsigned int> indices(in_mesh->pos_indices.size());
-					for (size_t i = 0; i < indices.size(); i++)
-					{
-						indices[i] = (unsigned int)in_mesh->pos_indices[i];
-					}
+                    std::vector<unsigned int> indices(in_mesh->pos_indices.size());
+                    for (size_t i = 0; i < indices.size(); i++)
+                    {
+                        indices[i] = (unsigned int)in_mesh->pos_indices[i];
+                    }
 
-					std::vector<float> positions(in_mesh->positions.size() * 3);
-					for (size_t i = 0; i < in_mesh->positions.size(); i++)
-					{
-						positions[3 * i + 0] = (float)in_mesh->positions[i][0];
-						positions[3 * i + 1] = (float)in_mesh->positions[i][1];
-						positions[3 * i + 2] = (float)in_mesh->positions[i][2];
-					}
+                    std::vector<float> positions(in_mesh->positions.size() * 3);
+                    for (size_t i = 0; i < in_mesh->positions.size(); i++)
+                    {
+                        positions[3 * i + 0] = (float)in_mesh->positions[i][0];
+                        positions[3 * i + 1] = (float)in_mesh->positions[i][1];
+                        positions[3 * i + 2] = (float)in_mesh->positions[i][2];
+                    }
 
-					std::vector<float> normals(in_mesh->normals.size() * 3);
-					for (size_t i = 0; i < in_mesh->normals.size(); i++)
-					{
-						normals[3 * i + 0] = (float)in_mesh->normals[i][0];
-						normals[3 * i + 1] = (float)in_mesh->normals[i][1];
-						normals[3 * i + 2] = (float)in_mesh->normals[i][2];
-					}
-					for (size_t i = 0; i < in_mesh->normals.size(); i++)
-					{
-						float x = normals[3 * i + 0];
-						float y = normals[3 * i + 1];
-						float z = normals[3 * i + 2];
-						float l = (x * x + y * y + z * z);
-						if (fabs(l) > 1e-6f)
-						{
-							l = 1.0f / std::sqrt(l);
-							normals[3 * i + 0] = x * l;
-							normals[3 * i + 1] = y * l;
-							normals[3 * i + 2] = z * l;
-						}
-					}
+                    std::vector<float> normals(in_mesh->normals.size() * 3);
+                    for (size_t i = 0; i < in_mesh->normals.size(); i++)
+                    {
+                        normals[3 * i + 0] = (float)in_mesh->normals[i][0];
+                        normals[3 * i + 1] = (float)in_mesh->normals[i][1];
+                        normals[3 * i + 2] = (float)in_mesh->normals[i][2];
+                    }
+                    for (size_t i = 0; i < in_mesh->normals.size(); i++)
+                    {
+                        float x = normals[3 * i + 0];
+                        float y = normals[3 * i + 1];
+                        float z = normals[3 * i + 2];
+                        float l = (x * x + y * y + z * z);
+                        if (fabs(l) > 1e-6f)
+                        {
+                            l = 1.0f / std::sqrt(l);
+                            normals[3 * i + 0] = x * l;
+                            normals[3 * i + 1] = y * l;
+                            normals[3 * i + 2] = z * l;
+                        }
+                    }
 
-					std::vector<float> texcoords;
-					if (in_mesh->texcoords.size() > 0)
-					{
-						texcoords.resize(in_mesh->texcoords.size() * 2);
-						for (size_t i = 0; i < in_mesh->texcoords.size(); i++)
-						{
-							texcoords[2 * i + 0] = (float)in_mesh->texcoords[i][0];
-							texcoords[2 * i + 1] = (float)in_mesh->texcoords[i][1];
-						}
-					}
+                    std::vector<float> texcoords;
+                    if (in_mesh->texcoords.size() > 0)
+                    {
+                        texcoords.resize(in_mesh->texcoords.size() * 2);
+                        for (size_t i = 0; i < in_mesh->texcoords.size(); i++)
+                        {
+                            texcoords[2 * i + 0] = (float)in_mesh->texcoords[i][0];
+                            texcoords[2 * i + 1] = (float)in_mesh->texcoords[i][1];
+                        }
+                    }
 
-					int nAcc = accessors_.size();
-					{
-						//indices
-						std::string accName = "accessor_" + IToS(nAcc);//
-						std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
+                    int nAcc = accessors_.size();
+                    {
+                        //indices
+                        std::string accName = "accessor_" + IToS(nAcc);//
+                        std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
                         if (!isDraco)
                         {
                             std::shared_ptr<BufferView> bv = this->AddBufferView(indices, GLTF_TARGET_ELEMENT_ARRAY_BUFFER);
@@ -668,23 +689,23 @@ namespace kml
                         acc->SetType("SCALAR");
                         acc->SetComponentType(GLTF_COMPONENT_TYPE_UNSIGNED_INT);//5126
                         acc->SetByteOffset(0);
-						//acc->Set("byteStride", picojson::value((double)sizeof(unsigned int)));
+                        //acc->Set("byteStride", picojson::value((double)sizeof(unsigned int)));
 
-						unsigned int imin, imax;
-						GetMinMax(imin, imax, indices);
+                        unsigned int imin, imax;
+                        GetMinMax(imin, imax, indices);
                         std::vector<float> min = { (float)imin };
                         std::vector<float> max = { (float)imax };
                         acc->SetMin(min);
                         acc->SetMax(max);
 
-						accessors_.push_back(acc);
-						mesh->SetAccessor("indices", acc);
-						nAcc++;
-					}
-					{
-						//normal
-						std::string accName = "accessor_" + IToS(nAcc);//
-						std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
+                        accessors_.push_back(acc);
+                        mesh->SetAccessor("indices", acc);
+                        nAcc++;
+                    }
+                    {
+                        //normal
+                        std::string accName = "accessor_" + IToS(nAcc);//
+                        std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
                         if (!isDraco)
                         {
                             std::shared_ptr<BufferView> bv = this->AddBufferView(normals, GLTF_TARGET_ARRAY_BUFFER);
@@ -699,7 +720,7 @@ namespace kml
                         acc->SetType("VEC3");
                         acc->SetComponentType(GLTF_COMPONENT_TYPE_FLOAT);//5126
                         acc->SetByteOffset(0);
-						//acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
+                        //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
 
                         std::vector<float> min(3);
                         std::vector<float> max(3);
@@ -707,14 +728,14 @@ namespace kml
                         acc->SetMin(min);
                         acc->SetMax(max);
 
-						accessors_.push_back(acc);
-						mesh->SetAccessor("NORMAL", acc);
-						nAcc++;
-					}
-					{
-						//position
-						std::string accName = "accessor_" + IToS(nAcc);//
-						std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
+                        accessors_.push_back(acc);
+                        mesh->SetAccessor("NORMAL", acc);
+                        nAcc++;
+                    }
+                    {
+                        //position
+                        std::string accName = "accessor_" + IToS(nAcc);//
+                        std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
                         if (!isDraco)
                         {
                             std::shared_ptr<BufferView> bv = this->AddBufferView(positions, GLTF_TARGET_ARRAY_BUFFER);
@@ -729,7 +750,7 @@ namespace kml
                         acc->SetType("VEC3");
                         acc->SetComponentType(GLTF_COMPONENT_TYPE_FLOAT);//5126
                         acc->SetByteOffset(0);
-						//acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
+                        //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
 
                         std::vector<float> min(3);
                         std::vector<float> max(3);
@@ -737,15 +758,15 @@ namespace kml
                         acc->SetMin(min);
                         acc->SetMax(max);
 
-						accessors_.push_back(acc);
-						mesh->SetAccessor("POSITION", acc);
-						nAcc++;
-					}
-					if (texcoords.size() > 0)
-					{
-						//texcoord
-						std::string accName = "accessor_" + IToS(nAcc);//
-						std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
+                        accessors_.push_back(acc);
+                        mesh->SetAccessor("POSITION", acc);
+                        nAcc++;
+                    }
+                    if (texcoords.size() > 0)
+                    {
+                        //texcoord
+                        std::string accName = "accessor_" + IToS(nAcc);//
+                        std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
                         if (!isDraco)
                         {
                             std::shared_ptr<BufferView> bv = this->AddBufferView(texcoords, GLTF_TARGET_ARRAY_BUFFER);
@@ -760,19 +781,19 @@ namespace kml
                         acc->SetType("VEC2");
                         acc->SetComponentType(GLTF_COMPONENT_TYPE_FLOAT);//5126
                         acc->SetByteOffset(0);
-						//acc->Set("byteStride", picojson::value((double)2 * sizeof(float)));
+                        //acc->Set("byteStride", picojson::value((double)2 * sizeof(float)));
 
                         std::vector<float> min(2);
                         std::vector<float> max(2);
-						GetMinMax(&min[0], &max[0], texcoords, 2);
+                        GetMinMax(&min[0], &max[0], texcoords, 2);
                         acc->SetMin(min);
                         acc->SetMax(max);
 
-						accessors_.push_back(acc);
-						mesh->SetAccessor("TEXCOORD_0", acc);
-						nAcc++;
-					}
-					
+                        accessors_.push_back(acc);
+                        mesh->SetAccessor("TEXCOORD_0", acc);
+                        nAcc++;
+                    }
+                    
                     std::shared_ptr<::kml::SkinWeights> in_skin = in_mesh->skin_weights;
                     if (in_skin.get() && this->skins_.size() > 0)
                     {
@@ -936,29 +957,29 @@ namespace kml
 
                     node->SetMesh(mesh);
                     this->meshes_.push_back(mesh);
-				}
-			}
-		public:
-			const std::vector<std::shared_ptr<Node> >& GetNodes()const
-			{
-				return nodes_;
-			}
-			const std::vector<std::shared_ptr<Mesh> >& GetMeshes()const
-			{
-				return meshes_;
-			}
-			const std::vector<std::shared_ptr<Accessor> >& GetAccessors()const
-			{
-				return accessors_;
-			}
-			const std::vector<std::shared_ptr<BufferView> >& GetBufferViews()const
-			{
-				return bufferViews_;
-			}
-			const std::vector<std::shared_ptr<Buffer> >& GetBuffers()const
-			{
-				return buffers_;
-			}
+                }
+            }
+        public:
+            const std::vector<std::shared_ptr<Node> >& GetNodes()const
+            {
+                return nodes_;
+            }
+            const std::vector<std::shared_ptr<Mesh> >& GetMeshes()const
+            {
+                return meshes_;
+            }
+            const std::vector<std::shared_ptr<Accessor> >& GetAccessors()const
+            {
+                return accessors_;
+            }
+            const std::vector<std::shared_ptr<BufferView> >& GetBufferViews()const
+            {
+                return bufferViews_;
+            }
+            const std::vector<std::shared_ptr<Buffer> >& GetBuffers()const
+            {
+                return buffers_;
+            }
         public:
             std::vector<std::shared_ptr<Skin> >& GetSkins()
             {
@@ -982,54 +1003,54 @@ namespace kml
             {
                 accessors_.push_back(acc);
             }
-		public:
-			std::shared_ptr<Buffer> GetLastBuffer()
-			{
-				if (buffers_.empty())
-				{
-					buffers_.push_back(std::shared_ptr<Buffer>(new Buffer(basename_, 0)));
-				}
-				return buffers_.back();
-			}
-			void AddNode(const std::shared_ptr<Node>& node)
-			{
+        public:
+            std::shared_ptr<Buffer> GetLastBuffer()
+            {
+                if (buffers_.empty())
+                {
+                    buffers_.push_back(std::shared_ptr<Buffer>(new Buffer(basename_, 0)));
+                }
+                return buffers_.back();
+            }
+            void AddNode(const std::shared_ptr<Node>& node)
+            {
                 nodeMap_[node->GetPath()] = node;
-				nodes_.push_back(node);
-			}
+                nodes_.push_back(node);
+            }
 
-			const std::shared_ptr<BufferView>& AddBufferView(const std::vector<float>& vec, int target = GLTF_TARGET_ARRAY_BUFFER)
-			{
-				std::shared_ptr<Buffer> buffer = this->GetLastBuffer();
-				int nBV = bufferViews_.size();
-				std::string name = "bufferView_" + IToS(nBV);//
-				std::shared_ptr<BufferView> bufferView(new BufferView(name, nBV));
-				size_t offset = buffer->GetSize();
-				size_t length = sizeof(float)*vec.size();
-				buffer->AddBytes((unsigned char*)(&vec[0]), length);
-				bufferView->SetByteOffset(offset);
-				bufferView->SetByteLength(length);
-				bufferView->SetBuffer(buffers_[0]);
-				bufferView->SetTarget(target);
-				bufferViews_.push_back(bufferView);
-				return bufferViews_.back();
-			}
+            const std::shared_ptr<BufferView>& AddBufferView(const std::vector<float>& vec, int target = GLTF_TARGET_ARRAY_BUFFER)
+            {
+                std::shared_ptr<Buffer> buffer = this->GetLastBuffer();
+                int nBV = bufferViews_.size();
+                std::string name = "bufferView_" + IToS(nBV);//
+                std::shared_ptr<BufferView> bufferView(new BufferView(name, nBV));
+                size_t offset = buffer->GetSize();
+                size_t length = sizeof(float)*vec.size();
+                buffer->AddBytes((unsigned char*)(&vec[0]), length);
+                bufferView->SetByteOffset(offset);
+                bufferView->SetByteLength(length);
+                bufferView->SetBuffer(buffers_[0]);
+                bufferView->SetTarget(target);
+                bufferViews_.push_back(bufferView);
+                return bufferViews_.back();
+            }
 
-			const std::shared_ptr<BufferView>& AddBufferView(const std::vector<unsigned int>& vec, int target = GLTF_TARGET_ELEMENT_ARRAY_BUFFER)
-			{
-				std::shared_ptr<Buffer> buffer = this->GetLastBuffer();
-				int nBV = bufferViews_.size();
-				std::string name = "bufferView_" + IToS(nBV);//
-				std::shared_ptr<BufferView> bufferView(new BufferView(name, nBV));
-				size_t offset = buffer->GetSize();
-				size_t length = sizeof(unsigned int)*vec.size();
-				buffer->AddBytes((unsigned char*)(&vec[0]), length);
-				bufferView->SetByteOffset(offset);
-				bufferView->SetByteLength(length);
-				bufferView->SetBuffer(buffer);
-				bufferView->SetTarget(target);
-				bufferViews_.push_back(bufferView);
-				return bufferViews_.back();
-			}
+            const std::shared_ptr<BufferView>& AddBufferView(const std::vector<unsigned int>& vec, int target = GLTF_TARGET_ELEMENT_ARRAY_BUFFER)
+            {
+                std::shared_ptr<Buffer> buffer = this->GetLastBuffer();
+                int nBV = bufferViews_.size();
+                std::string name = "bufferView_" + IToS(nBV);//
+                std::shared_ptr<BufferView> bufferView(new BufferView(name, nBV));
+                size_t offset = buffer->GetSize();
+                size_t length = sizeof(unsigned int)*vec.size();
+                buffer->AddBytes((unsigned char*)(&vec[0]), length);
+                bufferView->SetByteOffset(offset);
+                bufferView->SetByteLength(length);
+                bufferView->SetBuffer(buffer);
+                bufferView->SetTarget(target);
+                bufferViews_.push_back(bufferView);
+                return bufferViews_.back();
+            }
 
             const std::shared_ptr<BufferView>& AddBufferView(const std::vector<unsigned short>& vec, int target = GLTF_TARGET_ARRAY_BUFFER)
             {
@@ -1075,30 +1096,30 @@ namespace kml
 
                 return bufferViews_.back();
             }
-		protected:
+        protected:
             std::map<std::string, std::shared_ptr<Node> > nodeMap_;
-			std::vector<std::shared_ptr<Node> > nodes_;
-			std::vector<std::shared_ptr<Mesh> > meshes_;
-			std::vector<std::shared_ptr<Accessor> > accessors_;
-			std::vector<std::shared_ptr<BufferView> > bufferViews_;
-			std::vector<std::shared_ptr<Buffer> > buffers_;
+            std::vector<std::shared_ptr<Node> > nodes_;
+            std::vector<std::shared_ptr<Mesh> > meshes_;
+            std::vector<std::shared_ptr<Accessor> > accessors_;
+            std::vector<std::shared_ptr<BufferView> > bufferViews_;
+            std::vector<std::shared_ptr<Buffer> > buffers_;
             std::vector<std::shared_ptr<Skin> > skins_;
             std::vector<std::shared_ptr<MorphTarget> > morph_targets_;
             std::vector<std::shared_ptr<Animation> > animations_;
 
-			std::string basename_;
-		};
+            std::string basename_;
+        };
 
-		static
-		int FindTextureIndex(const std::vector<std::string>& v, const std::string& s)
-		{
-			std::vector<std::string>::const_iterator it = std::find(v.begin(), v.end(), s);
-			if (it != v.end())
-			{
-				return std::distance(v.begin(), it);
-			}
-			return -1;
-		}
+        static
+        int FindTextureIndex(const std::vector<std::string>& v, const std::string& s)
+        {
+            std::vector<std::string>::const_iterator it = std::find(v.begin(), v.end(), s);
+            if (it != v.end())
+            {
+                return std::distance(v.begin(), it);
+            }
+            return -1;
+        }
 
         static
         std::shared_ptr<Node> CreateNodes(
@@ -1311,139 +1332,139 @@ namespace kml
             return ar;
         }
 
-		static
-		picojson::array GetMatrixAsArray(const glm::mat4& mat)
-		{
-			return GetFloatAsArray(glm::value_ptr(mat), 16);
-		}
+        static
+        picojson::array GetMatrixAsArray(const glm::mat4& mat)
+        {
+            return GetFloatAsArray(glm::value_ptr(mat), 16);
+        }
 
-		static
-		bool NodeToGLTF(
-			picojson::object& root,
-			ObjectRegisterer& reg,
-			const std::shared_ptr<::kml::Node>& node,
-			bool IsOutputBin,
-			bool IsOutputDraco)
-		{
-			{
-				picojson::object sampler;
-				sampler["magFilter"] = picojson::value((double)GLTF_TEXTURE_FILTER_LINEAR);//WebGLConstants.LINEAR
-				sampler["minFilter"] = picojson::value((double)GLTF_TEXTURE_FILTER_LINEAR);//WebGLConstants.NEAREST_MIPMAP_LINEAR
-				sampler["wrapS"] = picojson::value((double)GLTF_TEXTURE_WRAP_CLAMP_TO_EDGE);
-				sampler["wrapT"] = picojson::value((double)GLTF_TEXTURE_WRAP_CLAMP_TO_EDGE);
-				picojson::array samplers;
-				samplers.push_back(picojson::value(sampler));
-				root["samplers"] = picojson::value(samplers);
-			}
-			typedef std::map<std::string, std::string> CacheMapType;
-			std::vector<std::string> texture_vec;
-			std::map<std::string, std::string> cache_map;
-			std::map<std::string, std::shared_ptr<kml::Texture>> texture_set;
-			{
-				GetTextures(texture_set, node->GetMaterials());
+        static
+        bool NodeToGLTF(
+            picojson::object& root,
+            ObjectRegisterer& reg,
+            const std::shared_ptr<::kml::Node>& node,
+            bool IsOutputBin,
+            bool IsOutputDraco)
+        {
+            {
+                picojson::object sampler;
+                sampler["magFilter"] = picojson::value((double)GLTF_TEXTURE_FILTER_LINEAR);//WebGLConstants.LINEAR
+                sampler["minFilter"] = picojson::value((double)GLTF_TEXTURE_FILTER_LINEAR);//WebGLConstants.NEAREST_MIPMAP_LINEAR
+                sampler["wrapS"] = picojson::value((double)GLTF_TEXTURE_WRAP_CLAMP_TO_EDGE);
+                sampler["wrapT"] = picojson::value((double)GLTF_TEXTURE_WRAP_CLAMP_TO_EDGE);
+                picojson::array samplers;
+                samplers.push_back(picojson::value(sampler));
+                root["samplers"] = picojson::value(samplers);
+            }
+            typedef std::map<std::string, std::string> CacheMapType;
+            std::vector<std::string> texture_vec;
+            std::map<std::string, std::string> cache_map;
+            std::map<std::string, std::shared_ptr<kml::Texture>> texture_set;
+            {
+                GetTextures(texture_set, node->GetMaterials());
 
-				static const std::string t = "_s0.";
-				for (std::map<std::string, std::shared_ptr<kml::Texture>>::const_iterator it = texture_set.begin(); it != texture_set.end(); ++it)
-				{
-					std::shared_ptr<kml::Texture> tex = it->second;
-					std::string texname = tex->GetFilePath();
+                static const std::string t = "_s0.";
+                for (std::map<std::string, std::shared_ptr<kml::Texture>>::const_iterator it = texture_set.begin(); it != texture_set.end(); ++it)
+                {
+                    std::shared_ptr<kml::Texture> tex = it->second;
+                    std::string texname = tex->GetFilePath();
 
-					if (texname.find(t) == std::string::npos)
-					{
-						texture_vec.push_back(texname);
-					}
-					else
-					{
-						std::string orgPath = texname;
-						orgPath.replace(texname.find(t), t.size(), ".");
-						orgPath = RemoveExt(orgPath);
-						cache_map.insert(CacheMapType::value_type(orgPath, texname));
-					}
+                    if (texname.find(t) == std::string::npos)
+                    {
+                        texture_vec.push_back(texname);
+                    }
+                    else
+                    {
+                        std::string orgPath = texname;
+                        orgPath.replace(texname.find(t), t.size(), ".");
+                        orgPath = RemoveExt(orgPath);
+                        cache_map.insert(CacheMapType::value_type(orgPath, texname));
+                    }
 
-				}
-			}
-			{
-				int level = 0;
-				picojson::array images;
-				picojson::array textures;
-				for (size_t i = 0; i < texture_vec.size(); i++)
-				{
-					std::string imagePath = texture_vec[i];
-					std::string imageId = GetImageID(imagePath);
-					std::string texuteId = GetTextureID(imagePath);
+                }
+            }
+            {
+                int level = 0;
+                picojson::array images;
+                picojson::array textures;
+                for (size_t i = 0; i < texture_vec.size(); i++)
+                {
+                    std::string imagePath = texture_vec[i];
+                    std::string imageId = GetImageID(imagePath);
+                    std::string texuteId = GetTextureID(imagePath);
 
-					picojson::object image;
-					image["name"] = picojson::value(imageId);
-					image["uri"] = picojson::value(imagePath);
-					{
-						CacheMapType::const_iterator it = cache_map.find(RemoveExt(imagePath));
-						if (it != cache_map.end())
-						{
-							//"extensions": {"KSK_preloadUri":{"uri":"Default_baseColor_pre.jpg"}}
-							picojson::object extensions;
-							picojson::object KSK_preloadUri;
-							KSK_preloadUri["uri"] = picojson::value(it->second);
-							extensions["KSK_preloadUri"] = picojson::value(KSK_preloadUri);
-							image["extensions"] = picojson::value(extensions);
-						}
-					}
-					images.push_back(picojson::value(image));
+                    picojson::object image;
+                    image["name"] = picojson::value(imageId);
+                    image["uri"] = picojson::value(imagePath);
+                    {
+                        CacheMapType::const_iterator it = cache_map.find(RemoveExt(imagePath));
+                        if (it != cache_map.end())
+                        {
+                            //"extensions": {"KSK_preloadUri":{"uri":"Default_baseColor_pre.jpg"}}
+                            picojson::object extensions;
+                            picojson::object KSK_preloadUri;
+                            KSK_preloadUri["uri"] = picojson::value(it->second);
+                            extensions["KSK_preloadUri"] = picojson::value(KSK_preloadUri);
+                            image["extensions"] = picojson::value(extensions);
+                        }
+                    }
+                    images.push_back(picojson::value(image));
 
-					picojson::object texture;
-					int nFormat = GetImageFormat(imagePath);
-					texture["format"] = picojson::value((double)nFormat);         //image.format;
-					texture["internalFormat"] = picojson::value((double)nFormat); //image.format;
-					texture["sampler"] = picojson::value((double)0);
-					texture["source"] = picojson::value((double)i);   //imageId;
-					texture["target"] = picojson::value((double)GLTF_TEXTURE_TARGET_TEXTURE2D); //WebGLConstants.TEXTURE_2D;
-					texture["type"] = picojson::value((double)GLTF_TEXTURE_TYPE_UNSIGNED_BYTE); //WebGLConstants.UNSIGNED_BYTE
+                    picojson::object texture;
+                    int nFormat = GetImageFormat(imagePath);
+                    //texture["format"] = picojson::value((double)nFormat);         //image.format;
+                    //texture["internalFormat"] = picojson::value((double)nFormat); //image.format;
+                    texture["sampler"] = picojson::value((double)0);
+                    texture["source"] = picojson::value((double)i);   //imageId;
+                    //texture["target"] = picojson::value((double)GLTF_TEXTURE_TARGET_TEXTURE2D); //WebGLConstants.TEXTURE_2D;
+                    //texture["type"] = picojson::value((double)GLTF_TEXTURE_TYPE_UNSIGNED_BYTE); //WebGLConstants.UNSIGNED_BYTE
 
-					textures.push_back(picojson::value(texture));
-				}
-				if (!images.empty())
-				{
-					root["images"] = picojson::value(images);
-				}
-				if (!textures.empty())
-				{
-					root["textures"] = picojson::value(textures);
-				}
-			}
+                    textures.push_back(picojson::value(texture));
+                }
+                if (!images.empty())
+                {
+                    root["images"] = picojson::value(images);
+                }
+                if (!textures.empty())
+                {
+                    root["textures"] = picojson::value(textures);
+                }
+            }
 
-			{
+            {
                 RegisterObjects(reg, node, IsOutputBin, IsOutputDraco);
-			}
+            }
 
-			{
-				root["scene"] = picojson::value((double)0);
-			}
+            {
+                root["scene"] = picojson::value((double)0);
+            }
 
-			{
-				picojson::array ar;
+            {
+                picojson::array ar;
 
-				picojson::object scene;
-				picojson::array nodes_;
-				const std::vector< std::shared_ptr<Node> >& nodes = reg.GetNodes();
-				if(!nodes.empty())
-				{
+                picojson::object scene;
+                picojson::array nodes_;
+                const std::vector< std::shared_ptr<Node> >& nodes = reg.GetNodes();
+                if(!nodes.empty())
+                {
                     nodes_.push_back(picojson::value((double)0));
-				}
-				scene["nodes"] = picojson::value(nodes_);
-				ar.push_back(picojson::value(scene));
+                }
+                scene["nodes"] = picojson::value(nodes_);
+                ar.push_back(picojson::value(scene));
 
-				root["scenes"] = picojson::value(ar);
-			}
+                root["scenes"] = picojson::value(ar);
+            }
 
-			{
-				const std::vector< std::shared_ptr<Node> >& nodes = reg.GetNodes();
-				picojson::array ar;
-				for (size_t i = 0; i < nodes.size(); i++)
-				{
-					const std::shared_ptr<Node>& n = nodes[i];
-					picojson::object nd;
+            {
+                const std::vector< std::shared_ptr<Node> >& nodes = reg.GetNodes();
+                picojson::array ar;
+                for (size_t i = 0; i < nodes.size(); i++)
+                {
+                    const std::shared_ptr<Node>& n = nodes[i];
+                    picojson::object nd;
 
-					std::string name = n->GetName();
-					nd["name"] = picojson::value(name);
+                    std::string name = n->GetName();
+                    nd["name"] = picojson::value(name);
 
                     if (n->GetTransform()->IsTRS())
                     {
@@ -1472,23 +1493,23 @@ namespace kml
                         }
                     }
 
-					const auto& children = n->GetChildren();
-					if (children.size() > 0)
-					{
-						picojson::array ar_child;
-						for (int j = 0; j < children.size(); j++)
-						{
-							ar_child.push_back(picojson::value((double)children[j]->GetIndex()));
-						}
+                    const auto& children = n->GetChildren();
+                    if (children.size() > 0)
+                    {
+                        picojson::array ar_child;
+                        for (int j = 0; j < children.size(); j++)
+                        {
+                            ar_child.push_back(picojson::value((double)children[j]->GetIndex()));
+                        }
 
-						nd["children"] = picojson::value(ar_child);
-					}
+                        nd["children"] = picojson::value(ar_child);
+                    }
 
-					const std::shared_ptr<Mesh>& mesh = n->GetMesh();
-					if (mesh.get() != NULL)
-					{
-						nd["mesh"] = picojson::value((double)mesh->GetIndex());
-					}
+                    const std::shared_ptr<Mesh>& mesh = n->GetMesh();
+                    if (mesh.get() != NULL)
+                    {
+                        nd["mesh"] = picojson::value((double)mesh->GetIndex());
+                    }
 
                     const std::shared_ptr<Skin>& skin = n->GetSkin();
                     if (skin.get() != NULL)
@@ -1497,30 +1518,30 @@ namespace kml
                     }
 
 
-					ar.push_back(picojson::value(nd));
-				}
-				root["nodes"] = picojson::value(ar);
-			}
+                    ar.push_back(picojson::value(nd));
+                }
+                root["nodes"] = picojson::value(ar);
+            }
 
-			{
-				const std::vector< std::shared_ptr<Mesh> >& meshes = reg.GetMeshes();
-				//std::cout << meshes.size() << std::endl;
-				picojson::array ar;
-				for (size_t i = 0; i < meshes.size(); i++)
-				{
-					const std::shared_ptr<Mesh>& mesh = meshes[i];
-					picojson::object nd;
-					nd["name"] = picojson::value(mesh->GetName());
+            {
+                const std::vector< std::shared_ptr<Mesh> >& meshes = reg.GetMeshes();
+                //std::cout << meshes.size() << std::endl;
+                picojson::array ar;
+                for (size_t i = 0; i < meshes.size(); i++)
+                {
+                    const std::shared_ptr<Mesh>& mesh = meshes[i];
+                    picojson::object nd;
+                    nd["name"] = picojson::value(mesh->GetName());
 
-					picojson::object attributes;
-					{
-						attributes["NORMAL"] = picojson::value((double)mesh->GetAccessor("NORMAL")->GetIndex());//picojson::value(mesh->GetAccessor("NORMAL")->GetName());
-						attributes["POSITION"] = picojson::value((double)mesh->GetAccessor("POSITION")->GetIndex());
-						std::shared_ptr<Accessor> tex = mesh->GetAccessor("TEXCOORD_0");
-						if (tex.get())
-						{
-							attributes["TEXCOORD_0"] = picojson::value((double)tex->GetIndex());
-						}
+                    picojson::object attributes;
+                    {
+                        attributes["NORMAL"] = picojson::value((double)mesh->GetAccessor("NORMAL")->GetIndex());//picojson::value(mesh->GetAccessor("NORMAL")->GetName());
+                        attributes["POSITION"] = picojson::value((double)mesh->GetAccessor("POSITION")->GetIndex());
+                        std::shared_ptr<Accessor> tex = mesh->GetAccessor("TEXCOORD_0");
+                        if (tex.get())
+                        {
+                            attributes["TEXCOORD_0"] = picojson::value((double)tex->GetIndex());
+                        }
 
                         std::shared_ptr<Accessor> joints  = mesh->GetAccessor("JOINTS_0");
                         std::shared_ptr<Accessor> weights = mesh->GetAccessor("WEIGHTS_0");
@@ -1529,13 +1550,13 @@ namespace kml
                             attributes["JOINTS_0"] = picojson::value((double)joints->GetIndex());
                             attributes["WEIGHTS_0"] = picojson::value((double)weights->GetIndex());
                         }
-					}
+                    }
 
-					picojson::object primitive;
-					primitive["attributes"] = picojson::value(attributes);
-					primitive["indices"] = picojson::value((double)mesh->GetIndices()->GetIndex());
-					primitive["mode"] = picojson::value((double)mesh->GetMode());
-					primitive["material"] = picojson::value((double)mesh->GetMaterialID());
+                    picojson::object primitive;
+                    primitive["attributes"] = picojson::value(attributes);
+                    primitive["indices"] = picojson::value((double)mesh->GetIndices()->GetIndex());
+                    primitive["mode"] = picojson::value((double)mesh->GetMode());
+                    primitive["material"] = picojson::value((double)mesh->GetMaterialID());
 
                     picojson::object extras;
 
@@ -1564,19 +1585,19 @@ namespace kml
 
                     std::shared_ptr<BufferView> bufferView = mesh->GetBufferView("draco");
                     if(bufferView.get())
-					{
-						picojson::object KHR_draco_mesh_compression;
-						KHR_draco_mesh_compression["bufferView"] = picojson::value((double)bufferView->GetIndex());
+                    {
+                        picojson::object KHR_draco_mesh_compression;
+                        KHR_draco_mesh_compression["bufferView"] = picojson::value((double)bufferView->GetIndex());
 
-						int nOrder = 0;
-						picojson::object attributes;
-						attributes["POSITION"] = picojson::value((double)nOrder++);
-						std::shared_ptr<Accessor> tex = mesh->GetAccessor("TEXCOORD_0");
-						if (tex.get())
-						{
-							attributes["TEXCOORD_0"] = picojson::value((double)nOrder++);
-						}
-						attributes["NORMAL"] = picojson::value((double)nOrder++);
+                        int nOrder = 0;
+                        picojson::object attributes;
+                        attributes["POSITION"] = picojson::value((double)nOrder++);
+                        std::shared_ptr<Accessor> tex = mesh->GetAccessor("TEXCOORD_0");
+                        if (tex.get())
+                        {
+                            attributes["TEXCOORD_0"] = picojson::value((double)nOrder++);
+                        }
+                        attributes["NORMAL"] = picojson::value((double)nOrder++);
 
                         std::shared_ptr<Accessor> joints = mesh->GetAccessor("JOINTS_0");
                         std::shared_ptr<Accessor> weights = mesh->GetAccessor("WEIGHTS_0");
@@ -1586,13 +1607,13 @@ namespace kml
                             attributes["WEIGHTS_0"] = picojson::value((double)nOrder++);
                         }
 
-						KHR_draco_mesh_compression["attributes"] = picojson::value(attributes);
-							
+                        KHR_draco_mesh_compression["attributes"] = picojson::value(attributes);
+                            
 
-						picojson::object extensions;
-						extensions["KHR_draco_mesh_compression"] = picojson::value(KHR_draco_mesh_compression);
-						primitive["extensions"] = picojson::value(extensions);
-					}
+                        picojson::object extensions;
+                        extensions["KHR_draco_mesh_compression"] = picojson::value(KHR_draco_mesh_compression);
+                        primitive["extensions"] = picojson::value(extensions);
+                    }
 
 
                     picojson::array primitives;
@@ -1605,32 +1626,32 @@ namespace kml
                         nd["extras"] = picojson::value(extras);
                     }
                     
-					ar.push_back(picojson::value(nd));
-				}
-				root["meshes"] = picojson::value(ar);
-			}
+                    ar.push_back(picojson::value(nd));
+                }
+                root["meshes"] = picojson::value(ar);
+            }
 
-			{//
-				const std::vector< std::shared_ptr<Accessor> >& accessors = reg.GetAccessors();
-				picojson::array ar;
-				for (size_t i = 0; i < accessors.size(); i++)
-				{
-					const std::shared_ptr<Accessor>& accessor = accessors[i];
-					picojson::object nd;
-					//nd["name"] = picojson::value(accessor->GetName());
-					std::shared_ptr<BufferView> bufferView = accessor->GetBufferView();
-					if (bufferView.get())
-					{
-						nd["bufferView"] = picojson::value((double)bufferView->GetIndex());
-					}
+            {//
+                const std::vector< std::shared_ptr<Accessor> >& accessors = reg.GetAccessors();
+                picojson::array ar;
+                for (size_t i = 0; i < accessors.size(); i++)
+                {
+                    const std::shared_ptr<Accessor>& accessor = accessors[i];
+                    picojson::object nd;
+                    //nd["name"] = picojson::value(accessor->GetName());
+                    std::shared_ptr<BufferView> bufferView = accessor->GetBufferView();
+                    if (bufferView.get())
+                    {
+                        nd["bufferView"] = picojson::value((double)bufferView->GetIndex());
+                    }
                     if (!accessor->IsDraco())
                     {
                         nd["byteOffset"] = picojson::value((double)accessor->GetByteOffset());
                     }
-					//nd["byteStride"] = accessor->Get("byteStride");
-					nd["componentType"] = picojson::value((double)accessor->GetComponentType());
-					nd["count"] = picojson::value((double)accessor->GetCount());
-					nd["type"] = picojson::value(accessor->GetType());
+                    //nd["byteStride"] = accessor->Get("byteStride");
+                    nd["componentType"] = picojson::value((double)accessor->GetComponentType());
+                    nd["count"] = picojson::value((double)accessor->GetCount());
+                    nd["type"] = picojson::value(accessor->GetType());
                     auto min_ = accessor->GetMin();
                     if (!min_.empty())
                     {
@@ -1641,46 +1662,46 @@ namespace kml
                     {
                         nd["max"] = picojson::value(ConvertToArray(max_));
                     }
-					ar.push_back(picojson::value(nd));
-				}
-				root["accessors"] = picojson::value(ar);
-			}
+                    ar.push_back(picojson::value(nd));
+                }
+                root["accessors"] = picojson::value(ar);
+            }
 
-			{//buffer view
-				const std::vector< std::shared_ptr<BufferView> >& bufferViews = reg.GetBufferViews();
-				picojson::array ar;
-				for (size_t i = 0; i < bufferViews.size(); i++)
-				{
-					const std::shared_ptr<BufferView>& bufferView = bufferViews[i];
-					picojson::object nd;
-					//nd["name"] = picojson::value(bufferView->GetName());
-					nd["buffer"] = picojson::value((double)bufferView->GetBuffer()->GetIndex());
-					nd["byteOffset"] = picojson::value((double)bufferView->GetByteOffset());
-					nd["byteLength"] = picojson::value((double)bufferView->GetByteLength());
+            {//buffer view
+                const std::vector< std::shared_ptr<BufferView> >& bufferViews = reg.GetBufferViews();
+                picojson::array ar;
+                for (size_t i = 0; i < bufferViews.size(); i++)
+                {
+                    const std::shared_ptr<BufferView>& bufferView = bufferViews[i];
+                    picojson::object nd;
+                    //nd["name"] = picojson::value(bufferView->GetName());
+                    nd["buffer"] = picojson::value((double)bufferView->GetBuffer()->GetIndex());
+                    nd["byteOffset"] = picojson::value((double)bufferView->GetByteOffset());
+                    nd["byteLength"] = picojson::value((double)bufferView->GetByteLength());
                     int nBufferView = bufferView->GetTarget();
                     if (nBufferView >= 0)
                     {
                         nd["target"] = picojson::value((double)bufferView->GetTarget());
                     }
-					ar.push_back(picojson::value(nd));
-				}
-				root["bufferViews"] = picojson::value(ar);
-			}
+                    ar.push_back(picojson::value(nd));
+                }
+                root["bufferViews"] = picojson::value(ar);
+            }
 
-			{
-				picojson::array ar;
-				const std::vector< std::shared_ptr<Buffer> >& buffers = reg.GetBuffers();
-				for (size_t i = 0; i < buffers.size(); i++)
-				{
-					const std::shared_ptr<Buffer>& buffer = buffers[i];
-					picojson::object nd;
-					//nd["name"] = picojson::value(buffer->GetName());
-					nd["byteLength"] = picojson::value((double)buffer->GetByteLength());
-					nd["uri"] = picojson::value(buffer->GetURI());
-					ar.push_back(picojson::value(nd));
-				}
-				root["buffers"] = picojson::value(ar);
-			}
+            {
+                picojson::array ar;
+                const std::vector< std::shared_ptr<Buffer> >& buffers = reg.GetBuffers();
+                for (size_t i = 0; i < buffers.size(); i++)
+                {
+                    const std::shared_ptr<Buffer>& buffer = buffers[i];
+                    picojson::object nd;
+                    //nd["name"] = picojson::value(buffer->GetName());
+                    nd["byteLength"] = picojson::value((double)buffer->GetByteLength());
+                    nd["uri"] = picojson::value(buffer->GetURI());
+                    ar.push_back(picojson::value(nd));
+                }
+                root["buffers"] = picojson::value(ar);
+            }
 
             {
                 const std::vector< std::shared_ptr<Skin> >& skins = reg.GetSkins();
@@ -1769,14 +1790,14 @@ namespace kml
                 }
             }
 
-			{
-				const auto& materials = node->GetMaterials();
-				picojson::array ar;
-				for (size_t i = 0; i < materials.size(); i++)
-				{
-					const auto& mat = materials[i];
-					picojson::object nd;
-					nd["name"] = picojson::value(mat->GetName());
+            {
+                const auto& materials = node->GetMaterials();
+                picojson::array ar;
+                for (size_t i = 0; i < materials.size(); i++)
+                {
+                    const auto& mat = materials[i];
+                    picojson::object nd;
+                    nd["name"] = picojson::value(mat->GetName());
 
                     {
                         picojson::array emissiveFactor;
@@ -1790,31 +1811,31 @@ namespace kml
                         nd["emissiveFactor"] = picojson::value(emissiveFactor);
                     }
 
-					picojson::object pbrMetallicRoughness;
+                    picojson::object pbrMetallicRoughness;
 
-					std::shared_ptr<kml::Texture> tex = mat->GetTexture("BaseColor");
-					if (tex) {
-						std::string basecolor_texname = tex->GetFilePath();
-						int nIndex = FindTextureIndex(texture_vec, basecolor_texname);
-						if (nIndex >= 0)
-						{
-							picojson::object baseColorTexture;
-							baseColorTexture["index"] = picojson::value((double)nIndex);
-							pbrMetallicRoughness["baseColorTexture"] = picojson::value(baseColorTexture);
-						}
-					}
-					
-					std::shared_ptr<kml::Texture> normaltex = mat->GetTexture("Normal");
-					if (normaltex) {
-						std::string normal_texname = normaltex->GetFilePath();
-						int nIndex = FindTextureIndex(texture_vec, normal_texname);
-						if (nIndex >= 0)
-						{
-							picojson::object normalTexture;
-							normalTexture["index"] = picojson::value((double)nIndex);
-							nd["normalTexture"] = picojson::value(normalTexture);
-						}
-					}
+                    std::shared_ptr<kml::Texture> tex = mat->GetTexture("BaseColor");
+                    if (tex) {
+                        std::string basecolor_texname = tex->GetFilePath();
+                        int nIndex = FindTextureIndex(texture_vec, basecolor_texname);
+                        if (nIndex >= 0)
+                        {
+                            picojson::object baseColorTexture;
+                            baseColorTexture["index"] = picojson::value((double)nIndex);
+                            pbrMetallicRoughness["baseColorTexture"] = picojson::value(baseColorTexture);
+                        }
+                    }
+                    
+                    std::shared_ptr<kml::Texture> normaltex = mat->GetTexture("Normal");
+                    if (normaltex) {
+                        std::string normal_texname = normaltex->GetFilePath();
+                        int nIndex = FindTextureIndex(texture_vec, normal_texname);
+                        if (nIndex >= 0)
+                        {
+                            picojson::object normalTexture;
+                            normalTexture["index"] = picojson::value((double)nIndex);
+                            nd["normalTexture"] = picojson::value(normalTexture);
+                        }
+                    }
 
                     {
                         picojson::array colorFactor;
@@ -1839,26 +1860,26 @@ namespace kml
                         }
                     }
 
-					pbrMetallicRoughness["metallicFactor"] = picojson::value(mat->GetFloat("metallicFactor"));
-					pbrMetallicRoughness["roughnessFactor"] = picojson::value(mat->GetFloat("roughnessFactor"));
-					nd["pbrMetallicRoughness"] = picojson::value(pbrMetallicRoughness);
+                    pbrMetallicRoughness["metallicFactor"] = picojson::value(mat->GetFloat("metallicFactor"));
+                    pbrMetallicRoughness["roughnessFactor"] = picojson::value(mat->GetFloat("roughnessFactor"));
+                    nd["pbrMetallicRoughness"] = picojson::value(pbrMetallicRoughness);
 
-					ar.push_back(picojson::value(nd));
-				}
-				root["materials"] = picojson::value(ar);
-			}
+                    ar.push_back(picojson::value(nd));
+                }
+                root["materials"] = picojson::value(ar);
+            }
 
-			return true;
-		}
-		
-		static picojson::value makeVec4Value(float x, float y, float z, float w) {
-			picojson::array v4;
-			v4.push_back(picojson::value(x));
-			v4.push_back(picojson::value(y));
-			v4.push_back(picojson::value(z));
-			v4.push_back(picojson::value(w));
-			return picojson::value(v4);
-		}
+            return true;
+        }
+        
+        static picojson::value makeVec4Value(float x, float y, float z, float w) {
+            picojson::array v4;
+            v4.push_back(picojson::value(x));
+            v4.push_back(picojson::value(y));
+            v4.push_back(picojson::value(z));
+            v4.push_back(picojson::value(w));
+            return picojson::value(v4);
+        }
 
         typedef const char* PCTR;
         struct JointMap {
@@ -2025,27 +2046,27 @@ namespace kml
             return -1;
         }
 
-		static
-		bool WriteVRMMetaInfo(picojson::object& root_object, const std::shared_ptr<::kml::Node>& node, const std::shared_ptr<Options>& opts)
-		{
-			picojson::object extensions;
-			auto ext = root_object.find("extensions");
-			if (ext == root_object.end()) 
+        static
+        bool WriteVRMMetaInfo(picojson::object& root_object, const std::shared_ptr<::kml::Node>& node, const std::shared_ptr<Options>& opts)
+        {
+            picojson::object extensions;
+            auto ext = root_object.find("extensions");
+            if (ext == root_object.end()) 
             {
-				extensions = picojson::object();
-			}
+                extensions = picojson::object();
+            }
             else 
             {
-				extensions = root_object["extensions"].get<picojson::object>();
-			}
-			
-			picojson::object VRM;
-			{
-				VRM["exporterVersion"] = picojson::value("kashikaVRM-1.00");
-			}
+                extensions = root_object["extensions"].get<picojson::object>();
+            }
+            
+            picojson::object VRM;
+            {
+                VRM["exporterVersion"] = picojson::value("kashikaVRM-1.00");
+            }
 
-			{
-				picojson::object meta;
+            {
+                picojson::object meta;
                 {
                     std::string s = opts->GetString("vrm_product_title", "");
                     meta["title"] = picojson::value(s);
@@ -2067,7 +2088,7 @@ namespace kml
                     meta["reference"] = picojson::value(s);
                 }
 
-				meta["texture"] = picojson::value(0.0);
+                meta["texture"] = picojson::value(0.0);
 
                 {
                     int vrm_license_allowed_user_name = opts->GetInt("vrm_license_allowed_user_name", 2);
@@ -2112,24 +2133,24 @@ namespace kml
                     meta["otherLicenseUrl"] = picojson::value(url);
                 }
 
-				VRM["meta"] = picojson::value(meta);
-			}
-			{
-				picojson::object humanoid;
-				picojson::array humanBones;
-				static const char* boneNames[] = {
-					"hips", "leftUpperLeg","rightUpperLeg", "leftLowerLeg","rightLowerLeg",
-					"leftFoot", "rightFoot", "spine", "chest", "neck", "head", "leftShoulder",
-					"rightShoulder", "leftUpperArm", "rightUpperArm", "leftLowerArm","rightLowerArm",
-					"leftHand", "rightHand","leftToes","rightToes",	"leftEye","rightEye","jaw",
-					"leftThumbProximal","leftThumbIntermediate","leftThumbDistal","leftIndexProximal",
-					"leftIndexIntermediate","leftIndexDistal","leftMiddleProximal","leftMiddleIntermediate",
-					"leftMiddleDistal","leftRingProximal","leftRingIntermediate","leftRingDistal",
-					"leftLittleProximal","leftLittleIntermediate","leftLittleDistal","rightThumbProximal",
-					"rightThumbIntermediate","rightThumbDistal", "rightIndexProximal","rightIndexIntermediate",
-					"rightIndexDistal","rightMiddleProximal","rightMiddleIntermediate","rightMiddleDistal",
-					"rightRingProximal","rightRingIntermediate","rightRingDistal","rightLittleProximal",
-					"rightLittleIntermediate","rightLittleDistal","upperChest" };
+                VRM["meta"] = picojson::value(meta);
+            }
+            {
+                picojson::object humanoid;
+                picojson::array humanBones;
+                static const char* boneNames[] = {
+                    "hips", "leftUpperLeg","rightUpperLeg", "leftLowerLeg","rightLowerLeg",
+                    "leftFoot", "rightFoot", "spine", "chest", "neck", "head", "leftShoulder",
+                    "rightShoulder", "leftUpperArm", "rightUpperArm", "leftLowerArm","rightLowerArm",
+                    "leftHand", "rightHand","leftToes","rightToes",    "leftEye","rightEye","jaw",
+                    "leftThumbProximal","leftThumbIntermediate","leftThumbDistal","leftIndexProximal",
+                    "leftIndexIntermediate","leftIndexDistal","leftMiddleProximal","leftMiddleIntermediate",
+                    "leftMiddleDistal","leftRingProximal","leftRingIntermediate","leftRingDistal",
+                    "leftLittleProximal","leftLittleIntermediate","leftLittleDistal","rightThumbProximal",
+                    "rightThumbIntermediate","rightThumbDistal", "rightIndexProximal","rightIndexIntermediate",
+                    "rightIndexDistal","rightMiddleProximal","rightMiddleIntermediate","rightMiddleDistal",
+                    "rightRingProximal","rightRingIntermediate","rightRingDistal","rightLittleProximal",
+                    "rightLittleIntermediate","rightLittleDistal","upperChest" };
 
                 std::vector<std::string> joint_names;
                 {
@@ -2143,119 +2164,119 @@ namespace kml
                     }
                 }
 
-				for (int i = 0; i < sizeof(boneNames) / sizeof(const char*); ++i) 
+                for (int i = 0; i < sizeof(boneNames) / sizeof(const char*); ++i) 
                 {
-					int idx = FindVRNJointIndex(joint_names, boneNames[i]);
-					if (idx >= 0) {
-						picojson::object info;
-						info["bone"] = picojson::value(boneNames[i]);
-						info["node"] = picojson::value((double)idx);
-						info["useDefaultValues"] = picojson::value(true); // what's this?
-						humanBones.push_back(picojson::value(info));
-					}
-				}
-				humanoid["humanBones"] = picojson::value(humanBones);
-				VRM["humanoid"] = picojson::value(humanoid);
-			/*}
+                    int idx = FindVRNJointIndex(joint_names, boneNames[i]);
+                    if (idx >= 0) {
+                        picojson::object info;
+                        info["bone"] = picojson::value(boneNames[i]);
+                        info["node"] = picojson::value((double)idx);
+                        info["useDefaultValues"] = picojson::value(true); // what's this?
+                        humanBones.push_back(picojson::value(info));
+                    }
+                }
+                humanoid["humanBones"] = picojson::value(humanBones);
+                VRM["humanoid"] = picojson::value(humanoid);
+            /*}
 
-			{*/
-				picojson::object firstPerson;
-				firstPerson["firstPersonBone"] = picojson::value((double)FindVRNJointIndex(joint_names, "head"));//picojson::value(-1.0);
-				picojson::object firstPersonBoneOffset;
-				firstPersonBoneOffset["x"] = picojson::value(0.0);
-				firstPersonBoneOffset["y"] = picojson::value(0.0);
-				firstPersonBoneOffset["z"] = picojson::value(0.0);
-				firstPerson["firstPersonBoneOffset"] = picojson::value(firstPersonBoneOffset);
-				firstPerson["meshAnnotations"] = picojson::value(picojson::array());
-				firstPerson["lookAtTypeName"] = picojson::value("Bone");
+            {*/
+                picojson::object firstPerson;
+                firstPerson["firstPersonBone"] = picojson::value((double)FindVRNJointIndex(joint_names, "head"));//picojson::value(-1.0);
+                picojson::object firstPersonBoneOffset;
+                firstPersonBoneOffset["x"] = picojson::value(0.0);
+                firstPersonBoneOffset["y"] = picojson::value(0.0);
+                firstPersonBoneOffset["z"] = picojson::value(0.0);
+                firstPerson["firstPersonBoneOffset"] = picojson::value(firstPersonBoneOffset);
+                firstPerson["meshAnnotations"] = picojson::value(picojson::array());
+                firstPerson["lookAtTypeName"] = picojson::value("Bone");
 
-				picojson::object lookAtHorizontalInner;
-				lookAtHorizontalInner["xRange"] = picojson::value(90.0);
-				lookAtHorizontalInner["yRange"] = picojson::value(10.0);
-				firstPerson["lookAtHorizontalInner"] = picojson::value(lookAtHorizontalInner);
-				
-				picojson::object lookAtHorizontalOuter;
-				lookAtHorizontalOuter["xRange"] = picojson::value(90.0);
-				lookAtHorizontalOuter["yRange"] = picojson::value(10.0);
-				firstPerson["lookAtHorizontalOuter"] = picojson::value(lookAtHorizontalOuter);
-				
-				picojson::object lookAtVerticalDown;
-				lookAtVerticalDown["xRange"] = picojson::value(90.0);
-				lookAtVerticalDown["yRange"] = picojson::value(10.0);
-				firstPerson["lookAtVerticalDown"] = picojson::value(lookAtVerticalDown);
-				
-				picojson::object lookAtVerticalUp;
-				lookAtVerticalUp["xRange"] = picojson::value(90.0);
-				lookAtVerticalUp["yRange"] = picojson::value(10.0);
-				firstPerson["lookAtVerticalDown"] = picojson::value(lookAtVerticalUp);
+                picojson::object lookAtHorizontalInner;
+                lookAtHorizontalInner["xRange"] = picojson::value(90.0);
+                lookAtHorizontalInner["yRange"] = picojson::value(10.0);
+                firstPerson["lookAtHorizontalInner"] = picojson::value(lookAtHorizontalInner);
+                
+                picojson::object lookAtHorizontalOuter;
+                lookAtHorizontalOuter["xRange"] = picojson::value(90.0);
+                lookAtHorizontalOuter["yRange"] = picojson::value(10.0);
+                firstPerson["lookAtHorizontalOuter"] = picojson::value(lookAtHorizontalOuter);
+                
+                picojson::object lookAtVerticalDown;
+                lookAtVerticalDown["xRange"] = picojson::value(90.0);
+                lookAtVerticalDown["yRange"] = picojson::value(10.0);
+                firstPerson["lookAtVerticalDown"] = picojson::value(lookAtVerticalDown);
+                
+                picojson::object lookAtVerticalUp;
+                lookAtVerticalUp["xRange"] = picojson::value(90.0);
+                lookAtVerticalUp["yRange"] = picojson::value(10.0);
+                firstPerson["lookAtVerticalDown"] = picojson::value(lookAtVerticalUp);
 
-				VRM["firstPerson"] = picojson::value(firstPerson);
-			}
+                VRM["firstPerson"] = picojson::value(firstPerson);
+            }
 
-			{
-				picojson::object blendShapeMaster;
-				VRM["blendShapeMaster"] = picojson::value(blendShapeMaster);
+            {
+                picojson::object blendShapeMaster;
+                VRM["blendShapeMaster"] = picojson::value(blendShapeMaster);
 
-				picojson::array blendShapeGroups;
-				picojson::object shapeinfo;
-				static const char* names[] = { "Neutral", "A", "I", "U", "E", "O" };
-				for (int i = 0; i < sizeof(names) / sizeof(const char*); ++i) {
-					shapeinfo["name"] = picojson::value(names[i]);
-					shapeinfo["presetName"] = picojson::value("unknown");
-					shapeinfo["binds"] = picojson::value(picojson::array());
-					shapeinfo["materialValues"] = picojson::value(picojson::array());
-					blendShapeGroups.push_back(picojson::value(shapeinfo));
-				}
-				blendShapeMaster["blendShapeGroups"] = picojson::value(blendShapeGroups);
-			}
+                picojson::array blendShapeGroups;
+                picojson::object shapeinfo;
+                static const char* names[] = { "Neutral", "A", "I", "U", "E", "O" };
+                for (int i = 0; i < sizeof(names) / sizeof(const char*); ++i) {
+                    shapeinfo["name"] = picojson::value(names[i]);
+                    shapeinfo["presetName"] = picojson::value("unknown");
+                    shapeinfo["binds"] = picojson::value(picojson::array());
+                    shapeinfo["materialValues"] = picojson::value(picojson::array());
+                    blendShapeGroups.push_back(picojson::value(shapeinfo));
+                }
+                blendShapeMaster["blendShapeGroups"] = picojson::value(blendShapeGroups);
+            }
 
-			{
-				picojson::object secondaryAnimation;
-				secondaryAnimation["boneGroups"] = picojson::value(picojson::array());
-				secondaryAnimation["colliderGroups"] = picojson::value(picojson::array());
-				VRM["secondaryAnimation"] = picojson::value(secondaryAnimation);
-			}
+            {
+                picojson::object secondaryAnimation;
+                secondaryAnimation["boneGroups"] = picojson::value(picojson::array());
+                secondaryAnimation["colliderGroups"] = picojson::value(picojson::array());
+                VRM["secondaryAnimation"] = picojson::value(secondaryAnimation);
+            }
 
-			{
+            {
                 const auto& nmaterials = root_object["materials"].get<picojson::array>();
-				const auto& materials = node->GetMaterials();
-				picojson::array materialProperties;
-				for (size_t i = 0; i < materials.size(); ++i) 
+                const auto& materials = node->GetMaterials();
+                picojson::array materialProperties;
+                for (size_t i = 0; i < materials.size(); ++i) 
                 {
                     auto nmat = nmaterials[i].get<picojson::object>();
                     const auto& imat = materials[i];
-					picojson::object mat;
-					mat["name"] = picojson::value(materials[i]->GetName());
-					mat["renderQueue"] = picojson::value(2000.0);
-					mat["shader"] = picojson::value("Standard");
-					//mat["shader"] = picojson::value("VRM/MToon");
-					picojson::object floatProperties;
+                    picojson::object mat;
+                    mat["name"] = picojson::value(materials[i]->GetName());
+                    mat["renderQueue"] = picojson::value(2000.0);
+                    mat["shader"] = picojson::value("Standard");
+                    //mat["shader"] = picojson::value("VRM/MToon");
+                    picojson::object floatProperties;
 
-					mat["floatProperties"] = picojson::value(floatProperties);
+                    mat["floatProperties"] = picojson::value(floatProperties);
 
-					/*
+                    /*
                     floatProperties["_Cutoff"] = picojson::value(0.5);
-					floatProperties["_BumpScale"] = picojson::value(1.0);
-					floatProperties["_ReceiveShadowRate"] = picojson::value(1.0);
-					floatProperties["_ShadeShift"] = picojson::value(-0.3);
-					floatProperties["_ShadeToony"] = picojson::value(0.0);
-					floatProperties["_LightColorAttenuation"] = picojson::value(0.0);
-					floatProperties["_OutlineWidth"] = picojson::value(0.172);
-					floatProperties["_OutlineScaledMaxDistance"] = picojson::value(2.0);// scale?
-					floatProperties["_OutlineLightingMix"] = picojson::value(1.0);
-					floatProperties["_DebugMode"] = picojson::value(0.0);
-					floatProperties["_BlendMode"] = picojson::value(1.0);
-					floatProperties["_OutlineWidthMode"] = picojson::value(0.0);
-					floatProperties["_OutlineColorMode"] = picojson::value(0.0);
-					floatProperties["_CullMode"] = picojson::value(0.0);
-					floatProperties["_OutlineCullMode"] = picojson::value(1.0);
-					floatProperties["_SrcBlend"] = picojson::value(1.0);
-					floatProperties["_DstBlend"] = picojson::value(0.0);
-					floatProperties["_ZWrite"] = picojson::value(1.0);
-					floatProperties["_IsFirstSetup"] = picojson::value(0.0);
+                    floatProperties["_BumpScale"] = picojson::value(1.0);
+                    floatProperties["_ReceiveShadowRate"] = picojson::value(1.0);
+                    floatProperties["_ShadeShift"] = picojson::value(-0.3);
+                    floatProperties["_ShadeToony"] = picojson::value(0.0);
+                    floatProperties["_LightColorAttenuation"] = picojson::value(0.0);
+                    floatProperties["_OutlineWidth"] = picojson::value(0.172);
+                    floatProperties["_OutlineScaledMaxDistance"] = picojson::value(2.0);// scale?
+                    floatProperties["_OutlineLightingMix"] = picojson::value(1.0);
+                    floatProperties["_DebugMode"] = picojson::value(0.0);
+                    floatProperties["_BlendMode"] = picojson::value(1.0);
+                    floatProperties["_OutlineWidthMode"] = picojson::value(0.0);
+                    floatProperties["_OutlineColorMode"] = picojson::value(0.0);
+                    floatProperties["_CullMode"] = picojson::value(0.0);
+                    floatProperties["_OutlineCullMode"] = picojson::value(1.0);
+                    floatProperties["_SrcBlend"] = picojson::value(1.0);
+                    floatProperties["_DstBlend"] = picojson::value(0.0);
+                    floatProperties["_ZWrite"] = picojson::value(1.0);
+                    floatProperties["_IsFirstSetup"] = picojson::value(0.0);
                     */
 
-					picojson::object vectorProperties;
+                    picojson::object vectorProperties;
                     {
                         float R = imat->GetValue("BaseColor.R");
                         float G = imat->GetValue("BaseColor.G");
@@ -2270,23 +2291,23 @@ namespace kml
                         float A = 1.0f;
                         vectorProperties["_EmissionColor"] = makeVec4Value(R, G, B, A);
                     }
-					/*
+                    /*
                     vectorProperties["_ShadeColor"] = makeVec4Value(0.2, 0.2, 0.2, 1.0);
-					vectorProperties["_MainTex"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
-					vectorProperties["_ShadeTexture"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
-					vectorProperties["_BumpMap"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
-					vectorProperties["_ReceiveShadowTexture"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
-					vectorProperties["_SphereAdd"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
-					vectorProperties["_EmissionMap"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
-					vectorProperties["_OutlineWidthTexture"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
-					vectorProperties["_OutlineColor"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+                    vectorProperties["_MainTex"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+                    vectorProperties["_ShadeTexture"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+                    vectorProperties["_BumpMap"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+                    vectorProperties["_ReceiveShadowTexture"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+                    vectorProperties["_SphereAdd"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+                    vectorProperties["_EmissionMap"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+                    vectorProperties["_OutlineWidthTexture"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
+                    vectorProperties["_OutlineColor"] = makeVec4Value(0.0, 0.0, 1.0, 1.0);
                     */
-					mat["vectorProperties"] = picojson::value(vectorProperties);
+                    mat["vectorProperties"] = picojson::value(vectorProperties);
 
                     {
                         picojson::object textureProperties;
                         //textureProperties["_MainTex"] = picojson::value(0.0);
-                        /*	
+                        /*    
                             "_MainTex": 0,                 // TODO
                             "_ShadeTexture" : 0,
                             "_SphereAdd" : 1,
@@ -2308,122 +2329,122 @@ namespace kml
                         mat["textureProperties"] = picojson::value(textureProperties);
                     }
 
-	
-					picojson::object keywordMap;
-					keywordMap["_ALPHATEST_ON"] = picojson::value(true);
-					keywordMap["_NORMALMAP"] = picojson::value(true);
-					mat["keywordMap"] = picojson::value(keywordMap);
+    
+                    picojson::object keywordMap;
+                    keywordMap["_ALPHATEST_ON"] = picojson::value(true);
+                    keywordMap["_NORMALMAP"] = picojson::value(true);
+                    mat["keywordMap"] = picojson::value(keywordMap);
 
-					picojson::object tagMap;
-					tagMap["RenderType"] = picojson::value("TransparentCutout");
-					mat["tagMap"] = picojson::value(tagMap);
+                    picojson::object tagMap;
+                    tagMap["RenderType"] = picojson::value("TransparentCutout");
+                    mat["tagMap"] = picojson::value(tagMap);
 
-					materialProperties.push_back(picojson::value(mat));
-				}
-				VRM["materialProperties"] = picojson::value(materialProperties);
-			}
+                    materialProperties.push_back(picojson::value(mat));
+                }
+                VRM["materialProperties"] = picojson::value(materialProperties);
+            }
 
-			extensions["VRM"] = picojson::value(VRM);
-			root_object["extensions"] = picojson::value(extensions);
-			return true;
-		}
-	}
-	//-----------------------------------------------------------------------------
+            extensions["VRM"] = picojson::value(VRM);
+            root_object["extensions"] = picojson::value(extensions);
+            return true;
+        }
+    }
+    //-----------------------------------------------------------------------------
 
-	static
-	bool ExportGLTF(const std::string& path, const std::shared_ptr<Node>& node, const std::shared_ptr<Options>& opts, bool prettify = true)
-	{
-		bool output_bin = true;
-		bool output_draco = false;
+    static
+    bool ExportGLTF(const std::string& path, const std::shared_ptr<Node>& node, const std::shared_ptr<Options>& opts, bool prettify = true)
+    {
+        bool output_bin = true;
+        bool output_draco = false;
 
-		//std::shared_ptr<Options> opts = Options::GetGlobalOptions();
-		bool vrm_export = opts->GetInt("vrm_export") > 0;
-	    int output_buffer = opts->GetInt("output_buffer");
+        //std::shared_ptr<Options> opts = Options::GetGlobalOptions();
+        bool vrm_export = opts->GetInt("vrm_export") > 0;
+        int output_buffer = opts->GetInt("output_buffer");
 
-		if (output_buffer == 0)
-		{
-			output_bin = true;
-			output_draco = false;
-		}
-		else if (output_buffer == 1)
-		{
-			output_bin = false;
-			output_draco = true;
-		}
-		else
-		{
-			output_bin = true;
-			output_draco = true;
-		}
-
-		bool make_preload_texture = opts->GetInt("make_preload_texture") > 0;
-
-		std::string base_dir = GetBaseDir(path);
-		std::string base_name = GetBaseName(path);
-		gltf::ObjectRegisterer reg(base_name);
-		picojson::object root_object;
-
-		{
-			picojson::object asset;
-			asset["generator"] = picojson::value("glTF-Maya-Exporter");
-			asset["version"] = picojson::value("2.0");
-			root_object["asset"] = picojson::value(asset);
-		}
-
-		{
-			picojson::array extensionsUsed;
-			picojson::array extensionsRequired;
-			if (output_draco)
-			{
-				extensionsUsed.push_back(picojson::value("KHR_draco_mesh_compression"));
-				extensionsRequired.push_back(picojson::value("KHR_draco_mesh_compression"));
-			}
-			if (make_preload_texture)
-			{
-				extensionsUsed.push_back(picojson::value("KSK_preloadUri"));
-				extensionsRequired.push_back(picojson::value("KSK_preloadUri"));
-			}
-			if (vrm_export)
-			{
-				extensionsUsed.push_back(picojson::value("VRM"));
-			}
-
-			if (!extensionsUsed.empty())
-			{
-				root_object["extensionsUsed"] = picojson::value(extensionsUsed);
-			}
-			if (!extensionsRequired.empty())
-			{
-				root_object["extensionsRequired"] = picojson::value(extensionsRequired);
-			}
-		}
-
-
-		if (!gltf::NodeToGLTF(root_object, reg, node, output_bin, output_draco))
-		{
-			return false;
-		}
-
-		if (vrm_export)
+        if (output_buffer == 0)
         {
-			if (!gltf::WriteVRMMetaInfo(root_object, node, opts)) {
-				return false;
-			}
-		}
+            output_bin = true;
+            output_draco = false;
+        }
+        else if (output_buffer == 1)
+        {
+            output_bin = false;
+            output_draco = true;
+        }
+        else
+        {
+            output_bin = true;
+            output_draco = true;
+        }
 
-		{
-			std::ofstream ofs(path.c_str());
-			if (!ofs)
-			{
-				std::cerr << "Couldn't write glTF outputfile : " << path << std::endl;
-				return false;
-			}
+        bool make_preload_texture = opts->GetInt("make_preload_texture") > 0;
 
-			picojson::value(root_object).serialize(std::ostream_iterator<char>(ofs), prettify);
-		}
+        std::string base_dir = GetBaseDir(path);
+        std::string base_name = GetBaseName(path);
+        gltf::ObjectRegisterer reg(base_name);
+        picojson::object root_object;
 
-		{
-			const std::vector< std::shared_ptr<kml::gltf::Buffer> >& buffers = reg.GetBuffers();
+        {
+            picojson::object asset;
+            asset["generator"] = picojson::value("glTF-Maya-Exporter");
+            asset["version"] = picojson::value("2.0");
+            root_object["asset"] = picojson::value(asset);
+        }
+
+        {
+            picojson::array extensionsUsed;
+            picojson::array extensionsRequired;
+            if (output_draco)
+            {
+                extensionsUsed.push_back(picojson::value("KHR_draco_mesh_compression"));
+                extensionsRequired.push_back(picojson::value("KHR_draco_mesh_compression"));
+            }
+            if (make_preload_texture)
+            {
+                extensionsUsed.push_back(picojson::value("KSK_preloadUri"));
+                extensionsRequired.push_back(picojson::value("KSK_preloadUri"));
+            }
+            if (vrm_export)
+            {
+                extensionsUsed.push_back(picojson::value("VRM"));
+            }
+
+            if (!extensionsUsed.empty())
+            {
+                root_object["extensionsUsed"] = picojson::value(extensionsUsed);
+            }
+            if (!extensionsRequired.empty())
+            {
+                root_object["extensionsRequired"] = picojson::value(extensionsRequired);
+            }
+        }
+
+
+        if (!gltf::NodeToGLTF(root_object, reg, node, output_bin, output_draco))
+        {
+            return false;
+        }
+
+        if (vrm_export)
+        {
+            if (!gltf::WriteVRMMetaInfo(root_object, node, opts)) {
+                return false;
+            }
+        }
+
+        {
+            std::ofstream ofs(path.c_str());
+            if (!ofs)
+            {
+                std::cerr << "Couldn't write glTF outputfile : " << path << std::endl;
+                return false;
+            }
+
+            picojson::value(root_object).serialize(std::ostream_iterator<char>(ofs), prettify);
+        }
+
+        {
+            const std::vector< std::shared_ptr<kml::gltf::Buffer> >& buffers = reg.GetBuffers();
             if (buffers.empty())
             {
                 return false;
@@ -2435,21 +2456,21 @@ namespace kml
                 std::cerr << "Couldn't write bin outputfile :" << binfile << std::endl;
                 return false;
             }
-			for (size_t j = 0; j < buffers.size(); j++)
-			{
-				const std::shared_ptr<kml::gltf::Buffer>& buffer = buffers[j];
-				ofs.write((const char*)buffer->GetBytesPtr(), buffer->GetByteLength());
-			}
-		}
+            for (size_t j = 0; j < buffers.size(); j++)
+            {
+                const std::shared_ptr<kml::gltf::Buffer>& buffer = buffers[j];
+                ofs.write((const char*)buffer->GetBytesPtr(), buffer->GetByteLength());
+            }
+        }
 
-		return true;
-	}
+        return true;
+    }
 
 
-	bool glTFExporter::Export(const std::string& path, const std::shared_ptr<Node>& node, const std::shared_ptr<Options>& opts)const
-	{
-		return ExportGLTF(path, node, opts);
-	}
+    bool glTFExporter::Export(const std::string& path, const std::shared_ptr<Node>& node, const std::shared_ptr<Options>& opts)const
+    {
+        return ExportGLTF(path, node, opts);
+    }
 
-	
+    
 }
