@@ -3463,7 +3463,7 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
             for (ShaderMapType::iterator it = materials.begin(); it != materials.end(); it++)
             {
                 auto& mat = it->second;
-                auto& keys = mat->GetTextureKeys();
+                auto keys = mat->GetTextureKeys();
                 for (size_t j = 0; j < keys.size(); j++)
                 {
                     auto tex = mat->GetTexture(keys[j]);
