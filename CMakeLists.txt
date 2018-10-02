@@ -63,12 +63,19 @@ endif()
 if(GLTF_MAYA_EXPORTER_BUILD_MAYA_GLTF_EXPORTER OR GLTF_MAYA_EXPORTER_BUILD_MAYA_VRM_EXPORTER)
     
     SET(MAYA_INCLUDE_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/include/)
-    SET(MAYA_LIBRARY_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/lib/)
+
+    if (WIN32)
+        SET(MAYA_LIBRARY_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/lib/)
+    elseif(APPLE)
+        SET(MAYA_LIBRARY_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/Maya.app/Contents/MacOS)
+    elseif(UNIX)
+        SET(MAYA_LIBRARY_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/lib/)
+    endif()
 
     set(BUILD_DIR ${CMAKE_BINARY_DIR})
     message(BUILD_DIR: "${BUILD_DIR}")
     message(MAYA_INCLUDE_PATH: "${MAYA_INCLUDE_PATH}")
-    message(MAYA_INCLUDE_PATH: "${MAYA_LIBRARY_PATH}")
+    message(MAYA_LIBRARY_PATH: "${MAYA_LIBRARY_PATH}")
 
 endif()
 
@@ -148,6 +155,7 @@ if (GLTF_MAYA_EXPORTER_BUILD_MAYA_GLTF_EXPORTER)
     target_link_libraries( glTFExporter
                         kml
                         OpenMaya
+                        OpenMayaAnim
                         OpenMayaUI
                         Foundation
     )
@@ -186,6 +194,7 @@ if (GLTF_MAYA_EXPORTER_BUILD_MAYA_VRM_EXPORTER)
     target_link_libraries( vrmExporter
                         kml
                         OpenMaya
+                        OpenMayaAnim
                         OpenMayaUI
                         Foundation
     )
