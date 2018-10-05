@@ -11,10 +11,14 @@
 
 #include <fstream>
 #include <sstream>
+#include <memory>
+
+#include <kml/Options.h>
 
 #include "glTFTranslator.h"
 
 #define VENDOR_NAME "KASHIKA,Inc."
+#define PLUGIN_NAME "glTF-Maya-Exporter"
 #define PLUGIN_VERSION "1.0.2"
 
 const char *const gltfOptionScript = "glTFExporterOptions";
@@ -42,9 +46,9 @@ static
 void ShowLicense()
 {
 	std::string showText;
-	showText += "glTF-Maya-Exporter";
+	showText += PLUGIN_NAME;
 	showText += " ";
-	showText += "ver ";
+	showText += "ver";
 	showText += PLUGIN_VERSION;
 
 	PrintTextLn(showText);
@@ -53,6 +57,10 @@ void ShowLicense()
 MStatus initializePlugin( MObject obj )
 {
     MFnPlugin plugin( obj, VENDOR_NAME, PLUGIN_VERSION, "Any");
+
+    std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
+    opts->SetString("generator_name",    PLUGIN_NAME);
+    opts->SetString("generator_version", std::string("ver") + PLUGIN_VERSION);
 
 	ShowLicense();
     // Register the translator with the system

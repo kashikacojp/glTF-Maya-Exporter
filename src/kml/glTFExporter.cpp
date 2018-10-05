@@ -2410,7 +2410,14 @@ namespace kml
 
         {
             picojson::object asset;
-            asset["generator"] = picojson::value("glTF-Maya-Exporter");
+            std::string generator_name    = opts->GetString("generator_name");
+            std::string generator_version = opts->GetString("generator_version");
+            std::string generator = generator_name;
+            if(!generator_version.empty())
+            {
+                generator += " " + generator_version;
+            }
+            asset["generator"] = picojson::value(generator);
             asset["version"] = picojson::value("2.0");
             root_object["asset"] = picojson::value(asset);
         }

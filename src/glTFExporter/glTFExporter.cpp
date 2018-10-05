@@ -149,6 +149,32 @@ std::string GetDirectoryPath(const std::string& path)
 }
 
 static
+std::string RemoveExt(const std::string& path)
+{
+#ifdef _WIN32
+    char szDrive[_MAX_DRIVE];
+    char szDir[_MAX_DIR];
+    char szFname[_MAX_FNAME];
+    _splitpath(path.c_str(), szDrive, szDir, szFname, NULL);
+    std::string strRet1;
+    strRet1 += szDrive;
+    strRet1 += szDir;
+    strRet1 += szFname;
+    return strRet1;
+#else
+    int index = path.find_last_of(".");
+    if(index != std::string::npos)
+    {
+        return path.substr(0, index);
+    }
+    else
+    {
+        return path;
+    }
+#endif
+}
+
+static
 std::string GetFileName(const std::string& path)
 {
 #ifdef _WIN32
@@ -160,7 +186,15 @@ std::string GetFileName(const std::string& path)
     strRet1 += szFname;
     return strRet1;
 #else
-    return path.substr(path.find_last_of('/') + 1, path.find_last_of('.'));
+    int index = path.find_last_of("/");
+    if(index != std::string::npos)
+    {
+        return RemoveExt(path.substr(index+1));
+    }
+    else
+    {
+        return RemoveExt(path);
+    }
 #endif
 }
 
@@ -176,7 +210,7 @@ std::string GetFileExtName(const std::string& path)
     strRet1 += szExt;
     return strRet1;
 #else
-    int i = path.find_last_of('/');
+    int i = path.find_last_of("/");
     if (i != std::string::npos)
     {
         return path.substr(i + 1);
@@ -186,25 +220,6 @@ std::string GetFileExtName(const std::string& path)
         return path;
     }
 #endif
-}
-
-static
-std::string RemoveExt(const std::string& path)
-{
-#ifdef _WIN32
-    char szDrive[_MAX_DRIVE];
-    char szDir[_MAX_DIR];
-    char szFname[_MAX_FNAME];
-    _splitpath(path.c_str(), szDrive, szDir, szFname, NULL);
-    std::string strRet1;
-    strRet1 += szDrive;
-    strRet1 += szDir;
-    strRet1 += szFname;
-    return strRet1;
-#else
-    return path.substr(0, path.find_last_of('.'));
-#endif
-
 }
 
 static
@@ -343,6 +358,13 @@ bool RemoveDirectory_(const std::string& path)
     ::system(cmd.c_str());
     return true;
 #else
+    std::string cmd;
+    cmd += "rm -rf";
+    cmd += " ";
+    cmd += "\"";
+    cmd += path;
+    cmd += "\"";
+    ::system(cmd.c_str());
     return true;
 #endif
 }
@@ -570,6 +592,8 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 #if 1
     // Options
     //
+    std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
+
     int recalc_normals = 0;            //0:no, 1:recalc
     int output_onefile = 1;            //0:sep, 1:one file
     int output_glb = 0;                //0:json,1:glb
@@ -581,6 +605,9 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
     int freeze_skinned_mesh_transform = 1;    //0:no_bake, 1:bake veritces
     int output_animations = 1;      //0:no output, 1: output animation
     int output_invisible_nodes = 0; //0:
+
+    std::string generator_name = opts->GetString("generator_name");
+    std::string generator_version = opts->GetString("generator_version");
 
     std::string vrm_product_title = "notitle";
     std::string vrm_product_version = "1.00";
@@ -597,8 +624,6 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 
     std::string vrm_license_license_type = "CC_BY";
     std::string vrm_license_other_license_url = "";
-
-    std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
     
     if (options.length() > 0)
     {
@@ -648,6 +673,9 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
             }
             if (theOption[0] == MString("output_invisible_nodes") && theOption.length() > 1) {
                 output_invisible_nodes = theOption[1].asInt();
+            }
+            if (theOption[0] == MString("generator_name") && theOption.length() > 1) {
+                generator_name = theOption[1].asChar();
             }
 #ifdef ENABLE_VRM
 
@@ -728,6 +756,8 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
     opts->SetInt("freeze_skinned_mesh_transform", freeze_skinned_mesh_transform);
     opts->SetInt("output_animations", output_animations);
     opts->SetInt("output_invisible_nodes", output_invisible_nodes);
+
+    opts->SetString("generator_name", generator_name);
     
     opts->SetInt("vrm_export", vrm_export);
 
@@ -3630,6 +3660,8 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
     bool output_animations = opts->GetInt("output_animations") > 0;
     bool freeze_skinned_mesh_transform = opts->GetInt("freeze_skinned_mesh_transform") > 0;
 
+    std::string generator_name = opts->GetString("generator_name");
+
     typedef std::vector< std::shared_ptr<kml::Node> > NodeVecType;
     TexturePathManager texManager;
     ShaderMapType materials;
@@ -3640,7 +3672,7 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
         if (dagPaths.size())
         {
             int max_size = prog * dagPaths.size();
-            progWindow.reset(new ProgressWindow(max_size) );
+            progWindow.reset(new ProgressWindow(generator_name, max_size) );
             for (int i = 0; i < (int)dagPaths.size(); i++)
             {
                 if (progWindow->isCancelled())
