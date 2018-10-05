@@ -2963,7 +2963,7 @@ double ToDegree(double v)
 }
 
 static
-void GetAnimationsFromSkin(std::vector<std::shared_ptr<kml::Animation> >& animations, const std::shared_ptr<kml::Node>& node)
+void GetAnimationsFromTransform(std::vector<std::shared_ptr<kml::Animation> >& animations, const std::shared_ptr<kml::Node>& node)
 {
     std::vector< std::shared_ptr<kml::Node> > nodes;
     GetTransformNodes(nodes, node);
@@ -3387,18 +3387,6 @@ void GetAnimationsFromSkin(std::vector<std::shared_ptr<kml::Animation> >& animat
     }
 }
 
-    static
-    std::string IToS(int n)
-    {
-        char buffer[16] = {};
-#ifdef _WIN32
-        _snprintf(buffer, 16, "%03d", n);
-#else
-        snprintf(buffer, 16, "%03d", n);
-#endif
-        return buffer;
-    }
-
 static
 void GetAnimationsFromMorph(std::vector<std::shared_ptr<kml::Animation> >& animations, const std::shared_ptr<kml::Node>& node)
 {
@@ -3596,7 +3584,7 @@ void GetAnimationsFromMorph(std::vector<std::shared_ptr<kml::Animation> >& anima
 static
 void GetAnimations(std::vector<std::shared_ptr<kml::Animation> >& animations, const std::shared_ptr<kml::Node>& node)
 {
-    GetAnimationsFromSkin(animations, node);
+    GetAnimationsFromTransform(animations, node);
     GetAnimationsFromMorph(animations, node);
 }
 
