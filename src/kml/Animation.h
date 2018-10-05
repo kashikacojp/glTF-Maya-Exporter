@@ -41,16 +41,16 @@ namespace kml
         std::vector< float > values;
     };
 
-    class AnimationChannel
+    class AnimationPath
     {
     public:
-        void SetChannelType(const std::string& chan)
+        void SetPathType(const std::string& path)
         {
-            channel_type = chan;
+            path_type = path;
         }
-        const std::string& GetChannelType()const
+        const std::string& GetPathType()const
         {
-            return channel_type;
+            return path_type;
         }
         void SetKeys(const std::shared_ptr<AnimationCurve>& keys)
         {
@@ -79,31 +79,31 @@ namespace kml
             }
         }
     public:
-        std::string channel_type;
+        std::string path_type;
         std::map<std::string, std::shared_ptr<AnimationCurve> > curves;
     };
 
     class AnimationInstruction
     {
     public:
-        const std::vector< std::shared_ptr<AnimationChannel> >& GetChannels()const
+        const std::vector< std::shared_ptr<AnimationPath> >& GetPaths()const
         {
-            return channels;
+            return paths;
         }
         const std::vector< std::shared_ptr<Node> >& GetTargets()const
         {
             return targets;
         }
-        void AddChannel(const std::shared_ptr<AnimationChannel>& chan)
+        void AddPath(const std::shared_ptr<AnimationPath>& path)
         {
-            channels.push_back(chan);
+            paths.push_back(path);
         }
         void SetTargets(const std::vector< std::shared_ptr<Node> >& tars)
         {
             targets = tars;
         }
     public:
-        std::vector< std::shared_ptr<AnimationChannel> > channels;
+        std::vector< std::shared_ptr<AnimationPath> > paths;
         std::vector< std::shared_ptr<Node> > targets;
     };
 

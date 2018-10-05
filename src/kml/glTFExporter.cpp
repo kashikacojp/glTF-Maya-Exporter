@@ -456,14 +456,14 @@ namespace kml
                         const auto& in_instruction = in_instructions[i];
 
                         std::vector< std::shared_ptr<AnimationSampler> > samplers;
-                        const auto& in_channels = in_instruction->GetChannels();
-                        for (size_t j = 0; j < in_channels.size(); j++)
+                        const auto& in_paths = in_instruction->GetPaths();
+                        for (size_t j = 0; j < in_paths.size(); j++)
                         {
-                            const auto& in_channel = in_channels[j];
+                            const auto& in_path = in_paths[j];
 
-                            const auto key_curve = in_channel->GetCurve("k");
+                            const auto key_curve = in_path->GetCurve("k");
 
-                            std::string path_type = in_channel->GetChannelType();
+                            std::string path_type = in_path->GetPathType();
                             std::shared_ptr<AnimationSampler> sampler(new AnimationSampler(in_animation->name, nAS));
                             sampler->SetTargetPath(path_type);
                             sampler->SetInterpolation("LINEAR");
@@ -499,9 +499,9 @@ namespace kml
 
                             if (path_type == "translation" || path_type == "scale")
                             {
-                                const std::vector<float>& x = in_channel->GetCurve("x")->GetValues();
-                                const std::vector<float>& y = in_channel->GetCurve("y")->GetValues();
-                                const std::vector<float>& z = in_channel->GetCurve("z")->GetValues();
+                                const std::vector<float>& x = in_path->GetCurve("x")->GetValues();
+                                const std::vector<float>& y = in_path->GetCurve("y")->GetValues();
+                                const std::vector<float>& z = in_path->GetCurve("z")->GetValues();
                                 std::vector<float> values(3 * x.size());
                                 for (size_t j = 0; j < x.size(); j++)
                                 {
@@ -532,10 +532,10 @@ namespace kml
                             }
                             else if (path_type == "rotation")
                             {
-                                const std::vector<float>& x = in_channel->GetCurve("x")->GetValues();
-                                const std::vector<float>& y = in_channel->GetCurve("y")->GetValues();
-                                const std::vector<float>& z = in_channel->GetCurve("z")->GetValues();
-                                const std::vector<float>& w = in_channel->GetCurve("w")->GetValues();
+                                const std::vector<float>& x = in_path->GetCurve("x")->GetValues();
+                                const std::vector<float>& y = in_path->GetCurve("y")->GetValues();
+                                const std::vector<float>& z = in_path->GetCurve("z")->GetValues();
+                                const std::vector<float>& w = in_path->GetCurve("w")->GetValues();
 
                                 std::vector<float> values(4 * x.size());
                                 for (size_t j = 0; j < x.size(); j++)
@@ -559,6 +559,30 @@ namespace kml
                                 std::vector<float> min(4);
                                 std::vector<float> max(4);
                                 GetMinMax(&min[0], &max[0], values, 4);
+                                acc->SetMin(min);
+                                acc->SetMax(max);
+
+                                accessors_.push_back(acc);
+                                sampler->SetOutputAccessor(acc);
+                                nAcc++;
+                            }
+                            else if (path_type == "weights")
+                            {
+                                std::vector<float> values = in_path->GetCurve("w")->GetValues();
+
+                                std::string accName = "accessor_" + IToS(nAcc);//
+                                std::shared_ptr<Accessor> acc(new Accessor(accName, nAcc));
+                                const std::shared_ptr<BufferView>& bufferView = this->AddBufferView(values, -1);
+                                acc->SetBufferView(bufferView);
+                                acc->SetCount(values.size());
+                                acc->SetType("SCALAR");
+                                acc->SetComponentType(GLTF_COMPONENT_TYPE_FLOAT);//5126
+                                acc->SetByteOffset(0);
+                                //acc->Set("byteStride", picojson::value((double)3 * sizeof(float)));
+
+                                std::vector<float> min(1);
+                                std::vector<float> max(1);
+                                GetMinMax(&min[0], &max[0], values, 1);
                                 acc->SetMin(min);
                                 acc->SetMax(max);
 
