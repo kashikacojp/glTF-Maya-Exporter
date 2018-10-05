@@ -329,6 +329,29 @@ namespace kml
             return -1;
         }
 
+        static
+        int ConvertTextureFilterType(int type)
+        {
+            switch(type)
+            {
+                case ::kml::Texture::FilterType::FILTER_NEAREST : return GLTF_TEXTURE_FILTER_NEAREST;
+                case ::kml::Texture::FilterType::FILTER_LINEAR  : return GLTF_TEXTURE_FILTER_LINEAR;
+                default: return GLTF_TEXTURE_FILTER_LINEAR;
+            }
+        }
+
+        static
+        int ConvertTextureWrapType(int type)
+        {
+            switch(type)
+            {
+                case ::kml::Texture::WrapType::WRAP_REPEAT : return GLTF_TEXTURE_WRAP_REPEAT;
+                case ::kml::Texture::WrapType::WRAP_CLAMP  : return GLTF_TEXTURE_WRAP_CLAMP_TO_EDGE;
+                case ::kml::Texture::WrapType::WRAP_MIRROR : return GLTF_TEXTURE_WRAP_MIRRORED_REPEAT;
+                default: return GLTF_TEXTURE_WRAP_CLAMP_TO_EDGE;
+            }
+        }
+
         class ObjectRegisterer
         {
         public:
@@ -356,6 +379,41 @@ namespace kml
                 
                 this->AddNode(node);
                 return node;
+            }
+
+            std::shared_ptr<TextureSampler> RegisterTextureSampler(const std::shared_ptr<::kml::Texture>& in_texture)
+            {
+                int minFilter = ConvertTextureFilterType(in_texture->GetFilterTypeU() );
+                int magFilter = ConvertTextureFilterType(in_texture->GetFilterTypeV() );
+                int wrapS = ConvertTextureWrapType(in_texture->GetWrapTypeU());
+                int wrapT = ConvertTextureWrapType(in_texture->GetWrapTypeV());
+                if(this->texture_samplers_.empty())
+                {
+                    this->texture_samplers_.push_back(std::shared_ptr<TextureSampler>(new TextureSampler(0, minFilter, magFilter, wrapS, wrapT)));
+                    return this->texture_samplers_.back();
+                }
+                else
+                {
+                    int nTexSamplers = (int)this->texture_samplers_.size();
+                    int nFind = -1;
+                    for(int i = 0; i < nTexSamplers; i++)
+                    {
+                        if(this->texture_samplers_[i]->Equal(minFilter, magFilter, wrapS, wrapT))
+                        {
+                            nFind = i;
+                            break;
+                        }
+                    }
+                    if(nFind >= 0)
+                    {
+                        return this->texture_samplers_[nFind];
+                    }
+                    else
+                    {
+                        this->texture_samplers_.push_back(std::shared_ptr<TextureSampler>(new TextureSampler(nTexSamplers, minFilter, magFilter, wrapS, wrapT)));
+                        return this->texture_samplers_.back();
+                    }
+                }
             }
 
             std::vector<std::shared_ptr<MorphTarget> > RegisterMorphTargets(const std::shared_ptr<::kml::Mesh>& in_mesh)
@@ -1004,16 +1062,14 @@ namespace kml
             {
                 return buffers_;
             }
-        public:
-            std::vector<std::shared_ptr<Skin> >& GetSkins()
+            const std::vector<std::shared_ptr<TextureSampler> >& GetTextureSamplers()const
             {
-                return skins_;
+                return texture_samplers_;
             }
             const std::vector<std::shared_ptr<Skin> >& GetSkins()const
             {
                 return skins_;
             }
-        public:
             std::vector<std::shared_ptr<Animation> > GetAnimations()const
             {
                 return animations_;
@@ -1130,17 +1186,20 @@ namespace kml
             std::vector<std::shared_ptr<Skin> > skins_;
             std::vector<std::shared_ptr<MorphTarget> > morph_targets_;
             std::vector<std::shared_ptr<Animation> > animations_;
+            std::vector<std::shared_ptr<TextureSampler> > texture_samplers_;
 
             std::string basename_;
         };
 
         static
-        int FindTextureIndex(const std::vector<std::string>& v, const std::string& s)
+        int FindTextureIndex(const std::vector< std::shared_ptr<kml::Texture> >& v, const std::shared_ptr<kml::Texture>& s)
         {
-            std::vector<std::string>::const_iterator it = std::find(v.begin(), v.end(), s);
-            if (it != v.end())
+            for(int i = 0; i < (int)v.size(); i++)
             {
-                return std::distance(v.begin(), it);
+                if(v[i].get() == s.get())
+                {
+                    return i;
+                }
             }
             return -1;
         }
@@ -1371,98 +1430,14 @@ namespace kml
             bool IsOutputDraco)
         {
             {
-                picojson::object sampler;
-                sampler["magFilter"] = picojson::value((double)GLTF_TEXTURE_FILTER_LINEAR);//WebGLConstants.LINEAR
-                sampler["minFilter"] = picojson::value((double)GLTF_TEXTURE_FILTER_LINEAR);//WebGLConstants.NEAREST_MIPMAP_LINEAR
-                sampler["wrapS"] = picojson::value((double)GLTF_TEXTURE_WRAP_CLAMP_TO_EDGE);
-                sampler["wrapT"] = picojson::value((double)GLTF_TEXTURE_WRAP_CLAMP_TO_EDGE);
-                picojson::array samplers;
-                samplers.push_back(picojson::value(sampler));
-                root["samplers"] = picojson::value(samplers);
-            }
-            typedef std::map<std::string, std::string> CacheMapType;
-            std::vector<std::string> texture_vec;
-            std::map<std::string, std::string> cache_map;
-            std::map<std::string, std::shared_ptr<kml::Texture>> texture_set;
-            {
-                GetTextures(texture_set, node->GetMaterials());
-
-                static const std::string t = "_s0.";
-                for (std::map<std::string, std::shared_ptr<kml::Texture>>::const_iterator it = texture_set.begin(); it != texture_set.end(); ++it)
-                {
-                    std::shared_ptr<kml::Texture> tex = it->second;
-                    std::string texname = tex->GetFilePath();
-
-                    if (texname.find(t) == std::string::npos)
-                    {
-                        texture_vec.push_back(texname);
-                    }
-                    else
-                    {
-                        std::string orgPath = texname;
-                        orgPath.replace(texname.find(t), t.size(), ".");
-                        orgPath = RemoveExt(orgPath);
-                        cache_map.insert(CacheMapType::value_type(orgPath, texname));
-                    }
-
-                }
-            }
-            {
-                int level = 0;
-                picojson::array images;
-                picojson::array textures;
-                for (size_t i = 0; i < texture_vec.size(); i++)
-                {
-                    std::string imagePath = texture_vec[i];
-                    std::string imageId = GetImageID(imagePath);
-                    std::string texuteId = GetTextureID(imagePath);
-
-                    picojson::object image;
-                    image["name"] = picojson::value(imageId);
-                    image["uri"] = picojson::value(imagePath);
-                    {
-                        CacheMapType::const_iterator it = cache_map.find(RemoveExt(imagePath));
-                        if (it != cache_map.end())
-                        {
-                            //"extensions": {"KSK_preloadUri":{"uri":"Default_baseColor_pre.jpg"}}
-                            picojson::object extensions;
-                            picojson::object KSK_preloadUri;
-                            KSK_preloadUri["uri"] = picojson::value(it->second);
-                            extensions["KSK_preloadUri"] = picojson::value(KSK_preloadUri);
-                            image["extensions"] = picojson::value(extensions);
-                        }
-                    }
-                    images.push_back(picojson::value(image));
-
-                    picojson::object texture;
-                    int nFormat = GetImageFormat(imagePath);
-                    //texture["format"] = picojson::value((double)nFormat);         //image.format;
-                    //texture["internalFormat"] = picojson::value((double)nFormat); //image.format;
-                    texture["sampler"] = picojson::value((double)0);
-                    texture["source"] = picojson::value((double)i);   //imageId;
-                    //texture["target"] = picojson::value((double)GLTF_TEXTURE_TARGET_TEXTURE2D); //WebGLConstants.TEXTURE_2D;
-                    //texture["type"] = picojson::value((double)GLTF_TEXTURE_TYPE_UNSIGNED_BYTE); //WebGLConstants.UNSIGNED_BYTE
-
-                    textures.push_back(picojson::value(texture));
-                }
-                if (!images.empty())
-                {
-                    root["images"] = picojson::value(images);
-                }
-                if (!textures.empty())
-                {
-                    root["textures"] = picojson::value(textures);
-                }
-            }
-
-            {
                 RegisterObjects(reg, node, IsOutputBin, IsOutputDraco);
             }
-
+            
             {
                 root["scene"] = picojson::value((double)0);
             }
 
+            // Scenes
             {
                 picojson::array ar;
 
@@ -1479,6 +1454,7 @@ namespace kml
                 root["scenes"] = picojson::value(ar);
             }
 
+            // Nodes
             {
                 const std::vector< std::shared_ptr<Node> >& nodes = reg.GetNodes();
                 picojson::array ar;
@@ -1547,6 +1523,7 @@ namespace kml
                 root["nodes"] = picojson::value(ar);
             }
 
+            // Meshes
             {
                 const std::vector< std::shared_ptr<Mesh> >& meshes = reg.GetMeshes();
                 //std::cout << meshes.size() << std::endl;
@@ -1655,7 +1632,8 @@ namespace kml
                 root["meshes"] = picojson::value(ar);
             }
 
-            {//
+            // Accessors
+            {
                 const std::vector< std::shared_ptr<Accessor> >& accessors = reg.GetAccessors();
                 picojson::array ar;
                 for (size_t i = 0; i < accessors.size(); i++)
@@ -1691,7 +1669,8 @@ namespace kml
                 root["accessors"] = picojson::value(ar);
             }
 
-            {//buffer view
+            // BufferViews
+            {
                 const std::vector< std::shared_ptr<BufferView> >& bufferViews = reg.GetBufferViews();
                 picojson::array ar;
                 for (size_t i = 0; i < bufferViews.size(); i++)
@@ -1712,6 +1691,7 @@ namespace kml
                 root["bufferViews"] = picojson::value(ar);
             }
 
+            // Buffers
             {
                 picojson::array ar;
                 const std::vector< std::shared_ptr<Buffer> >& buffers = reg.GetBuffers();
@@ -1727,6 +1707,7 @@ namespace kml
                 root["buffers"] = picojson::value(ar);
             }
 
+            // Skins
             {
                 const std::vector< std::shared_ptr<Skin> >& skins = reg.GetSkins();
                 picojson::array ar;
@@ -1768,6 +1749,7 @@ namespace kml
                 }
             }
 
+            // Animations
             {
                 const auto& animations    = reg.GetAnimations();
                 picojson::array ar;
@@ -1814,6 +1796,102 @@ namespace kml
                 }
             }
 
+            std::vector< std::shared_ptr<kml::Texture> > texture_vec;
+            // Textures
+            // Images
+            // Samplers
+            {
+                typedef std::map<std::string, std::string> CacheMapType;
+                std::map<std::string, std::string> cache_map;
+                {
+                    std::map<std::string, std::shared_ptr<kml::Texture> > texture_set;
+                    GetTextures(texture_set, node->GetMaterials());
+
+                    static const std::string t = "_s0.";
+                    for (std::map<std::string, std::shared_ptr<kml::Texture>>::const_iterator it = texture_set.begin(); it != texture_set.end(); ++it)
+                    {
+                        std::shared_ptr<kml::Texture> tex = it->second;
+                        std::string texname = tex->GetFilePath();
+                        if (texname.find(t) == std::string::npos)
+                        {
+                            texture_vec.push_back(tex);
+                        }
+                        else
+                        {
+                            std::string orgPath = texname;
+                            orgPath.replace(texname.find(t), t.size(), ".");
+                            orgPath = RemoveExt(orgPath);
+                            cache_map.insert(CacheMapType::value_type(orgPath, texname));
+                        }
+                    }
+                }
+                int level = 0;
+                picojson::array images;
+                picojson::array textures;
+                picojson::array samplers;
+                for (size_t i = 0; i < texture_vec.size(); i++)
+                {
+                    std::shared_ptr<kml::Texture> in_tex = texture_vec[i];
+                    std::shared_ptr<TextureSampler> sampler = reg.RegisterTextureSampler(in_tex);
+                    std::string imagePath = in_tex->GetFilePath();
+                    std::string imageId = GetImageID(imagePath);
+                    std::string texuteId = GetTextureID(imagePath);
+
+                    picojson::object image;
+                    image["name"] = picojson::value(imageId);
+                    image["uri"] = picojson::value(imagePath);
+                    {
+                        CacheMapType::const_iterator it = cache_map.find(RemoveExt(imagePath));
+                        if (it != cache_map.end())
+                        {
+                            //"extensions": {"KSK_preloadUri":{"uri":"Default_baseColor_pre.jpg"}}
+                            picojson::object extensions;
+                            picojson::object KSK_preloadUri;
+                            KSK_preloadUri["uri"] = picojson::value(it->second);
+                            extensions["KSK_preloadUri"] = picojson::value(KSK_preloadUri);
+                            image["extensions"] = picojson::value(extensions);
+                        }
+                    }
+                    images.push_back(picojson::value(image));
+
+                    picojson::object texture;
+                    int nFormat = GetImageFormat(imagePath);
+                    //texture["format"] = picojson::value((double)nFormat);         //image.format;
+                    //texture["internalFormat"] = picojson::value((double)nFormat); //image.format;
+                    texture["sampler"] = picojson::value((double)sampler->GetIndex());
+                    texture["source"] = picojson::value((double)i);   //imageId;
+                    //texture["target"] = picojson::value((double)GLTF_TEXTURE_TARGET_TEXTURE2D); //WebGLConstants.TEXTURE_2D;
+                    //texture["type"] = picojson::value((double)GLTF_TEXTURE_TYPE_UNSIGNED_BYTE); //WebGLConstants.UNSIGNED_BYTE
+
+                    textures.push_back(picojson::value(texture));
+                }
+                {
+                    const std::vector< std::shared_ptr<TextureSampler> >& tsamplers = reg.GetTextureSamplers();
+                    for(size_t i = 0; i < tsamplers.size(); i++)
+                    {
+                        picojson::object sampler;
+                        sampler["minFilter"] = picojson::value((double)tsamplers[i]->GetMinFilter());
+                        sampler["magFilter"] = picojson::value((double)tsamplers[i]->GetMagFilter());
+                        sampler["wrapS"] = picojson::value((double)tsamplers[i]->GetWrapS());
+                        sampler["wrapT"] = picojson::value((double)tsamplers[i]->GetWrapT());
+                        samplers.push_back(picojson::value(sampler));
+                    }
+                }
+                if (!images.empty())
+                {
+                    root["images"] = picojson::value(images);
+                }
+                if (!textures.empty())
+                {
+                    root["textures"] = picojson::value(textures);
+                }
+                if (!samplers.empty())
+                {
+                    root["samplers"] = picojson::value(samplers);
+                }
+            }
+
+            // Materials
             {
                 const auto& materials = node->GetMaterials();
                 picojson::array ar;
@@ -1838,9 +1916,9 @@ namespace kml
                     picojson::object pbrMetallicRoughness;
 
                     std::shared_ptr<kml::Texture> tex = mat->GetTexture("BaseColor");
-                    if (tex) {
-                        std::string basecolor_texname = tex->GetFilePath();
-                        int nIndex = FindTextureIndex(texture_vec, basecolor_texname);
+                    if (tex)
+                    {
+                        int nIndex = FindTextureIndex(texture_vec, tex);
                         if (nIndex >= 0)
                         {
                             picojson::object baseColorTexture;
@@ -1850,9 +1928,9 @@ namespace kml
                     }
                     
                     std::shared_ptr<kml::Texture> normaltex = mat->GetTexture("Normal");
-                    if (normaltex) {
-                        std::string normal_texname = normaltex->GetFilePath();
-                        int nIndex = FindTextureIndex(texture_vec, normal_texname);
+                    if (normaltex)
+                    {
+                        int nIndex = FindTextureIndex(texture_vec, normaltex);
                         if (nIndex >= 0)
                         {
                             picojson::object normalTexture;

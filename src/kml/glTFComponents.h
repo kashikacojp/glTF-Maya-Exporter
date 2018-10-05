@@ -489,6 +489,87 @@ namespace kml
             std::map<std::string, std::shared_ptr<Accessor> > accessors_;
         };
 
+        class TextureSampler
+        {
+        public:
+            TextureSampler(int index)
+                :index_(index)
+                ,minFiler_(GLTF_TEXTURE_FILTER_LINEAR)
+                ,magFiler_(GLTF_TEXTURE_FILTER_LINEAR)
+                ,wrapS_(GLTF_TEXTURE_WRAP_CLAMP_TO_EDGE)
+                ,wrapT_(GLTF_TEXTURE_WRAP_CLAMP_TO_EDGE)
+            {
+                ;
+            }
+
+            TextureSampler(int index, int minFiler, int magFiler, int wrapS, int wrapT)
+                :index_(index)
+                ,minFiler_(minFiler)
+                ,magFiler_(magFiler)
+                ,wrapS_(wrapS)
+                ,wrapT_(wrapT)
+            {
+                ;
+            }
+        public:
+            void SetIndex(int index)
+            {
+                index_ = index;
+            }
+            int GetIndex()const
+            {
+                return index_;
+            }
+            void SetMagFilter(int v)
+            {
+                magFiler_ = v;
+            }
+            void SetMinFilter(int v)
+            {
+                minFiler_ = v;
+            }
+            void SetWrapS(int v)
+            {
+                wrapS_ = v;
+            }
+            void SetWrapT(int v)
+            {
+                wrapT_ = v;
+            }
+        public:
+            int GetMagFilter()const
+            {
+                return magFiler_;
+            }
+            int GetMinFilter()const
+            {
+                return minFiler_;
+            }
+            int GetWrapS()const
+            {
+                return wrapS_;
+            }
+            int GetWrapT()const
+            {
+                return wrapT_;
+            }
+        public:
+            bool Equal(int minFiler, int magFiler, int wrapS, int wrapT)
+            {
+                return 
+                    minFiler_ == minFiler &&
+                    magFiler_ == magFiler &&
+                    wrapS_ == wrapS &&
+                    wrapT_ == wrapT;
+            }
+        protected:
+            int index_;
+            int minFiler_;
+            int magFiler_; 
+            int wrapS_;
+            int wrapT_;
+        };
+
         class Transform
         {
         public:
