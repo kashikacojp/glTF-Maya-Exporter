@@ -28,15 +28,15 @@ we support MAYA2017 and MAYA2018 on Windows and macOS, now.
 
 - [x] Mac support
 
-- [ ] Linux support
+- [x] Linux support
 
-- [ ] VRM format (https://dwango.github.io/vrm/)
+- [x] VRM format (https://dwango.github.io/vrm/)
 
 - [ ] Substance Painter Texture Node
 
-- [ ] SkinMesh animation
+- [x] SkinMesh animation
 
-- [ ] Blend shape animation
+- [x] Blend shape animation
 
 
 ## How to Build
