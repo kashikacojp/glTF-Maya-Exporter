@@ -1012,7 +1012,6 @@ std::shared_ptr<kml::Mesh> CreateMesh(const MDagPath& dagPath, const MSpace::Spa
         materials[i] = 0;
     }
 
-
     std::shared_ptr < kml::Mesh > mesh(new kml::Mesh());
     mesh->facenums.swap(facenums);
     mesh->pos_indices.swap(pos_indices);
@@ -2089,7 +2088,7 @@ private:
     std::map<std::string, int> countMap_;
 };
 
-typedef std::map<int, std::shared_ptr<kml::Material> > ShaderMapType;
+typedef std::map<int, std::shared_ptr<kml::Material> > MaterialMapType;
 
 static
 std::shared_ptr<kml::Node> GetLeafNode(const std::shared_ptr<kml::Node>& node)
@@ -2195,7 +2194,7 @@ MStatus WriteGLTF(
             for (size_t i = 0; i < shaders.size(); i++)
             {
                 int shaderID = (int)MObjectHandle::objectHashCode(shaders[i]);
-                ShaderMapType::iterator it = materials.find(shaderID);
+                MaterialMapType::iterator it = materials.find(shaderID);
                 if (it != materials.end())
                 {
                     std::shared_ptr<kml::Material> mat = it->second;
@@ -2299,7 +2298,7 @@ MStatus WriteGLTF(
                     }
 
                     int shaderID = 0;
-                    ShaderMapType::iterator it = materials.find(shaderID);
+                    MaterialMapType::iterator it = materials.find(shaderID);
                     if (it != materials.end())
                     {
                         std::shared_ptr<kml::Material> mat = it->second;
@@ -2320,7 +2319,7 @@ MStatus WriteGLTF(
         else
         {
             int shaderID = 0;
-            ShaderMapType::iterator it = materials.find(shaderID);
+            MaterialMapType::iterator it = materials.find(shaderID);
             if (it != materials.end())
             {
                 std::shared_ptr<kml::Material> mat = it->second;
@@ -2545,21 +2544,6 @@ void GetMeshNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const std::s
         {
             nodes.push_back(node);
         }
-    }
-}
-
-static
-void GetAllNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const std::shared_ptr<kml::Node>& node)
-{
-    if (node->GetChildren().size() > 0)
-    {
-        for (size_t i = 0; i < node->GetChildren().size(); i++)
-        {
-            GetAllNodes(nodes, node->GetChildren()[i]);
-        }
-    }
-    {
-        nodes.push_back(node);
     }
 }
 
@@ -3664,7 +3648,7 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
 
     typedef std::vector< std::shared_ptr<kml::Node> > NodeVecType;
     TexturePathManager texManager;
-    ShaderMapType materials;
+    MaterialMapType materials;
     NodeVecType   nodes;
     std::shared_ptr<ProgressWindow> progWindow;
     {
@@ -3673,14 +3657,17 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
         {
             int max_size = prog * dagPaths.size();
             progWindow.reset(new ProgressWindow(generator_name, max_size) );
+            progWindow->SetProgressStatus("");
             for (int i = 0; i < (int)dagPaths.size(); i++)
             {
-                if (progWindow->isCancelled())
+                if (progWindow->IsCancelled())
                 {
                     return MS::kFailure;
                 }
                 bool bProcess = true;
                 MDagPath dagPath = dagPaths[i];
+                progWindow->SetProgressStatus(dagPath.fullPathName().asChar());
+                MGlobal::executeCommand("refresh -cv -f;");
                 if (!output_invisible_nodes)
                 {
                     if (!IsVisible(dagPath))
@@ -3695,8 +3682,11 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
                         status = WriteGLTF(texManager, materials, nodes, MString(dir_path.c_str()), dagPath);
                     }
                 }
-                progWindow->setProgress(prog * (i + 1));
+                progWindow->SetProgressStatus("");
+                progWindow->SetProgress(prog * (i + 1));
+                MGlobal::executeCommand("refresh -cv -f;");
             }
+            progWindow->SetProgressStatus("");
         }
     }
 
@@ -3723,7 +3713,7 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
     {
         {
             int index = 0;
-            for (ShaderMapType::iterator it = materials.begin(); it != materials.end(); it++)
+            for (MaterialMapType::iterator it = materials.begin(); it != materials.end(); it++)
             {
                 auto& mat = it->second;
                 mat->SetInteger("_Index", index);//
@@ -3751,7 +3741,7 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
         }
 
         {
-            for (ShaderMapType::iterator it = materials.begin(); it != materials.end(); it++)
+            for (MaterialMapType::iterator it = materials.begin(); it != materials.end(); it++)
             {
                 auto& mat = it->second;
                 auto keys = mat->GetTextureKeys();
@@ -3764,17 +3754,11 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
             }
         }
 
-        NodeVecType all_nodes;
-        for (NodeVecType::iterator it = nodes.begin(); it != nodes.end(); it++)
-        {
-            auto& node = *it;
-            GetAllNodes(all_nodes, node);
-        }
-
-        std::shared_ptr<kml::Node> node = CombineNodes(all_nodes);
+        std::shared_ptr<kml::Node> node = CombineNodes(nodes);
         node->SetName(GetFileName(std::string(fname.asChar())));
+
         {
-            for (ShaderMapType::iterator it = materials.begin(); it != materials.end(); it++)
+            for (MaterialMapType::iterator it = materials.begin(); it != materials.end(); it++)
             {
                 auto& mat = it->second;
                 node->AddMaterial(mat);
@@ -3784,6 +3768,10 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
         if(freeze_skinned_mesh_transform)
         {
             FreezeSkinedMeshTransform(node);
+        }
+
+        {
+
         }
 
         if(output_animations)

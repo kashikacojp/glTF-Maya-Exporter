@@ -36,7 +36,7 @@ namespace kml
         {
             return values;
         }
-    public:
+    protected:
         AnimationInterporationType interporation_type;
         std::vector< float > values;
     };
@@ -78,7 +78,7 @@ namespace kml
                 return std::shared_ptr<AnimationCurve>();
             }
         }
-    public:
+    protected:
         std::string path_type;
         std::map<std::string, std::shared_ptr<AnimationCurve> > curves;
     };
@@ -102,7 +102,7 @@ namespace kml
         {
             targets = tars;
         }
-    public:
+    protected:
         std::vector< std::shared_ptr<AnimationPath> > paths;
         std::vector< std::shared_ptr<Node> > targets;
     };
@@ -126,7 +126,7 @@ namespace kml
         {
             instructions.push_back(ins);
         }
-    public:
+    protected:
         std::string name;
         std::vector< std::shared_ptr<AnimationInstruction> > instructions;
     };

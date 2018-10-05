@@ -449,7 +449,7 @@ namespace kml
                 const auto& in_instructions = in_animation->GetInstructions();
                 if (in_instructions.size() > 0)
                 {
-                    std::shared_ptr<Animation> animation(new Animation(in_animation->name, nAC));
+                    std::shared_ptr<Animation> animation(new Animation(in_animation->GetName(), nAC));
             
                     for (size_t i = 0; i < in_instructions.size(); i++)
                     {
@@ -464,7 +464,7 @@ namespace kml
                             const auto key_curve = in_path->GetCurve("k");
 
                             std::string path_type = in_path->GetPathType();
-                            std::shared_ptr<AnimationSampler> sampler(new AnimationSampler(in_animation->name, nAS));
+                            std::shared_ptr<AnimationSampler> sampler(new AnimationSampler(in_animation->GetName(), nAS));
                             sampler->SetTargetPath(path_type);
                             sampler->SetInterpolation("LINEAR");
                             switch (key_curve->GetInterpolationType())
@@ -604,7 +604,7 @@ namespace kml
                         {
                             for (size_t k = 0; k < samplers.size(); k++)
                             {
-                                std::shared_ptr<AnimationChannel> channel(new AnimationChannel(in_animation->name, nAC));
+                                std::shared_ptr<AnimationChannel> channel(new AnimationChannel(in_animation->GetName(), nAC));
                                 channel->SetTargetNode(nodeMap_[targets[j]->GetPath()]);
                                 channel->SetSampler(samplers[k]);
                                 channels.push_back(channel);

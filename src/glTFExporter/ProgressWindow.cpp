@@ -18,8 +18,8 @@ ProgressWindow::ProgressWindow(const std::string& title, int max_size)
     MProgressWindow::setInterruptable(true);
 	MProgressWindow::setProgressMin(0);
 	MProgressWindow::setProgressMax(max_size);
+    MProgressWindow::setProgressStatus(MString(""));
 	MProgressWindow::startProgress();
-
 }
 
 ProgressWindow::~ProgressWindow()
@@ -27,13 +27,17 @@ ProgressWindow::~ProgressWindow()
 	MProgressWindow::endProgress();
 }
 
-void ProgressWindow::setProgress(const int progress)
+void ProgressWindow::SetProgress(const int progress)
 {
 	MProgressWindow::setProgress(progress);
-    MProgressWindow::progress();
 }
 
-bool ProgressWindow::isCancelled()const
+void ProgressWindow::SetProgressStatus(const std::string& str)
+{
+    MProgressWindow::setProgressStatus(MString(str.c_str()));
+}
+
+bool ProgressWindow::IsCancelled()const
 {
 	return MProgressWindow::isCancelled();
 }
