@@ -95,8 +95,11 @@
 #include <set>
 #include <iostream>
 
-#include <string.h> 
+#include <string.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <time.h>
+#include <errno.h>
 
 #define GLM_ENABLE_EXPERIMENTAL 1
 #include <glm/glm.hpp>
@@ -108,7 +111,6 @@
 #include <Shellapi.h>
 #endif
 
-#include <thread>
 
 #include "murmur3.h"
 #include "ProgressWindow.h"
@@ -333,17 +335,6 @@ std::string MakeConvertTexturePath(const std::string& path)
     return path;
 }
 
-static
-bool RemoveFile(const std::string& path)
-{
-#ifdef _WIN32
-    ::DeleteFileA(path.c_str());
-    return true;
-#else
-
-    return true;
-#endif
-}
 
 static
 bool RemoveDirectory_(const std::string& path)
@@ -378,7 +369,7 @@ std::string GetTempDirectory()
     GetTempPathA(_MAX_PATH + 1, dir1);
 
     GetTempFileNameA(dir1, "tmp", 0, dir2);
-    RemoveFile(dir2);
+    ::DeleteFileA(dir2);
 
     return RemoveExt(dir2);
 #else // Linux and macOS
@@ -390,8 +381,15 @@ std::string GetTempDirectory()
 static
 bool IsFileExist(const std::string& filepath)
 {
-    std::ifstream ifs(filepath);
-    return ifs.is_open();
+#ifdef _WIN32
+    struct _stat st;
+    int nRet = ::_stat(filepath.c_str(), &st);
+    return (nRet == 0);
+#else
+    struct stat st;
+    int nRet = ::stat(filepath.c_str(), &st);
+    return (nRet == 0);
+#endif
 }
 
 static
@@ -510,7 +508,7 @@ bool glTFExporter::haveWriteMethod () const
 
 MString glTFExporter::defaultExtension () const
 {
-    return "gltf";
+    return "glb";
 }
 //////////////////////////////////////////////////////////////
 
@@ -2729,9 +2727,45 @@ std::string GetExportDirectory(const std::string& fname)
     }
 }
 
+static
+std::string GetFinalPath(const std::string& path)
+{
+    std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
+    bool glb = opts->GetInt("output_glb") > 0;
+    bool vrm = opts->GetInt("vrm_export") > 0;
+    if( glb || vrm )
+    {
+        std::string filename = RemoveExt(path);
+        if(vrm)
+        {
+            return filename + ".vrm";
+        }
+        else
+        {
+            return filename + ".glb";
+        }
+    }
+    else
+    {
+        return RemoveExt(path);//directory
+    }
+}
+
+static
+void RemoveFileAlreadyExists(const std::string& path)
+{
+    std::string finalPath = GetFinalPath(path);
+    if(IsFileExist(finalPath))
+    {
+        RemoveDirectory_(finalPath);
+    }
+}
+
 MStatus glTFExporter::exportSelected(const MString& fname)
 {
     MStatus status = MS::kSuccess;
+
+    RemoveFileAlreadyExists(fname.asChar());
 
     // Create an iterator for the active selection list
     //
@@ -2815,6 +2849,8 @@ MStatus glTFExporter::exportSelected(const MString& fname)
 MStatus glTFExporter::exportAll     (const MString& fname)
 {
     MStatus status = MS::kSuccess;
+
+    RemoveFileAlreadyExists(fname.asChar());
 
     MItDag dagIterator( MItDag::kBreadthFirst, MFn::kInvalid, &status);
 
@@ -3632,10 +3668,6 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
 {
     MStatus status = MS::kSuccess;
 
-    std::string dir_path = GetExportDirectory(fname.asChar());
-
-    MakeDirectory(dir_path);
-
     std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
     bool onefile = opts->GetInt("output_onefile") > 0;
     bool glb = opts->GetInt("output_glb") > 0;
@@ -3645,6 +3677,10 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
     bool freeze_skinned_mesh_transform = opts->GetInt("freeze_skinned_mesh_transform") > 0;
 
     std::string generator_name = opts->GetString("generator_name");
+
+
+    std::string dir_path = GetExportDirectory(fname.asChar());
+    MakeDirectory(dir_path);
 
     typedef std::vector< std::shared_ptr<kml::Node> > NodeVecType;
     TexturePathManager texManager;
@@ -3770,10 +3806,6 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
             FreezeSkinedMeshTransform(node);
         }
 
-        {
-
-        }
-
         if(output_animations)
         {
             std::vector<std::shared_ptr<kml::Animation> > animations;
@@ -3811,7 +3843,8 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
         std::string gltf_path = dir_path + "/" + GetFileName(std::string(fname.asChar())) + ".gltf";
         
         std::string extname = ".glb";
-        if (vrm) {
+        if (vrm) 
+        {
             extname = ".vrm";
         }
         std::string glb_path  = RemoveExt(std::string(fname.asChar())) + extname;
