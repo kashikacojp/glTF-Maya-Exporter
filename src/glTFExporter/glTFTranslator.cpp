@@ -78,7 +78,7 @@ bool glTFTranslator::haveWriteMethod () const
 
 MString glTFTranslator::defaultExtension () const
 {
-    return "gltf";
+    return "glb";
 }
 //////////////////////////////////////////////////////////////
 
@@ -104,7 +104,7 @@ MPxFileTranslator::MFileKind glTFTranslator::identifyFile (
 MString         glTFTranslator::filter()const
 {
 #ifndef ENABLE_VRM 
-	return "*.gltf;*.glb";
+	return "*.glb;*.gltf";
 #else
     return "*.vrm";
 #endif
