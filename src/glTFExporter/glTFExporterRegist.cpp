@@ -19,7 +19,7 @@
 
 #define VENDOR_NAME "KASHIKA,Inc."
 #define PLUGIN_NAME "glTF-Maya-Exporter"
-#define PLUGIN_VERSION "1.1.0"
+#define PLUGIN_VERSION "1.5.0"
 
 const char *const gltfOptionScript = "glTFExporterOptions";
 const char *const gltfDefaultOptions =

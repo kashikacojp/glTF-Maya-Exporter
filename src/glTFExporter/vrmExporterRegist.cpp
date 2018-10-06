@@ -19,7 +19,7 @@
 
 #define VENDOR_NAME "KASHIKA,Inc."
 #define PLUGIN_NAME "VRM-Maya-Exporter"
-#define PLUGIN_VERSION "1.0.0"
+#define PLUGIN_VERSION "1.5.0"
 
 const char *const gltfOptionScript = "vrmExporterOptions";
 const char *const gltfDefaultOptions =
@@ -31,15 +31,15 @@ const char *const gltfDefaultOptions =
 	"convert_texture_format=1;"
     "output_animations=1;"
 	"vrm_export=1;"
-    "vrm_product_title=\"notitle\";"
-    "vrm_product_version=\"1.00\";"
-    "vrm_product_author=\"unknown\";"       //Todo: replace getenv "USER";
+    "vrm_product_title=notitle;"
+    "vrm_product_version=1.00;"
+    "vrm_product_author=unknown;"           //Todo: replace getenv "USER";
     "vrm_license_allowed_user_name=2;"      //everyone
     "vrm_license_violent_usage=1;"          //allow
     "vrm_license_sexual_usage=1;"           //allow
     "vrm_license_commercial_usage=1;"       //allow
-    "vrm_license_license_type=\"CC BY\";"
-    "vrm_license_other_license_url=\"https://creativecommons.org/licenses/\""
+    "vrm_license_license_type=CC BY;"
+    "vrm_license_other_license_url=https://creativecommons.org/licenses/;"
     ;
 
 static
