@@ -19,6 +19,7 @@ namespace kml
     class Mesh;
     class Bound;
     class Transform;
+    class Skin;
     class Node
     {
     public:
@@ -35,6 +36,7 @@ namespace kml
 
         const std::vector< std::shared_ptr <Material> >& GetMaterials()const;
         const std::vector< std::shared_ptr <Animation> >& GetAnimations()const;
+        const std::vector< std::shared_ptr <Skin> >& GetSkins()const;
         const std::vector< std::shared_ptr<Node> >& GetChildren()const;
     public:
         void SetTransform(const std::shared_ptr<Transform>& trans);
@@ -46,6 +48,7 @@ namespace kml
         void AddChild(const std::shared_ptr<Node>& child);
         void ClearChildren();
         void AddAnimation(const std::shared_ptr<Animation>& anim);
+        void AddSkin(const std::shared_ptr<Skin>& skin);
 
         void SetVisiblity(bool isVisible);
         bool GetVisibility()const;
@@ -62,6 +65,7 @@ namespace kml
         std::shared_ptr < Mesh > mesh;
         std::vector< std::shared_ptr <Material> > materials;
         std::vector< std::shared_ptr<Animation> > animations;
+        std::vector< std::shared_ptr<Skin> > skins;
         std::map<std::string, int> iprops;
     };
 }

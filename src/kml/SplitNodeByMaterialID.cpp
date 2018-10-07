@@ -210,9 +210,9 @@ namespace kml
 			for (size_t i = 0; i < materials.size(); i++)
 			{
 				meshes.push_back( std::shared_ptr<kml::Mesh>(new kml::Mesh()) );
-				if (mesh->skin_weights.get())
+				if (mesh->skin_weight.get())
 				{
-					meshes[i]->skin_weights = std::shared_ptr<kml::SkinWeights>( new kml::SkinWeights() );
+					meshes[i]->skin_weight = std::shared_ptr<kml::SkinWeight>( new kml::SkinWeight() );
 				}
                 if (mesh->morph_targets.get())
                 {
@@ -250,9 +250,9 @@ namespace kml
 				meshes[i]->normals   = mesh->normals;
 				meshes[i]->name = mesh->name;
 
-				if (mesh->skin_weights.get())
+				if (mesh->skin_weight.get())
 				{
-                    *(meshes[i]->skin_weights) = *(mesh->skin_weights);
+                    *(meshes[i]->skin_weight) = *(mesh->skin_weight);
 				}
 
                 if (mesh->morph_targets.get())

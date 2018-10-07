@@ -147,4 +147,14 @@ namespace kml
         animations.push_back(anim);
     }
 
+    const std::vector< std::shared_ptr <Skin> >& Node::GetSkins()const
+    {
+        return skins;
+    }
+
+    void Node::AddSkin(const std::shared_ptr<Skin>& skin)
+    {
+        skins.push_back(skin);
+    }
+
 }

@@ -94,6 +94,9 @@
 #include <fstream>
 #include <set>
 #include <iostream>
+#include <vector>
+#include <set>
+#include <map>
 
 #include <string.h>
 #include <sys/types.h>
@@ -1149,9 +1152,9 @@ std::shared_ptr<kml::Mesh> GetSkinWeights(std::shared_ptr<kml::Mesh>& mesh, cons
     MFnSkinCluster skinC(mpa[0].node());
     skinC.findPlug("input").elementByLogicalIndex(skinC.indexForOutputShape(dagPath.node())).child(0).getValue(vtxobj);
 
-    std::shared_ptr<kml::SkinWeights> skin_weights(new kml::SkinWeights());
-    skin_weights->name = skinC.name().asChar();
-    skin_weights->weights.resize(mesh->positions.size());
+    std::shared_ptr<kml::SkinWeight> skin_weight(new kml::SkinWeight());
+    skin_weight->name = skinC.name().asChar();
+    skin_weight->weights.resize(mesh->positions.size());
     MDagPathArray dpa;
     MStatus stat;
     int jsz = skinC.influenceObjects(dpa, &stat);
@@ -1189,7 +1192,7 @@ std::shared_ptr<kml::Mesh> GetSkinWeights(std::shared_ptr<kml::Mesh>& mesh, cons
                     unsigned int index = geoit.index();
                     for (int l = 0; l < lsz; l++)
                     {
-                        skin_weights->weights[index][joint_paths[l]] = ws[l];
+                        skin_weight->weights[index][joint_paths[l]] = ws[l];
                     }
                 }
                 geoit.next();
@@ -1207,7 +1210,7 @@ std::shared_ptr<kml::Mesh> GetSkinWeights(std::shared_ptr<kml::Mesh>& mesh, cons
         std::sort(joint_paths.begin(), joint_paths.end());
         joint_paths.erase(std::unique(joint_paths.begin(), joint_paths.end()), joint_paths.end());
         std::sort(joint_paths.begin(), joint_paths.end(), StringSizeSorter());
-        skin_weights->joint_paths = joint_paths;
+        skin_weight->joint_paths = joint_paths;
     }
 
     {
@@ -1233,14 +1236,14 @@ std::shared_ptr<kml::Mesh> GetSkinWeights(std::shared_ptr<kml::Mesh>& mesh, cons
             path_mat_map[joint_path] = mat;
         }
 
-        for(int j = 0; j < skin_weights->joint_paths.size(); j++)
+        for(int j = 0; j < skin_weight->joint_paths.size(); j++)
         { 
-            glm::mat4 mat = path_mat_map[skin_weights->joint_paths[j]];
-            skin_weights->joint_bind_matrices.push_back(mat);
+            glm::mat4 mat = path_mat_map[skin_weight->joint_paths[j]];
+            skin_weight->joint_bind_matrices.push_back(mat);
         }
     }
 
-    mesh->skin_weights = skin_weights;
+    mesh->skin_weight = skin_weight;
 
     return mesh;
 }
@@ -2690,6 +2693,21 @@ void SetNode(std::map<std::string, std::shared_ptr<kml::Node> >& pathMap, const 
 }
 
 static
+void GetAllNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const std::shared_ptr<kml::Node>& node)
+{
+    if (node->GetChildren().size() > 0)
+    {
+        for (size_t i = 0; i < node->GetChildren().size(); i++)
+        {
+            GetAllNodes(nodes, node->GetChildren()[i]);
+        }
+    }
+    {
+        nodes.push_back(node);
+    }
+}
+
+static
 std::shared_ptr<kml::Node> CombineNodes(const std::vector< std::shared_ptr<kml::Node> >& nodes)
 {
     std::shared_ptr<kml::Node> node(new kml::Node());
@@ -3068,12 +3086,12 @@ std::vector< std::shared_ptr < kml::Node > > GetJointNodes(const std::vector< st
         auto mesh = mesh_nodes[i]->GetMesh();
         if (mesh.get())
         {
-            if (mesh->skin_weights.get())
+            if (mesh->skin_weight.get())
             {
-                auto& skin_weights = mesh->skin_weights;
-                for (size_t j = 0; j < skin_weights->joint_paths.size(); j++)
+                auto& skin_weight = mesh->skin_weight;
+                for (size_t j = 0; j < skin_weight->joint_paths.size(); j++)
                 {
-                    joint_paths.push_back(skin_weights->joint_paths[j]);
+                    joint_paths.push_back(skin_weight->joint_paths[j]);
                 }
             }
         }
@@ -3166,38 +3184,87 @@ double ToDegree(double v)
 }
 
 static
+std::shared_ptr<kml::Skin> FindSkin(const std::vector< std::shared_ptr<kml::Skin> >& skins, const std::shared_ptr<kml::Node>& node)
+{
+    for (size_t i = 0; i < skins.size(); i++)
+    {
+        const auto& skin = skins[i];
+        const auto& joints = skin->GetJoints();
+        for (size_t j = 0; j < joints.size(); j++)
+        {
+            if (joints[j].get() == node.get())
+            {
+                return skin;
+            }
+        }
+    }
+    return std::shared_ptr<kml::Skin>();
+}
+
+static
 void GetAnimationsFromTransform(std::vector<std::shared_ptr<kml::Animation> >& animations, const std::shared_ptr<kml::Node>& node)
 {
+    struct Category
+    {
+        std::string name;
+        std::vector< std::shared_ptr<kml::Node> > nodes;
+    };
+
     std::vector< std::shared_ptr<kml::Node> > nodes;
     GetTransformNodes(nodes, node);
-    typedef std::map<std::string, std::vector< std::shared_ptr<kml::Node> > > MapType;
-    MapType pathNodeMap;
-    std::vector<MDagPath> pathList;
+    typedef std::map<void*, Category > CategoryMapType;
+    CategoryMapType categoryMap;
     {
-        MSelectionList selectionList;
+        const auto& skins = node->GetSkins();
         for (size_t i = 0; i < nodes.size(); i++)
         {
-            std::string path = nodes[i]->GetOriginalPath();
-            pathNodeMap[path].push_back(nodes[i]);
-        }
-        for(MapType::const_iterator it = pathNodeMap.begin(); it != pathNodeMap.end(); it++)
-        {
-            std::string path = it->first;
-            selectionList.add(MString(path.c_str()));
-        }
-        MItSelectionList iterator = MItSelectionList(selectionList, MFn::kDagNode);
-        while (!iterator.isDone())
-        {
-            MDagPath dagPath;
-            iterator.getDagPath(dagPath);
-            pathList.push_back(dagPath);
-            iterator.next();
+            const auto& n = nodes[i];
+            auto skin = FindSkin(skins, n);
+            if (skin.get())
+            {
+                auto& category = categoryMap[(void*)skin.get()];
+                category.nodes.push_back(n);
+                category.name = "Skin:" + skin->GetName();
+            }
+            else
+            {
+                auto& category = categoryMap[(void*)n.get()];
+                category.nodes.push_back(n);
+                category.name = "Transform:" + n->GetName();
+            }
         }
     }
 
+    for(CategoryMapType::iterator git = categoryMap.begin(); git != categoryMap.end(); git++)
     {
+        typedef std::map<std::string, std::vector< std::shared_ptr<kml::Node> > > MapType;
+        MapType pathNodeMap;
+        std::vector<MDagPath> pathList;
+        {
+            MSelectionList selectionList;
+            const auto& gnodes = git->second.nodes;
+            for (size_t i = 0; i < gnodes.size(); i++)
+            {
+                std::string path = gnodes[i]->GetOriginalPath();
+                pathNodeMap[path].push_back(gnodes[i]);
+            }
+            for (MapType::const_iterator it = pathNodeMap.begin(); it != pathNodeMap.end(); it++)
+            {
+                std::string path = it->first;
+                selectionList.add(MString(path.c_str()));
+            }
+            MItSelectionList iterator = MItSelectionList(selectionList, MFn::kDagNode);
+            while (!iterator.isDone())
+            {
+                MDagPath dagPath;
+                iterator.getDagPath(dagPath);
+                pathList.push_back(dagPath);
+                iterator.next();
+            }
+        }
+
         std::shared_ptr<kml::Animation> animation(new kml::Animation());
-        animation->SetName(node->GetName());//TODO
+        animation->SetName(git->second.name);
 
         for (size_t idx = 0; idx < pathList.size(); idx++)
         {
@@ -3785,10 +3852,136 @@ void GetAnimationsFromMorph(std::vector<std::shared_ptr<kml::Animation> >& anima
 }
 
 static
-void GetAnimations(std::vector<std::shared_ptr<kml::Animation> >& animations, const std::shared_ptr<kml::Node>& node)
+std::vector<std::shared_ptr<kml::Animation> > GetAnimations(const std::shared_ptr<kml::Node>& node)
 {
+    std::vector<std::shared_ptr<kml::Animation> > animations;
     GetAnimationsFromTransform(animations, node);
     GetAnimationsFromMorph(animations, node);
+    return animations;
+}
+
+static
+void GetSkinnedMeshNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const std::shared_ptr<kml::Node>& node)
+{
+    if (node->GetTransform().get() && node->GetMesh().get() && node->GetMesh()->GetSkinWeight().get())
+    {
+        nodes.push_back(node);
+    }
+    if (node->GetChildren().size() > 0)
+    {
+        auto& children = node->GetChildren();
+        for (size_t i = 0; i < children.size(); i++)
+        {
+            GetSkinnedMeshNodes(nodes, children[i]);
+        }
+    }
+}
+
+static
+void FlattenNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const std::shared_ptr<kml::Node>& node)
+{
+    nodes.push_back(node);
+    const auto& children = node->GetChildren();
+    for(size_t i = 0; i < children.size(); i++)
+    {
+        FlattenNodes(nodes, children[i]);
+    }
+}
+
+static
+std::vector<std::shared_ptr<kml::Skin> > GetSkins(const std::shared_ptr<kml::Node>& node)
+{
+    std::vector<std::shared_ptr<kml::Skin> > skins;
+
+    std::vector< std::shared_ptr<kml::Node> > jointNodes;
+    GetTransformNodes(jointNodes, node);
+    std::map<std::string, std::shared_ptr<kml::Node> > jointMap;
+    for(size_t i = 0; i < jointNodes.size(); i++)
+    {
+        jointMap[jointNodes[i]->GetPath()] = jointNodes[i];
+    }
+
+    std::vector< std::shared_ptr<kml::Node> > skinNodes;
+    GetSkinnedMeshNodes(skinNodes, node);
+    typedef std::map<std::string, std::vector< std::shared_ptr<kml::SkinWeight> > > SkinMapType;
+    SkinMapType skinMap;
+
+    typedef std::map<std::string, glm::mat4 > MatMapType;
+    MatMapType matMap;
+    for(size_t i = 0; i < skinNodes.size(); i++)
+    {
+        const auto& skinWeight = skinNodes[i]->GetMesh()->GetSkinWeight();
+        const auto& jointPaths = skinWeight->GetJointPaths();
+        const auto& jointMats  = skinWeight->GetJointBindMatrices();
+        for(size_t j = 0; j < jointPaths.size(); j++)
+        {
+            skinMap[jointPaths[j]].push_back(skinWeight);
+            matMap[jointPaths[j]] = jointMats[j];
+        }
+    }
+
+    std::vector < std::shared_ptr<kml::Node> > rootJointNodes;
+    {
+        typedef std::set< std::shared_ptr<kml::Node> > JointSetType;
+        JointSetType jointSet;
+        for(SkinMapType::iterator it = skinMap.begin(); it != skinMap.end(); it++)
+        {
+            jointSet.insert(jointMap[ it->first ]);
+        }
+        JointSetType jointSet2 = jointSet;
+        for(JointSetType::iterator it = jointSet2.begin(); it != jointSet2.end(); it++)
+        {
+            auto n = *it;
+            const auto& children = n->GetChildren();
+            for(size_t j = 0; j < children.size(); j++)
+            {
+                JointSetType::iterator itf = jointSet.find(children[j]);
+                if(itf != jointSet.end())
+                {
+                    jointSet.erase(itf);
+                }
+            }
+        }
+        for(JointSetType::iterator it = jointSet.begin(); it != jointSet.end(); it++)
+        {
+            rootJointNodes.push_back(*it);
+        }
+    }
+
+    for(size_t i = 0; i < rootJointNodes.size(); i++)
+    {
+        std::shared_ptr<kml::Skin> skin(new kml::Skin());
+        std::vector < std::shared_ptr<kml::Node> > joints;
+        FlattenNodes(joints, rootJointNodes[i]);
+        std::vector<glm::mat4> mats;
+        for(size_t j = 0; j < joints.size(); j++)
+        {
+            mats.push_back(matMap[joints[j]->GetPath()]);
+        }
+        {
+            typedef std::set< std::shared_ptr<kml::SkinWeight> > WeightSetType;
+            WeightSetType weightSet;
+            for(size_t j = 0; j < joints.size(); j++)
+            {
+                const auto& weights = skinMap[joints[j]->GetPath()];
+                for(size_t k = 0; k < weights.size(); k++)
+                {
+                    weightSet.insert(weights[k]);
+                }
+            }
+            for(WeightSetType::iterator it = weightSet.begin(); it != weightSet.end(); it++)
+            {
+                skin->AddSkinWeight(*it);
+            }
+        }
+        skin->SetJoints(joints);
+        skin->SetJointBindMatrices(mats);
+        skin->SetName(joints[0]->GetName());
+
+        skins.push_back(skin);
+    }
+
+    return skins;
 }
 
 static
@@ -3797,7 +3990,7 @@ bool FreezeSkinedMeshTransform(const std::shared_ptr<kml::Node>& node, const glm
     auto& mesh = node->GetMesh();
     bool bRet = false;
     glm::mat4 mat = gmat * node->GetTransform()->GetMatrix();
-    if (mesh.get() && mesh->skin_weights.get())
+    if (mesh.get() && mesh->skin_weight.get())
     {
         mesh = TransformMesh(mesh, mat);
         bRet |= true;
@@ -3890,6 +4083,23 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
         {
             nodes.push_back(joint_nodes[i]);
         }
+
+        std::vector< std::shared_ptr < kml::Node > > all_nodes;
+        for (size_t i = 0; i < nodes.size(); i++)
+        {
+            GetAllNodes(all_nodes, nodes[i]);
+        }
+        typedef std::set< std::shared_ptr < kml::Node > > SetType;
+        SetType set_nodes;
+        for (size_t i = 0; i < all_nodes.size(); i++)
+        {
+            set_nodes.insert(all_nodes[i]);
+        }
+        nodes.clear();
+        for (SetType::iterator it = set_nodes.begin(); it != set_nodes.end(); it++)
+        {
+            nodes.push_back(*it);
+        }
     }
 
     //texture copy
@@ -3959,10 +4169,17 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
             FreezeSkinedMeshTransform(node);
         }
 
+        {
+            std::vector<std::shared_ptr<kml::Skin> > skins = GetSkins(node);
+            for (size_t i = 0; i < skins.size(); i++)
+            {
+                node->AddSkin(skins[i]);
+            }
+        }
+
         if(output_animations)
         {
-            std::vector<std::shared_ptr<kml::Animation> > animations;
-            GetAnimations(animations, node);
+            std::vector<std::shared_ptr<kml::Animation> > animations = GetAnimations(node);
             for (size_t i = 0; i < animations.size(); i++)
             {
                 node->AddAnimation(animations[i]);
