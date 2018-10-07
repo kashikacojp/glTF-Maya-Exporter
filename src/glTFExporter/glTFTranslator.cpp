@@ -8,10 +8,18 @@
 
 //////////////////////////////////////////////////////////////
 
-glTFTranslator::glTFTranslator ()
+typedef glTFTranslator::Mode Mode;
+
+glTFTranslator::glTFTranslator (Mode mode)
 {
-	//importer.reset( new gltfImporter() );
-	exporter.reset( new glTFExporter() );
+    glTFExporter::Mode modeEx = glTFExporter::Mode::EXPORT_GLTF;
+    switch(mode)
+    {
+        case Mode::EXPORT_GLTF: modeEx = glTFExporter::Mode::EXPORT_GLTF;break;
+        case Mode::EXPORT_GLB:  modeEx = glTFExporter::Mode::EXPORT_GLB;break;
+        case Mode::EXPORT_VRM:  modeEx = glTFExporter::Mode::EXPORT_VRM;break;
+    }
+    exporter.reset( new glTFExporter(modeEx) );
 }
 
 //////////////////////////////////////////////////////////////
@@ -23,9 +31,19 @@ glTFTranslator::~glTFTranslator ()
 
 //////////////////////////////////////////////////////////////
 
-void* glTFTranslator::creator()
+void* glTFTranslator::creatorGLTF()
 {
-    return new glTFTranslator();
+    return new glTFTranslator(Mode::EXPORT_GLTF);
+}
+
+void* glTFTranslator::creatorGLB()
+{
+    return new glTFTranslator(Mode::EXPORT_GLB);
+}
+
+void* glTFTranslator::creatorVRM()
+{
+    return new glTFTranslator(Mode::EXPORT_VRM);
 }
 
 //////////////////////////////////////////////////////////////
@@ -78,15 +96,13 @@ bool glTFTranslator::haveWriteMethod () const
 
 MString glTFTranslator::defaultExtension () const
 {
-    return "glb";
+    if(exporter)
+	{
+		return exporter->defaultExtension();
+	}
+    return "gltf";
 }
 //////////////////////////////////////////////////////////////
-
-#ifdef _WIN32
-#ifndef strcasecmp
-#define strcasecmp _stricmp
-#endif
-#endif
 
 MPxFileTranslator::MFileKind glTFTranslator::identifyFile (
                                         const MFileObject& fileName,
@@ -103,8 +119,12 @@ MPxFileTranslator::MFileKind glTFTranslator::identifyFile (
 
 MString         glTFTranslator::filter()const
 {
+    if (exporter)
+	{
+		return exporter->filter();
+	}
 #ifndef ENABLE_VRM 
-	return "*.glb;*.gltf";
+	return "*.gltf;*.vrm";
 #else
     return "*.vrm";
 #endif

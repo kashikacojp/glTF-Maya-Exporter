@@ -25,7 +25,6 @@ const char *const gltfOptionScript = "vrmExporterOptions";
 const char *const gltfDefaultOptions =
     "recalc_normals=0;"
 	"output_onefile=1;"
-	"output_glb=0;"
 	"make_preload_texture=0;"
 	"output_buffer=1;"
 	"convert_texture_format=1;"
@@ -75,7 +74,7 @@ MStatus initializePlugin( MObject obj )
 	ShowLicense();
     // Register the translator with the system
     return plugin.registerFileTranslator( "vrmExporter", "none",
-                                          glTFTranslator::creator,
+                                          glTFTranslator::creatorVRM,
                                           (char *)gltfOptionScript,
                                           (char *)gltfDefaultOptions 
 	);                               

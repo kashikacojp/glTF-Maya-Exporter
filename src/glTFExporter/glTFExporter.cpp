@@ -435,10 +435,28 @@ bool IsVisible(MDagPath& path)
 
 
 //////////////////////////////////////////////////////////////
-
-void* glTFExporter::creator()
+typedef glTFExporter::Mode Mode;
+static const Mode EXPORT_GLTF = glTFExporter::EXPORT_GLTF;
+static const Mode EXPORT_GLB = glTFExporter::EXPORT_GLB;
+static const Mode EXPORT_VRM = glTFExporter::EXPORT_VRM;
+glTFExporter::glTFExporter (Mode mode)
 {
-    return new glTFExporter();
+    this->mode_ = mode;
+}
+
+void* glTFExporter::creatorGLTF()
+{
+    return new glTFExporter(EXPORT_GLTF);
+}
+
+void* glTFExporter::creatorGLB()
+{
+    return new glTFExporter(EXPORT_GLB);
+}
+
+void* glTFExporter::creatorVRM()
+{
+    return new glTFExporter(EXPORT_VRM);
 }
 
 //////////////////////////////////////////////////////////////
@@ -508,7 +526,13 @@ bool glTFExporter::haveWriteMethod () const
 
 MString glTFExporter::defaultExtension () const
 {
-    return "glb";
+    switch((int)this->mode_)
+    {
+    case EXPORT_GLTF: return "gltf";
+    case EXPORT_GLB: return "glb";
+    case EXPORT_VRM: return "vrm";
+    }
+    return "gltf";
 }
 //////////////////////////////////////////////////////////////
 
@@ -519,24 +543,49 @@ MPxFileTranslator::MFileKind glTFExporter::identifyFile (
 {
     const char * name = fileName.name().asChar();
     int   nameLength = (int)strlen(name);
+    switch((int)this->mode_)
+    {
+    case EXPORT_GLTF:
+        {
+            if ((nameLength > 5) && !strcasecmp(name + nameLength - 5, ".gltf"))
+            {
+                return kIsMyFileType;
+            }
+            break;
+        }
+    case EXPORT_GLB:
+        {
+            if ((nameLength > 4) && !strcasecmp(name + nameLength - 4, ".glb"))
+            {
+                return kIsMyFileType;
+            }
+            break;
+        }
+    case EXPORT_VRM:
+        {
+            if ((nameLength > 4) && !strcasecmp(name + nameLength - 4, ".vrm"))
+            {
+                return kIsMyFileType;
+            }
+            break;
+        }
+    }
     
-    if ((nameLength > 5) && !strcasecmp(name + nameLength - 5, ".gltf"))
-    {
-        return kIsMyFileType;
-    }
-    else if ((nameLength > 4) && !strcasecmp(name + nameLength - 4, ".glb"))
-    {
-        return kIsMyFileType;
-    }
-    else if ((nameLength > 4) && !strcasecmp(name + nameLength - 4, ".vrm"))
-    {
-        return kIsMyFileType;
-    }
-    else
-    {
-        return kNotMyFileType;
-    }
+    return kNotMyFileType;
 }
+//////////////////////////////////////////////////////////////
+MString glTFExporter::filter()const
+{
+    switch((int)this->mode_)
+    {
+    case EXPORT_GLTF: return "*.gltf";
+    case EXPORT_GLB: return "*.glb";
+    case EXPORT_VRM: return "*.vrm";
+    }
+    return "*.glb";
+}
+
+//////////////////////////////////////////////////////////////
 
 static
 std::string ConvertVRMLicenseType(const std::string& type)
@@ -604,6 +653,22 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
     int output_animations = 1;      //0:no output, 1: output animation
     int output_invisible_nodes = 0; //0:
 
+    switch((int)this->mode_)
+    {
+    case EXPORT_GLTF:
+        output_glb = 0;
+        vrm_export = 0;
+        break;
+    case EXPORT_GLB:
+        output_glb = 1;
+        vrm_export = 0;
+        break;
+    case EXPORT_VRM:
+        output_glb = 1;
+        vrm_export = 1;
+        break;
+    }
+
     std::string generator_name = opts->GetString("generator_name");
     std::string generator_version = opts->GetString("generator_version");
 
@@ -645,12 +710,14 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
             if (theOption[0] == MString("output_onefile") && theOption.length() > 1) {
                 output_onefile = theOption[1].asInt();
             }
+            /*
             if (theOption[0] == MString("output_glb") && theOption.length() > 1) {
                 output_glb = theOption[1].asInt();
             }
             if (theOption[0] == MString("vrm_export") && theOption.length() > 1) {
                 vrm_export = theOption[1].asInt();
             }
+            */
             if (theOption[0] == MString("make_preload_texture") && theOption.length() > 1) {
                 make_preload_texture = theOption[1].asInt();
             }
@@ -729,7 +796,7 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 
     if (output_glb)
     {
-        output_onefile = 1;            //enforce onefile
+        output_onefile = 1;          //enforce onefile
         make_preload_texture = 0;    //no cache texture
     }
 
