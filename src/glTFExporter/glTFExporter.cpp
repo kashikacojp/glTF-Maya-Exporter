@@ -94,6 +94,9 @@
 #include <fstream>
 #include <set>
 #include <iostream>
+#include <vector>
+#include <set>
+#include <map>
 
 #include <string.h>
 #include <sys/types.h>
@@ -2690,6 +2693,21 @@ void SetNode(std::map<std::string, std::shared_ptr<kml::Node> >& pathMap, const 
 }
 
 static
+void GetAllNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const std::shared_ptr<kml::Node>& node)
+{
+    if (node->GetChildren().size() > 0)
+    {
+        for (size_t i = 0; i < node->GetChildren().size(); i++)
+        {
+            GetAllNodes(nodes, node->GetChildren()[i]);
+        }
+    }
+    {
+        nodes.push_back(node);
+    }
+}
+
+static
 std::shared_ptr<kml::Node> CombineNodes(const std::vector< std::shared_ptr<kml::Node> >& nodes)
 {
     std::shared_ptr<kml::Node> node(new kml::Node());
@@ -3166,38 +3184,87 @@ double ToDegree(double v)
 }
 
 static
+std::shared_ptr<kml::Skin> FindSkin(const std::vector< std::shared_ptr<kml::Skin> >& skins, const std::shared_ptr<kml::Node>& node)
+{
+    for (size_t i = 0; i < skins.size(); i++)
+    {
+        const auto& skin = skins[i];
+        const auto& joints = skin->GetJoints();
+        for (size_t j = 0; j < joints.size(); j++)
+        {
+            if (joints[j].get() == node.get())
+            {
+                return skin;
+            }
+        }
+    }
+    return std::shared_ptr<kml::Skin>();
+}
+
+static
 void GetAnimationsFromTransform(std::vector<std::shared_ptr<kml::Animation> >& animations, const std::shared_ptr<kml::Node>& node)
 {
+    struct Category
+    {
+        std::string name;
+        std::vector< std::shared_ptr<kml::Node> > nodes;
+    };
+
     std::vector< std::shared_ptr<kml::Node> > nodes;
     GetTransformNodes(nodes, node);
-    typedef std::map<std::string, std::vector< std::shared_ptr<kml::Node> > > MapType;
-    MapType pathNodeMap;
-    std::vector<MDagPath> pathList;
+    typedef std::map<void*, Category > CategoryMapType;
+    CategoryMapType categoryMap;
     {
-        MSelectionList selectionList;
+        const auto& skins = node->GetSkins();
         for (size_t i = 0; i < nodes.size(); i++)
         {
-            std::string path = nodes[i]->GetOriginalPath();
-            pathNodeMap[path].push_back(nodes[i]);
-        }
-        for(MapType::const_iterator it = pathNodeMap.begin(); it != pathNodeMap.end(); it++)
-        {
-            std::string path = it->first;
-            selectionList.add(MString(path.c_str()));
-        }
-        MItSelectionList iterator = MItSelectionList(selectionList, MFn::kDagNode);
-        while (!iterator.isDone())
-        {
-            MDagPath dagPath;
-            iterator.getDagPath(dagPath);
-            pathList.push_back(dagPath);
-            iterator.next();
+            const auto& n = nodes[i];
+            auto skin = FindSkin(skins, n);
+            if (skin.get())
+            {
+                auto& category = categoryMap[(void*)skin.get()];
+                category.nodes.push_back(n);
+                category.name = "Skin:" + skin->GetName();
+            }
+            else
+            {
+                auto& category = categoryMap[(void*)n.get()];
+                category.nodes.push_back(n);
+                category.name = "Transform:" + n->GetName();
+            }
         }
     }
 
+    for(CategoryMapType::iterator git = categoryMap.begin(); git != categoryMap.end(); git++)
     {
+        typedef std::map<std::string, std::vector< std::shared_ptr<kml::Node> > > MapType;
+        MapType pathNodeMap;
+        std::vector<MDagPath> pathList;
+        {
+            MSelectionList selectionList;
+            const auto& gnodes = git->second.nodes;
+            for (size_t i = 0; i < gnodes.size(); i++)
+            {
+                std::string path = gnodes[i]->GetOriginalPath();
+                pathNodeMap[path].push_back(gnodes[i]);
+            }
+            for (MapType::const_iterator it = pathNodeMap.begin(); it != pathNodeMap.end(); it++)
+            {
+                std::string path = it->first;
+                selectionList.add(MString(path.c_str()));
+            }
+            MItSelectionList iterator = MItSelectionList(selectionList, MFn::kDagNode);
+            while (!iterator.isDone())
+            {
+                MDagPath dagPath;
+                iterator.getDagPath(dagPath);
+                pathList.push_back(dagPath);
+                iterator.next();
+            }
+        }
+
         std::shared_ptr<kml::Animation> animation(new kml::Animation());
-        animation->SetName(node->GetName());//TODO
+        animation->SetName(git->second.name);
 
         for (size_t idx = 0; idx < pathList.size(); idx++)
         {
@@ -4015,6 +4082,23 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
         for (size_t i = 0; i < joint_nodes.size(); i++)
         {
             nodes.push_back(joint_nodes[i]);
+        }
+
+        std::vector< std::shared_ptr < kml::Node > > all_nodes;
+        for (size_t i = 0; i < nodes.size(); i++)
+        {
+            GetAllNodes(all_nodes, nodes[i]);
+        }
+        typedef std::set< std::shared_ptr < kml::Node > > SetType;
+        SetType set_nodes;
+        for (size_t i = 0; i < all_nodes.size(); i++)
+        {
+            set_nodes.insert(all_nodes[i]);
+        }
+        nodes.clear();
+        for (SetType::iterator it = set_nodes.begin(); it != set_nodes.end(); it++)
+        {
+            nodes.push_back(*it);
         }
     }
 

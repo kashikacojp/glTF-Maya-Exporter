@@ -19,6 +19,7 @@ namespace kml
     class Mesh;
     class Bound;
     class Transform;
+    class Skin;
     class Node
     {
     public:
