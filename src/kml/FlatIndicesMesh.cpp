@@ -1,6 +1,6 @@
 #include "FlatIndicesMesh.h"
 #include "CalculateNormalsMesh.h"
-#include "SkinWeights.h"
+#include "Skin.h"
 #include <map>
 #include <vector>
 #include <glm/glm.hpp> // vec3 normalize cross
@@ -37,7 +37,7 @@ namespace kml
 			std::vector<glm::vec3> positions;
 			std::vector<int>       new_indices(vsz);
 
-			std::vector<kml::SkinWeights::WeightVertex> weight_vertices;
+			std::vector<kml::SkinWeight::WeightVertex> weight_vertices;
 
 			size_t offset = 0;
 			for (size_t i = 0; i < vsz; i++)
@@ -45,18 +45,18 @@ namespace kml
 				if (counts[i])
 				{
 					positions.push_back(mesh->positions[i]);
-					if (mesh->skin_weights.get())
+					if (mesh->skin_weight.get())
 					{
-						weight_vertices.push_back(mesh->skin_weights->weights[i]);
+						weight_vertices.push_back(mesh->skin_weight->weights[i]);
 					}
 				}
 				new_indices[i] = offset;
 				offset += counts[i];
 			}
 			mesh->positions.swap(positions);
-			if (mesh->skin_weights.get())
+			if (mesh->skin_weight.get())
 			{
-				mesh->skin_weights->weights = weight_vertices;
+				mesh->skin_weight->weights = weight_vertices;
 			}
 			for (size_t i = 0; i < mesh->pos_indices.size(); i++)
 			{
@@ -391,7 +391,7 @@ namespace kml
 		std::vector<glm::vec2> texcoords(sz);
 		std::vector<glm::vec3> normals(sz);
 
-		std::vector<SkinWeights::WeightVertex> weight_vertices(sz);
+		std::vector<SkinWeight::WeightVertex> weight_vertices(sz);
 
         std::vector<std::shared_ptr<MorphTarget> > morph_targets;
         if (mesh->morph_targets.get())
@@ -415,9 +415,9 @@ namespace kml
 			IndexMap::iterator it = imap.find(pair);
 			int index = it->second;
 			positions[index] = mesh->positions[vidx];
-			if (mesh->skin_weights.get())
+			if (mesh->skin_weight.get())
 			{
-				weight_vertices[index] = mesh->skin_weights->weights[vidx];
+				weight_vertices[index] = mesh->skin_weight->weights[vidx];
 			}
             {
                 for (size_t j = 0; j < morph_targets.size(); j++)
@@ -465,9 +465,9 @@ namespace kml
 		mesh->texcoords.swap(texcoords);
 		mesh->normals.swap(normals);
 
-		if (mesh->skin_weights.get())
+		if (mesh->skin_weight.get())
 		{
-			mesh->skin_weights->weights.swap(weight_vertices);
+			mesh->skin_weight->weights.swap(weight_vertices);
 		}
 
         if (mesh->morph_targets.get())

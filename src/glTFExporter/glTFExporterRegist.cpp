@@ -21,8 +21,8 @@
 #define PLUGIN_NAME "glTF-Maya-Exporter"
 #define PLUGIN_VERSION "1.5.0"
 
-#define GLTF_EXPOTER_NAME "GLTF Export"
-#define GLB_EXPOTER_NAME  "GLB Export"
+#define EXPOTER_NAME_GLTF "GLTF Export"
+#define EXPOTER_NAME_GLB  "GLB Export"
 
 const char *const gltfOptionScript = "glTFExporterOptions";
 const char *const gltfDefaultOptions =
@@ -70,7 +70,7 @@ MStatus initializePlugin( MObject obj )
     MStatus status = MS::kSuccess;
     if(status == MS::kSuccess)
     {
-        status = plugin.registerFileTranslator( GLTF_EXPOTER_NAME, "none",
+        status = plugin.registerFileTranslator( EXPOTER_NAME_GLTF, "none",
                                             glTFTranslator::creatorGLTF,
                                             (char *)gltfOptionScript,
                                             (char *)gltfDefaultOptions
@@ -78,7 +78,7 @@ MStatus initializePlugin( MObject obj )
     }
     if(status == MS::kSuccess)
     {
-        status = plugin.registerFileTranslator( GLB_EXPOTER_NAME, "none",
+        status = plugin.registerFileTranslator( EXPOTER_NAME_GLB, "none",
                                             glTFTranslator::creatorGLB,
                                             (char *)gltfOptionScript,
                                             (char *)gltfDefaultOptions
@@ -96,11 +96,11 @@ MStatus uninitializePlugin( MObject obj )
     MStatus status = MS::kSuccess;
     if(status == MS::kSuccess)
     {
-        status = plugin.deregisterFileTranslator( GLB_EXPOTER_NAME );
+        status = plugin.deregisterFileTranslator( EXPOTER_NAME_GLB );
     }
     if(status == MS::kSuccess)
     {
-        status = plugin.deregisterFileTranslator( GLTF_EXPOTER_NAME );
+        status = plugin.deregisterFileTranslator( EXPOTER_NAME_GLTF );
     }
     return status;
 }
