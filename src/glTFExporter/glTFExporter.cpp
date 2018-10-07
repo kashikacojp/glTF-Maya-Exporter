@@ -75,7 +75,7 @@
 #include <maya/MFnIkJoint.h>
 #include <maya/MVector.h>
 #include <maya/MQuaternion.h>
-
+#include <maya/MStringResource.h>
 
 #include <maya/MMatrix.h>
 #include <maya/MEulerRotation.h>
@@ -2751,21 +2751,104 @@ std::string GetFinalPath(const std::string& path)
     }
 }
 
-static
-void RemoveFileAlreadyExists(const std::string& path)
+static 
+MString GetResourceString(const MString& strResource)
 {
-    std::string finalPath = GetFinalPath(path);
-    if(IsFileExist(finalPath))
+    MString command = "uiRes";
+    command += MString(" \"") + strResource + MString("\"");
+    command += ";";
+    return MGlobal::executeCommandStringResult(command);
+}
+
+static
+MString ReplaceSpecialCharacter(const MString& str)
+{
+    const char* c = str.asChar();
+    std::string ret;
+    for(; *c; c++)
     {
-        RemoveDirectory_(finalPath);
+        if(*c == '\n')
+        {
+            ret += "\\n";
+        }
+        else if(*c == '\r')
+        {
+            ret += "\\r";
+        }
+        else
+        {
+            ret += *c;
+        }
     }
+    return MString(ret.c_str());
+}
+
+static
+bool CheckGLTFDirectoryAlreadyExists(const std::string& path)
+{
+    if (MGlobal::mayaState() == MGlobal::kInteractive)
+    {
+        std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
+        bool glb = opts->GetInt("output_glb") > 0;
+        bool vrm = opts->GetInt("vrm_export") > 0;
+        if( !(glb || vrm) )
+        {
+            std::string dirPath = RemoveExt(path);
+            if(IsFileExist(dirPath))
+            {
+                /*
+                * confirmDialog -title "Confirm" -message "Are you sure?"
+                * -button "Yes" -button "No" -defaultButton "Yes"
+                * -cancelButton "No" -dismissString "No";
+                */
+                static const char* kYes = "s_TdialogStrings.rYes";
+                static const char* kNo = "s_TdialogStrings.rNo";
+                static const char* kCouldNotSaveFileMsg = "s_TfileBrowserDialogStrings.rReplaceFileConfirm";
+                
+                //MStatus status;
+                static MString strYes = GetResourceString(kYes);
+                static MString strNo  = GetResourceString(kNo);
+                static MString strFmt = GetResourceString(kCouldNotSaveFileMsg);
+
+                std::string filePath = GetFileExtName(dirPath);
+
+                MString strMsg;
+                strMsg.format(strFmt, MString(filePath.c_str()));
+                strMsg = ReplaceSpecialCharacter(strMsg);
+
+                //MGlobal::displayInfo(strYes);
+                //MGlobal::displayInfo(strNo);
+                //MGlobal::displayInfo(strFmt);
+                //MGlobal::displayInfo(strMsg);
+
+                MString command = "confirmDialog";
+                command += " -title \"\"";
+                command += MString(" -message \"") + strMsg + MString("\"");
+                command += MString(" -button \"") + strYes + MString("\"");
+                command += MString(" -button \"") + strNo + MString("\"");
+                command += MString(" -defaultButton \"") + strYes + MString("\"");
+                command += MString(" -cancelButton \"") + strNo + MString("\"");
+                command += MString(" -dismissString \"") + strNo + MString("\"");
+                command += ";";
+                MString result = MGlobal::executeCommandStringResult(command);
+                if(result == strNo)
+                {
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
 }
 
 MStatus glTFExporter::exportSelected(const MString& fname)
 {
     MStatus status = MS::kSuccess;
 
-    RemoveFileAlreadyExists(fname.asChar());
+    if(!CheckGLTFDirectoryAlreadyExists(fname.asChar()))
+    {
+        return MS::kFailure;
+    }
 
     // Create an iterator for the active selection list
     //
@@ -2850,7 +2933,10 @@ MStatus glTFExporter::exportAll     (const MString& fname)
 {
     MStatus status = MS::kSuccess;
 
-    RemoveFileAlreadyExists(fname.asChar());
+    if(!CheckGLTFDirectoryAlreadyExists(fname.asChar()))
+    {
+        return MS::kFailure;
+    }
 
     MItDag dagIterator( MItDag::kBreadthFirst, MFn::kInvalid, &status);
 
