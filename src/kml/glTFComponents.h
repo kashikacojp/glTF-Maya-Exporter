@@ -431,6 +431,44 @@ namespace kml
             mutable std::map<std::string, int> orderInDraco_;
         };
 
+        class Skin;
+
+        class Joint
+        {
+        public:
+            Joint()
+                :indexInSkin_(0)
+            {}
+            void SetIndexInSkin(int index)
+            {
+                indexInSkin_ = index;
+            }
+            int GetIndexInSkin()const
+            {
+                return indexInSkin_;
+            }
+            void SetNode(const std::shared_ptr<Node>& node)
+            {
+                node_ = node;
+            }
+            std::shared_ptr<Node> GetNode()const
+            {
+                return node_.lock();
+            } 
+            void SetSkin(const std::shared_ptr<Skin>& skin)
+            {
+                skin_ = skin;
+            }
+            std::shared_ptr<Skin> GetSkin()const
+            {
+                return skin_.lock();
+            }
+        protected:
+            int indexInSkin_;
+            std::weak_ptr<Node> node_;
+            std::weak_ptr<Skin> skin_;
+        };
+
         class Skin
         {
         public:
@@ -451,15 +489,15 @@ namespace kml
                 return index_;
             }
 
-            const std::vector< std::shared_ptr<Node> > GetJoints()const
+            const std::vector< std::shared_ptr<Joint> > GetJoints()const
             {
                 return joints_;
             }
-            const std::shared_ptr<Node> GetRootJoint()const
+            const std::shared_ptr<Joint> GetRootJoint()const
             {
                 return joints_[0];
             }
-            void AddJoint(const std::shared_ptr<Node>& node)
+            void AddJoint(const std::shared_ptr<Joint>& node)
             {
                 joints_.push_back(node);
             }
@@ -485,7 +523,7 @@ namespace kml
             std::string name_;
             int index_;
             std::shared_ptr<Mesh> mesh_;
-            std::vector< std::shared_ptr<Node> > joints_;
+            std::vector< std::shared_ptr<Joint> > joints_;
             std::map<std::string, std::shared_ptr<Accessor> > accessors_;
         };
 
@@ -787,6 +825,14 @@ namespace kml
             {
                 return mesh_;
             }
+            void SetJoint(const std::shared_ptr<Joint>& joint)
+            {
+                joint_ = joint;
+            }
+            const std::shared_ptr<Joint>& GetJoint()const
+            {
+                return joint_;
+            }
             void SetSkin(const std::shared_ptr<Skin>& skin)
             {
                 skin_ = skin;
@@ -807,7 +853,6 @@ namespace kml
             {
                 return children_;
             }
-
             std::shared_ptr<Transform>& GetTransform()
             {
                 return trans_;
@@ -827,6 +872,7 @@ namespace kml
             std::string path_;
             std::shared_ptr<Transform> trans_;
             std::shared_ptr<Mesh> mesh_;
+            std::shared_ptr<Joint> joint_;
             std::shared_ptr<Skin> skin_;
             std::vector< std::shared_ptr<Node> > children_;
         };

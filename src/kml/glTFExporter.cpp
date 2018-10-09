@@ -373,10 +373,19 @@ namespace kml
                 std::string skinName = "skin_" + IToS(nSkin);
                 std::shared_ptr<Skin> skin(new Skin(skinName, nSkin));
      
-                const auto& in_joints = in_skin->GetJoints();
-                for (size_t i = 0; i < in_joints.size(); i++)
                 {
-                    skin->AddJoint(nodeMap_[in_joints[i]->GetPath()]);
+                    const auto& in_joints = in_skin->GetJoints();
+                    for (size_t i = 0; i < in_joints.size(); i++)
+                    {
+                        const auto& node = nodeMap_[in_joints[i]->GetPath()];
+                        std::shared_ptr<Joint> joint(new Joint());
+                        joint->SetNode(node);
+                        joint->SetSkin(skin);
+                        joint->SetIndexInSkin(i);
+
+                        node->SetJoint(joint);
+                        skin->AddJoint(joint);
+                    }
                 }
 
                 {
@@ -723,32 +732,6 @@ namespace kml
                 }
             }
 
-            int GetIndexOfJoint(const std::shared_ptr<Skin>& skin, const std::string& path)
-            {
-                const auto& joints = skin->GetJoints();
-                for (int i = 0; i < (int)joints.size(); i++)
-                {
-                    if (joints[i]->GetPath() == path)
-                    {
-                        return i;
-                    }
-                }
-                return -1;
-            }
-
-            std::shared_ptr<Skin> GetSkin(const std::string& path)
-            {
-                for(int i = 0; i < this->skins_.size(); i++)
-                {
-                    int nRet = GetIndexOfJoint(this->skins_[i], path);
-                    if(nRet >= 0)
-                    {
-                        return this->skins_[i];
-                    }
-                }
-                return std::shared_ptr<Skin>();
-            }
-
             void RegisterMesh(std::shared_ptr<Node>& node, const std::shared_ptr<::kml::Node>& in_node, bool isDraco = false)
             {
                 const std::shared_ptr<::kml::Mesh>& in_mesh = in_node->GetMesh();
@@ -948,12 +931,11 @@ namespace kml
                     std::shared_ptr<::kml::SkinWeight> in_skin = in_mesh->skin_weight;
                     if (in_skin.get())
                     {
-                        auto skin = GetSkin(in_skin->GetJointPaths()[0]);
+                        auto n = nodeMap_[in_skin->GetJointPaths()[0]];
+                        auto joint = n->GetJoint();
+                        auto skin = joint->GetSkin();
                         if(skin.get())
                         {
-                            typedef std::map<std::string, std::shared_ptr<Node> > JointMap;
-                            typedef JointMap::iterator JointIterator;
-
                             struct WeightSorter
                             {
                                 bool operator()(const std::pair<int, float>& a, const std::pair<int, float>& b)const
@@ -974,7 +956,9 @@ namespace kml
                                 {
                                     std::string path = it->first;
                                     float weight = it->second;
-                                    int index = std::max<int>(0, GetIndexOfJoint(skin, path));
+                                    auto nn = nodeMap_[path];
+                                    auto jj = nn->GetJoint();
+                                    int index = std::max<int>(0, jj->GetIndexInSkin());
                                     ww.push_back(std::make_pair(index, weight));
                                 }
                                 std::sort(ww.begin(), ww.end(), WeightSorter());
@@ -1642,7 +1626,7 @@ namespace kml
                 for (size_t i = 0; i < skins.size(); i++)
                 {
                     const std::shared_ptr<Skin>& skin = skins[i];
-                    const std::vector< std::shared_ptr<Node> >& joints = skin->GetJoints();
+                    const std::vector< std::shared_ptr<Joint> >& joints = skin->GetJoints();
                     if (!joints.empty())
                     {
                         picojson::object nd;
@@ -1651,13 +1635,13 @@ namespace kml
                             picojson::array nj;
                             for (size_t i = 0; i < joints.size(); i++)
                             {
-                                int index = joints[i]->GetIndex();
+                                int index = joints[i]->GetNode()->GetIndex();
                                 nj.push_back(picojson::value((double)index));
                             }
                             nd["joints"] = picojson::value(nj);
                         }
 
-                        nd["skeleton"] = picojson::value((double)skin->GetRootJoint()->GetIndex());
+                        nd["skeleton"] = picojson::value((double)skin->GetRootJoint()->GetNode()->GetIndex());
                         std::shared_ptr<Accessor> inverseBindMatricesAccessor = skin->GetAccessor("inverseBindMatrices");
                         if (inverseBindMatricesAccessor.get())
                         {
