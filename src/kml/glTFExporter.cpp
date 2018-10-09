@@ -370,7 +370,7 @@ namespace kml
             std::shared_ptr<Skin> RegisterSkin(const std::shared_ptr<::kml::Skin>& in_skin)
             {
                 int nSkin = this->skins_.size();
-                std::string skinName = "skin_" + IToS(nSkin);
+                std::string skinName = in_skin->GetName();
                 std::shared_ptr<Skin> skin(new Skin(skinName, nSkin));
      
                 {
