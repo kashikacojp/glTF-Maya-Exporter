@@ -6,11 +6,11 @@
 
 namespace kml
 {
-	class NodeExporter
-	{
-	public:
-		static bool Export(const std::string& path, const std::shared_ptr<Node>& node);
-	};
-}
+    class NodeExporter
+    {
+    public:
+        static bool Export(const std::string& path, const std::shared_ptr<Node>& node);
+    };
+} // namespace kml
 
 #endif
