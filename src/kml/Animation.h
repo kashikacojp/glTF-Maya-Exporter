@@ -36,7 +36,10 @@ namespace kml
         {
             return values;
         }
-
+        void SetValues(const std::vector<float>& v)
+        {
+            values = v;
+        }
     protected:
         AnimationInterporationType interporation_type;
         std::vector<float> values;
@@ -100,6 +103,12 @@ namespace kml
         {
             paths.push_back(path);
         }
+        void SetTarget(const std::shared_ptr<Node>& tar)
+        {
+            targets.clear();
+            targets.push_back(tar);
+        }
+        //If MorphTargets...
         void SetTargets(const std::vector<std::shared_ptr<Node> >& tars)
         {
             targets = tars;

@@ -22,7 +22,6 @@ namespace kml
         {
             return skin_weight;
         }
-
     public:
         std::string name;
         std::vector<unsigned char> facenums;
