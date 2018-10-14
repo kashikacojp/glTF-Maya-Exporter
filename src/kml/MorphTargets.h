@@ -2,6 +2,10 @@
 #ifndef _KML_MORPHTARGETS_H_
 #define _KML_MORPHTARGETS_H_
 
+#include <glm/glm.hpp>
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
+
 #include <memory>
 #include <string>
 #include <vector>
