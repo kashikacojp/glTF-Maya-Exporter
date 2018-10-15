@@ -131,6 +131,16 @@ namespace kml
         bool GetWrapU() const { return m_wrapU != WRAP_CLAMP; }
         bool GetWrapV() const { return m_wrapV != WRAP_CLAMP; }
 
+        void SetWrapTypeU(WrapType wrap)
+        {
+            m_wrapU = wrap;
+        }
+
+        void SetWrapTypeV(WrapType wrap)
+        {
+            m_wrapV = wrap;
+        }
+
         WrapType GetWrapTypeU() const
         {
             return m_wrapU;
