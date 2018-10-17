@@ -11,7 +11,7 @@ option(GLTF_MAYA_EXPORTER_BUILD_MAYA_GLTF_EXPORTER  "Build Maya glTF Exporter"  
 option(GLTF_MAYA_EXPORTER_BUILD_MAYA_VRM_EXPORTER   "Build Maya VRM Exporter"      ON)
 option(GLTF_MAYA_EXPORTER_BUILD_CPP_INTERFACE       "Build cpp interface and test" OFF)
 
-SET(GLTF_MAYA_EXPORTER_MAYA_PATH "C:/Program Files/Autodesk/Maya2017" CACHE PATH "Installed Maya Directory")
+SET(GLTF_MAYA_EXPORTER_MAYA_PATH "C:/Program Files/Autodesk/Maya2018" CACHE PATH "Installed Maya Directory")
 
 # ===============================================================
 
