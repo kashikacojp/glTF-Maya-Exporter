@@ -56,6 +56,9 @@ void ShowLicense()
 	PrintTextLn(showText);
 }
 
+#ifdef _WIN32
+__declspec(dllexport)
+#endif // _WIN32
 MStatus initializePlugin( MObject obj )
 {
     MFnPlugin plugin( obj, VENDOR_NAME, PLUGIN_VERSION, "Any");
@@ -89,6 +92,9 @@ MStatus initializePlugin( MObject obj )
 }
 //////////////////////////////////////////////////////////////
 
+#ifdef _WIN32
+__declspec(dllexport)
+#endif // _WIN32
 MStatus uninitializePlugin( MObject obj )
 {
     MFnPlugin plugin( obj );

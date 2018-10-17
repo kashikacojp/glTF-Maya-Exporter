@@ -340,7 +340,7 @@ std::string MakeConvertTexturePath(const std::string& path)
 
 
 static
-bool RemoveDirectory_(const std::string& path)
+bool RemoveFiles(const std::string& path)
 {
 #ifdef _WIN32
     std::string cmd;
@@ -376,8 +376,15 @@ std::string GetTempDirectory()
 
     return RemoveExt(dir2);
 #else // Linux and macOS
-    const char* tmpdir = getenv("TMPDIR");
-    return std::string(tmpdir);
+    std::string tmpdir = std::string(getenv("TMPDIR")) + "XXXXXX";
+
+    char buffer[1024] = {};
+    strcpy(buffer, tmpdir.c_str());
+    std::string tmpPath = ::mktemp(buffer);
+    std::string cmd = "mkdir -p ";
+    cmd += "\"" + tmpPath + "\"";
+    ::system(cmd.c_str());
+    return tmpPath;
 #endif
 }
 
@@ -4223,7 +4230,7 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
         {
             status = MStatus::kFailure;
         }
-        RemoveDirectory_(dir_path);
+        RemoveFiles(dir_path);
     }
 
     return status;

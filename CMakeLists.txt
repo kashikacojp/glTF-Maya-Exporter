@@ -137,7 +137,7 @@ target_link_libraries( kml
 
 # force define for maya header ifdef condition (building for makefile project)
 if (WIN32)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_WIN32")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_WIN32 -DNT_PLUGIN")
 elseif(APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOSMac_")
 elseif(UNIX)
