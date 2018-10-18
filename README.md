@@ -22,7 +22,15 @@ we support MAYA2017 and MAYA2018 on Windows and macOS, now.
 
 - [x] Export mesh
 
-- [x] Material baseColor, Roughness
+- [x] Material Lambert, phong, phongE
+
+- [x] Material Parameters: baseColor, Roughness
+
+- [x] Bump mapping support (with Bump2d node)
+
+- [x] Material aiStandardSurface
+
+- [ ] Material StingrayPBS
 
 - [x] Transform/Skeleton
 
@@ -32,12 +40,11 @@ we support MAYA2017 and MAYA2018 on Windows and macOS, now.
 
 - [x] VRM format (https://dwango.github.io/vrm/)
 
-- [ ] Substance Painter Texture Node
+- [x] Substance Painter Texture Node (NEED option => Automatic connections : true)
 
 - [x] SkinMesh animation
 
 - [x] Blend shape animation
-
 
 ## How to Build
 
