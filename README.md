@@ -10,12 +10,13 @@ The prebuild binary is here: https://kashika.co.jp/product/gltfexporter/
 ## Introduction
 This is the glTF 2.0 exporter for AUTODESK MAYA (
 https://www.autodesk.co.jp/products/maya/). 
+
 This repositry contains mel scripts and C++ source codes.
 
 
 ## Support Maya version
 
-we support MAYA2017 and MAYA2018 on Windows and macOS, now.
+We support MAYA2017 and MAYA2018 on Windows and macOS, now.
 
 
 ## Support features
