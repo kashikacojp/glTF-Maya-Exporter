@@ -27,10 +27,10 @@ global proc int glTFExporterOptions ( string $parent,
 				-label (uiRes("m_glTFExporterOptions.kRecalcNormals"))
 				-nrb 2 -cw3 190 45 45
 				-labelArray2 $on $off objRecalcNormals;
-			radioButtonGrp
-				-label (uiRes("m_glTFExporterOptions.kOutputGLBFile"))
-				-nrb 2	-cw3 190 45 45
-				-labelArray2 $gltf $glb objOutputGLBFile;
+			//radioButtonGrp
+			//	-label (uiRes("m_glTFExporterOptions.kOutputGLBFile"))
+			//	-nrb 2	-cw3 190 45 45
+			//	-labelArray2 $gltf $glb objOutputGLBFile;
 			radioButtonGrp
 				-label (uiRes("m_glTFExporterOptions.kOutputBuffer"))
 				-nrb 2	-cw3 190 45 45
@@ -46,7 +46,7 @@ global proc int glTFExporterOptions ( string $parent,
 				
 				
 		radioButtonGrp -e -sl 2 objRecalcNormals;		//off
-		radioButtonGrp -e -sl 1 objOutputGLBFile;		//gltf
+		//radioButtonGrp -e -sl 1 objOutputGLBFile;		//gltf
 		radioButtonGrp -e -sl 2 objOutputBuffer;		//draco
 		radioButtonGrp -e -sl 1 objConvertTextureFormat;//N/A
 		radioButtonGrp -e -sl 1 objOutputAnimations;	//on
@@ -64,12 +64,12 @@ global proc int glTFExporterOptions ( string $parent,
 					} else {
 						radioButtonGrp -e -sl 1 objRecalcNormals;
 					}
-				} else if ($optionBreakDown[0] == "output_glb") {
-					if ($optionBreakDown[1] == "0") {
-						radioButtonGrp -e -sl 1 objOutputGLBFile;
-					} else {
-						radioButtonGrp -e -sl 2 objOutputGLBFile;
-					}
+				//} else if ($optionBreakDown[0] == "output_glb") {
+				//	if ($optionBreakDown[1] == "0") {
+				//		radioButtonGrp -e -sl 1 objOutputGLBFile;
+				//	} else {
+				//		radioButtonGrp -e -sl 2 objOutputGLBFile;
+				//	}
 				} else if ($optionBreakDown[0] == "output_buffer") {
 					if ($optionBreakDown[1] == "0") {
 						radioButtonGrp -e -sl 1 objOutputBuffer;
@@ -102,11 +102,11 @@ global proc int glTFExporterOptions ( string $parent,
 			$currentOptions = $currentOptions + "recalc_normals=0";
 		}
 
-		if (`radioButtonGrp -q -sl objOutputGLBFile` == 1) {
-			$currentOptions = $currentOptions + ";output_glb=0";
-		} else {
-			$currentOptions = $currentOptions + ";output_glb=1";
-		}
+		//if (`radioButtonGrp -q -sl objOutputGLBFile` == 1) {
+		//	$currentOptions = $currentOptions + ";output_glb=0";
+		//} else {
+		//	$currentOptions = $currentOptions + ";output_glb=1";
+		//}
 		
 		if (`radioButtonGrp -q -sl objOutputBuffer` == 1) {
 			$currentOptions = $currentOptions + ";output_buffer=0";

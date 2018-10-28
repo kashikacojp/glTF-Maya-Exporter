@@ -11,31 +11,34 @@
 
 #include <fstream>
 #include <sstream>
+#include <memory>
+
+#include <kml/Options.h>
 
 #include "glTFTranslator.h"
 
 #define VENDOR_NAME "KASHIKA,Inc."
-#define PLUGIN_VERSION "1.0.0"
+#define PLUGIN_NAME "VRM-Maya-Exporter"
+#define PLUGIN_VERSION "1.5.0"
 
 const char *const gltfOptionScript = "vrmExporterOptions";
 const char *const gltfDefaultOptions =
     "recalc_normals=0;"
 	"output_onefile=1;"
-	"output_glb=0;"
 	"make_preload_texture=0;"
 	"output_buffer=1;"
 	"convert_texture_format=1;"
     "output_animations=1;"
 	"vrm_export=1;"
-    "vrm_product_title=\"notitle\";"
-    "vrm_product_version=\"1.00\";"
-    "vrm_product_author=\"unknown\";"       //Todo: replace getenv "USER";
+    "vrm_product_title=notitle;"
+    "vrm_product_version=1.00;"
+    "vrm_product_author=unknown;"           //Todo: replace getenv "USER";
     "vrm_license_allowed_user_name=2;"      //everyone
     "vrm_license_violent_usage=1;"          //allow
     "vrm_license_sexual_usage=1;"           //allow
     "vrm_license_commercial_usage=1;"       //allow
-    "vrm_license_license_type=\"CC BY\";"
-    "vrm_license_other_license_url=\"https://creativecommons.org/licenses/\""
+    "vrm_license_license_type=CC BY;"
+    "vrm_license_other_license_url=https://creativecommons.org/licenses/;"
     ;
 
 static
@@ -52,9 +55,9 @@ static
 void ShowLicense()
 {
 	std::string showText;
-	showText += "vrm-Maya-Exporter";
+	showText += PLUGIN_NAME;
 	showText += " ";
-	showText += "ver ";
+	showText += "ver";
 	showText += PLUGIN_VERSION;
 
 	PrintTextLn(showText);
@@ -64,10 +67,14 @@ MStatus initializePlugin( MObject obj )
 {
     MFnPlugin plugin( obj, VENDOR_NAME, PLUGIN_VERSION, "Any");
 
+    std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
+    opts->SetString("generator_name",    PLUGIN_NAME);
+    opts->SetString("generator_version", std::string("ver") + PLUGIN_VERSION);
+
 	ShowLicense();
     // Register the translator with the system
     return plugin.registerFileTranslator( "vrmExporter", "none",
-                                          glTFTranslator::creator,
+                                          glTFTranslator::creatorVRM,
                                           (char *)gltfOptionScript,
                                           (char *)gltfDefaultOptions 
 	);                               

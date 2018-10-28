@@ -8,9 +8,9 @@
 
 namespace std
 {
-	bool isnan(float x);
-	bool isnan(double x);
-}
+    bool isnan(float x);
+    bool isnan(double x);
+} // namespace std
 
 #endif
 #endif
