@@ -5,39 +5,47 @@
 The prebuild binary is here: https://kashika.co.jp/product/gltfexporter/
 
 ## Version
-1.0
+1.5.0
 
 ## Introduction
 This is the glTF 2.0 exporter for AUTODESK MAYA (
 https://www.autodesk.co.jp/products/maya/). 
+
 This repositry contains mel scripts and C++ source codes.
 
 
 ## Support Maya version
 
-we support MAYA2017 and MAYA2018 on Windows and macOS, now.
+We support MAYA2017 and MAYA2018 on Windows and macOS, now.
 
 
 ## Support features
 
 - [x] Export mesh
 
-- [x] Material baseColor, Roughness
+- [x] Material Lambert, phong, phongE
+
+- [x] Material Parameters: baseColor, Roughness
+
+- [x] Bump mapping support (with Bump2d node)
+
+- [x] Material aiStandardSurface
+
+- [ ] Material StingrayPBS
 
 - [x] Transform/Skeleton
 
 - [x] Mac support
 
-- [ ] Linux support
+- [x] Linux support
 
-- [ ] VRM format (https://dwango.github.io/vrm/)
+- [x] VRM format (https://dwango.github.io/vrm/)
 
-- [ ] Substance Painter Texture Node
+- [x] Substance Painter Texture Node (NEED option => Automatic connections : true)
 
-- [ ] SkinMesh animation
+- [x] SkinMesh animation
 
-- [ ] Blend shape animation
-
+- [x] Blend shape animation
 
 ## How to Build
 

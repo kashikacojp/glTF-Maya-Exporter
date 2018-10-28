@@ -11,17 +11,24 @@
 
 #include <fstream>
 #include <sstream>
+#include <memory>
+
+#include <kml/Options.h>
 
 #include "glTFTranslator.h"
 
+
 #define VENDOR_NAME "Light Transport Entertainment, Inc."
-#define PLUGIN_VERSION "1.0.2"
+#define PLUGIN_NAME "glTF-Maya-Exporter-LTE"
+#define PLUGIN_VERSION "1.5.0"
+#define EXPOTER_NAME_GLTF "GLTF Export"
+#define EXPOTER_NAME_GLB  "GLB Export"
+
 
 const char *const gltfOptionScript = "glTFExporterOptions";
 const char *const gltfDefaultOptions =
     "recalc_normals=0;"
 	"output_onefile=1;"
-	"output_glb=0;"
 	"make_preload_texture=0;"
 	"output_buffer=1;"
 	"convert_texture_format=1;"
@@ -42,32 +49,67 @@ static
 void ShowLicense()
 {
 	std::string showText;
-	showText += "glTF-Maya-Exporter-LTE";
+    showText += PLUGIN_NAME;
 	showText += " based on glTF-Maya-Exporter by Kashika, Inc.";
-	showText += "ver ";
+	showText += " ";
+	showText += "ver";
 	showText += PLUGIN_VERSION;
-
 	PrintTextLn(showText);
 }
 
+#ifdef _WIN32
+__declspec(dllexport)
+#endif // _WIN32
 MStatus initializePlugin( MObject obj )
 {
     MFnPlugin plugin( obj, VENDOR_NAME, PLUGIN_VERSION, "Any");
 
+    std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
+    opts->SetString("generator_name",    PLUGIN_NAME);
+    opts->SetString("generator_version", std::string("ver") + PLUGIN_VERSION);
+
 	ShowLicense();
+
     // Register the translator with the system
-    return plugin.registerFileTranslator( "glTFExporter", "none",
-                                          glTFTranslator::creator,
-                                          (char *)gltfOptionScript,
-                                          (char *)gltfDefaultOptions 
-	);                               
+    MStatus status = MS::kSuccess;
+    if(status == MS::kSuccess)
+    {
+        status = plugin.registerFileTranslator( EXPOTER_NAME_GLTF, "none",
+                                            glTFTranslator::creatorGLTF,
+                                            (char *)gltfOptionScript,
+                                            (char *)gltfDefaultOptions
+        );
+    }
+    if(status == MS::kSuccess)
+    {
+        status = plugin.registerFileTranslator( EXPOTER_NAME_GLB, "none",
+                                            glTFTranslator::creatorGLB,
+                                            (char *)gltfOptionScript,
+                                            (char *)gltfDefaultOptions
+        );
+    }
+
+    return status;
 }
 //////////////////////////////////////////////////////////////
 
+#ifdef _WIN32
+__declspec(dllexport)
+#endif // _WIN32
 MStatus uninitializePlugin( MObject obj )
 {
     MFnPlugin plugin( obj );
-    return plugin.deregisterFileTranslator( "glTFExporter" );
+
+    MStatus status = MS::kSuccess;
+    if(status == MS::kSuccess)
+    {
+        status = plugin.deregisterFileTranslator( EXPOTER_NAME_GLB );
+    }
+    if(status == MS::kSuccess)
+    {
+        status = plugin.deregisterFileTranslator( EXPOTER_NAME_GLTF );
+    }
+    return status;
 }
 
 //////////////////////////////////////////////////////////////

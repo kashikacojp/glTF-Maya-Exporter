@@ -11,8 +11,11 @@ option(GLTF_MAYA_EXPORTER_BUILD_MAYA_GLTF_EXPORTER  "Build Maya glTF Exporter"  
 option(GLTF_MAYA_EXPORTER_BUILD_MAYA_VRM_EXPORTER   "Build Maya VRM Exporter"      ON)
 option(GLTF_MAYA_EXPORTER_BUILD_CPP_INTERFACE       "Build cpp interface and test" OFF)
 
-SET(GLTF_MAYA_EXPORTER_MAYA_PATH "C:/Program Files/Autodesk/Maya2018" CACHE PATH "Installed Maya Directory")
-
+if (WIN32)
+    SET(GLTF_MAYA_EXPORTER_MAYA_PATH "C:/Program Files/Autodesk/Maya2018" CACHE PATH "Installed Maya Directory")
+elseif(APPLE)
+    SET(GLTF_MAYA_EXPORTER_MAYA_PATH "/Applications/Autodesk/maya2018" CACHE PATH "Installed Maya Directory")
+endif()
 # ===============================================================
 
 set(CMAKE_POSITION_INDEPENDENT_CODE On)
@@ -61,14 +64,21 @@ endif()
 
 
 if(GLTF_MAYA_EXPORTER_BUILD_MAYA_GLTF_EXPORTER OR GLTF_MAYA_EXPORTER_BUILD_MAYA_VRM_EXPORTER)
-    
-    SET(MAYA_INCLUDE_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/include/)
-    SET(MAYA_LIBRARY_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/lib/)
+    if (WIN32)
+        SET(MAYA_INCLUDE_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/include/)
+        SET(MAYA_LIBRARY_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/lib/)
+    elseif(APPLE)
+        SET(MAYA_INCLUDE_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/include/)
+        SET(MAYA_LIBRARY_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/Maya.app/Contents/MacOS)
+    elseif(UNIX)
+        SET(MAYA_INCLUDE_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/include/)
+        SET(MAYA_LIBRARY_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/lib/)
+    endif()
 
     set(BUILD_DIR ${CMAKE_BINARY_DIR})
     message(BUILD_DIR: "${BUILD_DIR}")
     message(MAYA_INCLUDE_PATH: "${MAYA_INCLUDE_PATH}")
-    message(MAYA_INCLUDE_PATH: "${MAYA_LIBRARY_PATH}")
+    message(MAYA_LIBRARY_PATH: "${MAYA_LIBRARY_PATH}")
 
 endif()
 
@@ -127,7 +137,7 @@ target_link_libraries( kml
 
 # force define for maya header ifdef condition (building for makefile project)
 if (WIN32)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_WIN32")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_WIN32 -DNT_PLUGIN")
 elseif(APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DOSMac_")
 elseif(UNIX)
@@ -187,6 +197,7 @@ if (GLTF_MAYA_EXPORTER_BUILD_MAYA_VRM_EXPORTER)
     target_link_libraries( vrmExporter
                         kml
                         OpenMaya
+                        OpenMayaAnim
                         OpenMayaUI
                         Foundation
     )

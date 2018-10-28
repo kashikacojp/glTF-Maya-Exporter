@@ -6,8 +6,7 @@
 
 namespace kml
 {
-	bool GLTF2GLB(const std::string& src, const std::string& dst);
+    bool GLTF2GLB(const std::string& src, const std::string& dst);
 }
 
 #endif
-

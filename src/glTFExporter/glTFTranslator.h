@@ -8,9 +8,20 @@
 class glTFTranslator : public MPxFileTranslator 
 {
 public:
-                    glTFTranslator ();
+    enum Mode
+    {
+        EXPORT_GLTF = 0,
+        EXPORT_GLB,
+        EXPORT_VRM
+    };
+public:
+                    glTFTranslator (Mode mode = EXPORT_GLTF);
     virtual         ~glTFTranslator ();
-    static void*    creator();
+
+    static void*    creatorGLTF();
+    static void*    creatorGLB();
+    static void*    creatorVRM();
+
 
     MStatus         reader ( const MFileObject& file,
                              const MString& optionsString,

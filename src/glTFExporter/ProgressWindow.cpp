@@ -1,6 +1,7 @@
 #include "ProgressWindow.h"
 
 #include <maya/MProgressWindow.h>
+#include <maya/MString.h>
 
 #ifdef _MSC_VER
 #pragma warning(disable:4819)
@@ -10,11 +11,14 @@
 #pragma comment( lib, "OpenMayaUI" ) 
 #endif
 
-ProgressWindow::ProgressWindow(int max_size)
+ProgressWindow::ProgressWindow(const std::string& title, int max_size)
 {
 	MProgressWindow::reserve();
+    MProgressWindow::setTitle(MString(title.c_str()));
+    MProgressWindow::setInterruptable(true);
 	MProgressWindow::setProgressMin(0);
 	MProgressWindow::setProgressMax(max_size);
+    MProgressWindow::setProgressStatus(MString(""));
 	MProgressWindow::startProgress();
 }
 
@@ -23,12 +27,17 @@ ProgressWindow::~ProgressWindow()
 	MProgressWindow::endProgress();
 }
 
-void ProgressWindow::setProgress(const int progress)
+void ProgressWindow::SetProgress(const int progress)
 {
 	MProgressWindow::setProgress(progress);
 }
 
-bool ProgressWindow::isCancelled()const
+void ProgressWindow::SetProgressStatus(const std::string& str)
+{
+    MProgressWindow::setProgressStatus(MString(str.c_str()));
+}
+
+bool ProgressWindow::IsCancelled()const
 {
 	return MProgressWindow::isCancelled();
 }

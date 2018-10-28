@@ -6,17 +6,18 @@
 
 namespace kml
 {
-	class Bound
-	{
-	public:
-		Bound();
-		Bound(const glm::vec3& v0, const glm::vec3& v1);
-		glm::vec3 GetMin()const;
-		glm::vec3 GetMax()const;
-	protected:
-		glm::vec3 min;
-		glm::vec3 max;
-	};
-}
+    class Bound
+    {
+    public:
+        Bound();
+        Bound(const glm::vec3 &v0, const glm::vec3 &v1);
+        glm::vec3 GetMin() const;
+        glm::vec3 GetMax() const;
+
+    protected:
+        glm::vec3 min;
+        glm::vec3 max;
+    };
+} // namespace kml
 
 #endif
