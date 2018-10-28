@@ -11,8 +11,11 @@ option(GLTF_MAYA_EXPORTER_BUILD_MAYA_GLTF_EXPORTER  "Build Maya glTF Exporter"  
 option(GLTF_MAYA_EXPORTER_BUILD_MAYA_VRM_EXPORTER   "Build Maya VRM Exporter"      ON)
 option(GLTF_MAYA_EXPORTER_BUILD_CPP_INTERFACE       "Build cpp interface and test" OFF)
 
-SET(GLTF_MAYA_EXPORTER_MAYA_PATH "C:/Program Files/Autodesk/Maya2018" CACHE PATH "Installed Maya Directory")
-
+if (WIN32)
+    SET(GLTF_MAYA_EXPORTER_MAYA_PATH "C:/Program Files/Autodesk/Maya2018" CACHE PATH "Installed Maya Directory")
+elseif(APPLE)
+    SET(GLTF_MAYA_EXPORTER_MAYA_PATH "/Applications/Autodesk/maya2018" CACHE PATH "Installed Maya Directory")
+endif()
 # ===============================================================
 
 set(CMAKE_POSITION_INDEPENDENT_CODE On)
@@ -61,14 +64,14 @@ endif()
 
 
 if(GLTF_MAYA_EXPORTER_BUILD_MAYA_GLTF_EXPORTER OR GLTF_MAYA_EXPORTER_BUILD_MAYA_VRM_EXPORTER)
-    
-    SET(MAYA_INCLUDE_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/include/)
-
     if (WIN32)
+        SET(MAYA_INCLUDE_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/include/)
         SET(MAYA_LIBRARY_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/lib/)
     elseif(APPLE)
+        SET(MAYA_INCLUDE_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/include/)
         SET(MAYA_LIBRARY_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/Maya.app/Contents/MacOS)
     elseif(UNIX)
+        SET(MAYA_INCLUDE_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/include/)
         SET(MAYA_LIBRARY_PATH ${GLTF_MAYA_EXPORTER_MAYA_PATH}/lib/)
     endif()
 
