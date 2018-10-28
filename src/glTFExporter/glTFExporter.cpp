@@ -1,13 +1,13 @@
 #define _USE_MATH_DEFINES
 #ifdef _MSC_VER
-#pragma warning(disable:4819)
+#pragma warning(disable : 4819)
 #endif
 
 #ifdef _MSC_VER
-#pragma comment( lib, "OpenMaya" )
-#pragma comment( lib, "OpenMayaAnim" ) 
-#pragma comment( lib, "OpenMayaUI" )
-#pragma comment( lib, "Shell32.lib" )
+#pragma comment(lib, "OpenMaya")
+#pragma comment(lib, "OpenMayaAnim")
+#pragma comment(lib, "OpenMayaUI")
+#pragma comment(lib, "Shell32.lib")
 #endif
 
 #ifdef _WIN32
@@ -23,86 +23,83 @@
 
 #include "glTFExporter.h"
 
-#include <kml/Mesh.h>
-#include <kml/Node.h>
-#include <kml/TriangulateMesh.h>
+#include <kml/CalculateBound.h>
 #include <kml/CalculateNormalsMesh.h>
 #include <kml/FlatIndicesMesh.h>
-#include <kml/NodeExporter.h>
-#include <kml/glTFExporter.h>
-#include <kml/CalculateBound.h>
-#include <kml/SplitNodeByMaterialID.h>
-#include <kml/Options.h>
 #include <kml/GLTF2GLB.h>
+#include <kml/Mesh.h>
+#include <kml/Node.h>
+#include <kml/NodeExporter.h>
+#include <kml/Options.h>
+#include <kml/SplitNodeByMaterialID.h>
 #include <kml/Texture.h>
+#include <kml/TriangulateMesh.h>
+#include <kml/glTFExporter.h>
 
 #include <kil/CopyTextureFile.h>
 #include <kil/ResizeTextureFile.h>
 
-#include <maya/MStatus.h>
-#include <maya/MPxCommand.h>
-#include <maya/MString.h>
-#include <maya/MStringArray.h>
+#include <maya/MAnimUtil.h>
 #include <maya/MArgList.h>
-#include <maya/MGlobal.h>
-#include <maya/MSelectionList.h>
-#include <maya/MItSelectionList.h>
-#include <maya/MPoint.h>
-#include <maya/MPointArray.h>
 #include <maya/MDagPath.h>
 #include <maya/MDagPathArray.h>
-#include <maya/MFnMesh.h>
-#include <maya/MFnSet.h>
-#include <maya/MItMeshPolygon.h>
-#include <maya/MItMeshVertex.h>
-#include <maya/MItMeshEdge.h>
+#include <maya/MDistance.h>
+#include <maya/MEulerRotation.h>
+#include <maya/MFloatArray.h>
 #include <maya/MFloatVector.h>
 #include <maya/MFloatVectorArray.h>
-#include <maya/MFloatArray.h>
-#include <maya/MObjectArray.h>
-#include <maya/MObject.h>
-#include <maya/MPlug.h>
-#include <maya/MPxFileTranslator.h>
-#include <maya/MDistance.h>
-#include <maya/MIntArray.h>
-#include <maya/MIOStream.h>
-#include <maya/MItDag.h>
-#include <maya/MObjectHandle.h>
-#include <maya/MItDependencyGraph.h>
-#include <maya/MFnLambertShader.h>
-#include <maya/MFnPhongEShader.h>
-#include <maya/MFnTransform.h>
-#include <maya/MFnIkJoint.h>
-#include <maya/MVector.h>
-#include <maya/MQuaternion.h>
-#include <maya/MStringResource.h>
-
-#include <maya/MMatrix.h>
-#include <maya/MEulerRotation.h>
-#include <maya/MTransformationMatrix.h>
-#include <maya/MStreamUtils.h>
-#include <maya/MFnSkinCluster.h>
-#include <maya/MItGeometry.h>
-#include <maya/MFnMatrixData.h>
-
-#include <maya/MFnBlendShapeDeformer.h>
-#include <maya/MAnimUtil.h>
 #include <maya/MFnAnimCurve.h>
+#include <maya/MFnBlendShapeDeformer.h>
+#include <maya/MFnIkJoint.h>
+#include <maya/MFnLambertShader.h>
+#include <maya/MFnMatrixData.h>
+#include <maya/MFnMesh.h>
+#include <maya/MFnPhongEShader.h>
+#include <maya/MFnSet.h>
+#include <maya/MFnSkinCluster.h>
+#include <maya/MFnTransform.h>
+#include <maya/MGlobal.h>
+#include <maya/MIOStream.h>
+#include <maya/MIntArray.h>
+#include <maya/MItDag.h>
+#include <maya/MItDependencyGraph.h>
+#include <maya/MItGeometry.h>
+#include <maya/MItMeshEdge.h>
+#include <maya/MItMeshPolygon.h>
+#include <maya/MItMeshVertex.h>
+#include <maya/MItSelectionList.h>
+#include <maya/MMatrix.h>
+#include <maya/MObject.h>
+#include <maya/MObjectArray.h>
+#include <maya/MObjectHandle.h>
+#include <maya/MPlug.h>
+#include <maya/MPoint.h>
+#include <maya/MPointArray.h>
+#include <maya/MPxCommand.h>
+#include <maya/MPxFileTranslator.h>
+#include <maya/MQuaternion.h>
+#include <maya/MSelectionList.h>
+#include <maya/MStatus.h>
+#include <maya/MStreamUtils.h>
+#include <maya/MString.h>
+#include <maya/MStringArray.h>
+#include <maya/MStringResource.h>
+#include <maya/MTransformationMatrix.h>
+#include <maya/MVector.h>
 
-#include <memory>
-#include <sstream>
 #include <fstream>
-#include <set>
 #include <iostream>
-#include <vector>
-#include <set>
 #include <map>
+#include <memory>
+#include <set>
+#include <sstream>
+#include <vector>
 
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <time.h>
 #include <errno.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <time.h>
 
 #define GLM_ENABLE_EXPERIMENTAL 1
 #include <glm/glm.hpp>
@@ -110,35 +107,32 @@
 
 #ifdef _WIN32
 #define NOMINMAX
-#include <windows.h>
 #include <Shellapi.h>
+#include <windows.h>
 #endif
 
-
-#include "murmur3.h"
 #include "ProgressWindow.h"
+#include "murmur3.h"
 
-#if defined (_WIN32)
+#if defined(_WIN32)
 //#define strcasecmp stricmp
-#elif defined  (OSMac_)
+#elif defined(OSMac_)
 #if defined(MAC_CONVERT_FILE)
 #include <sys/param.h>
-#    if USING_MAC_CORE_LIB
-#        include <Files.h>
-#        include <CFURL.h>
-        extern "C" int strcasecmp (const char *, const char *);
-        extern "C" Boolean createMacFile (const char *fileName, FSRef *fsRef, long creator, long type);
-#    endif
+#if USING_MAC_CORE_LIB
+#include <CFURL.h>
+#include <Files.h>
+extern "C" int strcasecmp(const char*, const char*);
+extern "C" Boolean createMacFile(const char* fileName, FSRef* fsRef, long creator, long type);
 #endif
 #endif
+#endif
 
-#define NO_SMOOTHING_GROUP      -1
-#define INITIALIZE_SMOOTHING    -2
-#define INVALID_ID              -1
+#define NO_SMOOTHING_GROUP -1
+#define INITIALIZE_SMOOTHING -2
+#define INVALID_ID -1
 
-
-static
-std::string GetDirectoryPath(const std::string& path)
+static std::string GetDirectoryPath(const std::string& path)
 {
 #ifdef _WIN32
     char szDrive[_MAX_DRIVE];
@@ -153,8 +147,7 @@ std::string GetDirectoryPath(const std::string& path)
 #endif
 }
 
-static
-std::string RemoveExt(const std::string& path)
+static std::string RemoveExt(const std::string& path)
 {
 #ifdef _WIN32
     char szDrive[_MAX_DRIVE];
@@ -168,7 +161,7 @@ std::string RemoveExt(const std::string& path)
     return strRet1;
 #else
     int index = path.find_last_of(".");
-    if(index != std::string::npos)
+    if (index != std::string::npos)
     {
         return path.substr(0, index);
     }
@@ -179,8 +172,7 @@ std::string RemoveExt(const std::string& path)
 #endif
 }
 
-static
-std::string GetFileName(const std::string& path)
+static std::string GetFileName(const std::string& path)
 {
 #ifdef _WIN32
     char szDrive[_MAX_DRIVE];
@@ -192,9 +184,9 @@ std::string GetFileName(const std::string& path)
     return strRet1;
 #else
     int index = path.find_last_of("/");
-    if(index != std::string::npos)
+    if (index != std::string::npos)
     {
-        return RemoveExt(path.substr(index+1));
+        return RemoveExt(path.substr(index + 1));
     }
     else
     {
@@ -203,8 +195,7 @@ std::string GetFileName(const std::string& path)
 #endif
 }
 
-static
-std::string GetFileExtName(const std::string& path)
+static std::string GetFileExtName(const std::string& path)
 {
 #ifdef _WIN32
     char szFname[_MAX_FNAME];
@@ -227,24 +218,31 @@ std::string GetFileExtName(const std::string& path)
 #endif
 }
 
-static
-char ReplaceForPath(char c)
+static char ReplaceForPath(char c)
 {
-    if (c == '|')return '_';
-    if (c == '\\')return '_';
-    if (c == '/')return '_';
-    if (c == ':')return '_';
-    if (c == '*')return '_';
-    if (c == '?')return '_';
-    if (c == '"')return '_';
-    if (c == '<')return '_';
-    if (c == '>')return '_';
+    if (c == '|')
+        return '_';
+    if (c == '\\')
+        return '_';
+    if (c == '/')
+        return '_';
+    if (c == ':')
+        return '_';
+    if (c == '*')
+        return '_';
+    if (c == '?')
+        return '_';
+    if (c == '"')
+        return '_';
+    if (c == '<')
+        return '_';
+    if (c == '>')
+        return '_';
 
     return c;
 }
 
-static
-std::string ReplaceForPath(const std::string& path)
+static std::string ReplaceForPath(const std::string& path)
 {
     std::stringstream ss;
 
@@ -255,8 +253,7 @@ std::string ReplaceForPath(const std::string& path)
     return ss.str();
 }
 
-static
-char ToChar(int n)
+static char ToChar(int n)
 {
     n = std::abs(n) % 50;
     if (0 <= n && n < 25)
@@ -269,10 +266,9 @@ char ToChar(int n)
     }
 }
 
-static
-std::string MakeForPath(const std::string& path)
+static std::string MakeForPath(const std::string& path)
 {
-    static const int MAX_FNAME = 32;// _MAX_FNAME 256 / 8
+    static const int MAX_FNAME = 32; // _MAX_FNAME 256 / 8
     static const uint32_t SEED = 42;
     if (path.size() <= MAX_FNAME)
     {
@@ -291,8 +287,7 @@ std::string MakeForPath(const std::string& path)
     }
 }
 
-static
-std::string MakeDirectoryPath(const std::string& path)
+static std::string MakeDirectoryPath(const std::string& path)
 {
     std::string tpath = ReplaceForPath(path);
     tpath = MakeForPath(tpath);
@@ -300,47 +295,46 @@ std::string MakeDirectoryPath(const std::string& path)
     return tpath;
 }
 
-static
-void MakeDirectory(const std::string& path)
+static void MakeDirectory(const std::string& path)
 {
 #ifdef _WIN32
     ::CreateDirectoryA(path.c_str(), NULL);
 #else
-  mode_t mode = 0755;
-  int ret = mkdir(path.c_str(), mode);
-  if (ret == 0) {
-    // ok
-    return;
-  }
-  std::cerr << "Directory creation error : " << path << std::endl;
+    mode_t mode = 0755;
+    int ret = mkdir(path.c_str(), mode);
+    if (ret == 0)
+    {
+        // ok
+        return;
+    }
+    std::cerr << "Directory creation error : " << path << std::endl;
 #endif
 }
 
-static
-std::string GetExt(const std::string& filepath)
+static std::string GetExt(const std::string& filepath)
 {
     if (filepath.find_last_of(".") != std::string::npos)
         return filepath.substr(filepath.find_last_of("."));
     return "";
 }
 
-static
-std::string MakeConvertTexturePath(const std::string& path)
+static std::string MakeConvertTexturePath(const std::string& path)
 {
     std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
     int convert_texture_format = opts->GetInt("convert_texture_format");
     switch (convert_texture_format)
     {
-    case 0:return path;
-    case 1:return RemoveExt(path) + ".jpg";
-    case 2:return RemoveExt(path) + ".png";
+    case 0:
+        return path;
+    case 1:
+        return RemoveExt(path) + ".jpg";
+    case 2:
+        return RemoveExt(path) + ".png";
     }
     return path;
 }
 
-
-static
-bool RemoveFiles(const std::string& path)
+static bool RemoveFiles(const std::string& path)
 {
 #ifdef _WIN32
     std::string cmd;
@@ -363,8 +357,7 @@ bool RemoveFiles(const std::string& path)
 #endif
 }
 
-static
-std::string GetTempDirectory()
+static std::string GetTempDirectory()
 {
 #ifdef _WIN32
     char dir1[_MAX_PATH + 1] = {};
@@ -388,8 +381,7 @@ std::string GetTempDirectory()
 #endif
 }
 
-static
-bool IsFileExist(const std::string& filepath)
+static bool IsFileExist(const std::string& filepath)
 {
 #ifdef _WIN32
     struct _stat st;
@@ -402,8 +394,7 @@ bool IsFileExist(const std::string& filepath)
 #endif
 }
 
-static
-bool IsVisible(MFnDagNode & fnDag)
+static bool IsVisible(MFnDagNode& fnDag)
 {
     MStatus status;
     if (fnDag.isIntermediateObject())
@@ -412,15 +403,15 @@ bool IsVisible(MFnDagNode & fnDag)
     }
 
     MPlug visPlug = fnDag.findPlug("visibility", &status);
-    if (MStatus::kSuccess != status) 
+    if (MStatus::kSuccess != status)
     {
         return false;
     }
-    else 
+    else
     {
         bool visible;
         status = visPlug.getValue(visible);
-        if (MStatus::kSuccess != status) 
+        if (MStatus::kSuccess != status)
         {
             return false;
         }
@@ -428,8 +419,7 @@ bool IsVisible(MFnDagNode & fnDag)
     }
 }
 
-static
-bool IsVisible(MDagPath& path)
+static bool IsVisible(MDagPath& path)
 {
     MStatus status;
     MFnDagNode node(path, &status);
@@ -443,13 +433,12 @@ bool IsVisible(MDagPath& path)
     }
 }
 
-
 //////////////////////////////////////////////////////////////
 typedef glTFExporter::Mode Mode;
 static const Mode EXPORT_GLTF = glTFExporter::EXPORT_GLTF;
 static const Mode EXPORT_GLB = glTFExporter::EXPORT_GLB;
 static const Mode EXPORT_VRM = glTFExporter::EXPORT_VRM;
-glTFExporter::glTFExporter (Mode mode)
+glTFExporter::glTFExporter(Mode mode)
 {
     this->mode_ = mode;
 }
@@ -471,16 +460,16 @@ void* glTFExporter::creatorVRM()
 
 //////////////////////////////////////////////////////////////
 
-MStatus glTFExporter::reader ( const MFileObject& file,
-                                const MString& options,
-                                FileAccessMode mode)
+MStatus glTFExporter::reader(const MFileObject& file,
+                             const MString& options,
+                             FileAccessMode mode)
 {
     fprintf(stderr, "glTFExporter::reader called in error\n");
     return MS::kFailure;
 }
 
 //////////////////////////////////////////////////////////////
-#if defined (OSMac_) && defined(MAC_CONVERT_FILE)
+#if defined(OSMac_) && defined(MAC_CONVERT_FILE)
 // Convert file system representations
 // Possible styles: kCFURLHFSPathStyle, kCFURLPOSIXPathStyle
 // kCFURLHFSPathStyle = Emerald:aw:Maya:projects:default:scenes:eagle.ma
@@ -489,132 +478,142 @@ MStatus glTFExporter::reader ( const MFileObject& file,
 // to hold the result
 //
 static Boolean
-convertFileRepresentation (char *fileName, short inStyle, short outStyle)
+convertFileRepresentation(char* fileName, short inStyle, short outStyle)
 {
-    if (fileName == NULL) {
+    if (fileName == NULL)
+    {
         return (false);
     }
-    if (inStyle == outStyle) {
+    if (inStyle == outStyle)
+    {
         return (true);
     }
 
-    CFStringRef rawPath = CFStringCreateWithCString (NULL, fileName, kCFStringEncodingUTF8);
-    if (rawPath == NULL) {
+    CFStringRef rawPath = CFStringCreateWithCString(NULL, fileName, kCFStringEncodingUTF8);
+    if (rawPath == NULL)
+    {
         return (false);
     }
-    CFURLRef baseURL = CFURLCreateWithFileSystemPath (NULL, rawPath, (CFURLPathStyle)inStyle, false);
-    CFRelease (rawPath);
-    if (baseURL == NULL) {
+    CFURLRef baseURL = CFURLCreateWithFileSystemPath(NULL, rawPath, (CFURLPathStyle)inStyle, false);
+    CFRelease(rawPath);
+    if (baseURL == NULL)
+    {
         return (false);
     }
-    CFStringRef newURL = CFURLCopyFileSystemPath (baseURL, (CFURLPathStyle)outStyle);
-    CFRelease (baseURL);
-    if (newURL == NULL) {
+    CFStringRef newURL = CFURLCopyFileSystemPath(baseURL, (CFURLPathStyle)outStyle);
+    CFRelease(baseURL);
+    if (newURL == NULL)
+    {
         return (false);
     }
     char newPath[MAXPATHLEN];
-    CFStringGetCString (newURL, newPath, MAXPATHLEN, kCFStringEncodingUTF8);
-    CFRelease (newURL);
-    strcpy (fileName, newPath);
+    CFStringGetCString(newURL, newPath, MAXPATHLEN, kCFStringEncodingUTF8);
+    CFRelease(newURL);
+    strcpy(fileName, newPath);
     return (true);
 }
 #endif
 
 //////////////////////////////////////////////////////////////
 
-bool glTFExporter::haveReadMethod () const
+bool glTFExporter::haveReadMethod() const
 {
     return false;
 }
 //////////////////////////////////////////////////////////////
 
-bool glTFExporter::haveWriteMethod () const
+bool glTFExporter::haveWriteMethod() const
 {
     return true;
 }
 //////////////////////////////////////////////////////////////
 
-MString glTFExporter::defaultExtension () const
+MString glTFExporter::defaultExtension() const
 {
-    switch((int)this->mode_)
+    switch ((int)this->mode_)
     {
-    case EXPORT_GLTF: return "gltf";
-    case EXPORT_GLB: return "glb";
-    case EXPORT_VRM: return "vrm";
+    case EXPORT_GLTF:
+        return "gltf";
+    case EXPORT_GLB:
+        return "glb";
+    case EXPORT_VRM:
+        return "vrm";
     }
     return "gltf";
 }
 //////////////////////////////////////////////////////////////
 
-MPxFileTranslator::MFileKind glTFExporter::identifyFile (
-                                        const MFileObject& fileName,
-                                        const char* buffer,
-                                        short size) const
+MPxFileTranslator::MFileKind glTFExporter::identifyFile(
+    const MFileObject& fileName,
+    const char* buffer,
+    short size) const
 {
-    const char * name = fileName.name().asChar();
-    int   nameLength = (int)strlen(name);
-    switch((int)this->mode_)
+    const char* name = fileName.name().asChar();
+    int nameLength = (int)strlen(name);
+    switch ((int)this->mode_)
     {
     case EXPORT_GLTF:
+    {
+        if ((nameLength > 5) && !strcasecmp(name + nameLength - 5, ".gltf"))
         {
-            if ((nameLength > 5) && !strcasecmp(name + nameLength - 5, ".gltf"))
-            {
-                return kIsMyFileType;
-            }
-            break;
+            return kIsMyFileType;
         }
-    case EXPORT_GLB:
-        {
-            if ((nameLength > 4) && !strcasecmp(name + nameLength - 4, ".glb"))
-            {
-                return kIsMyFileType;
-            }
-            break;
-        }
-    case EXPORT_VRM:
-        {
-            if ((nameLength > 4) && !strcasecmp(name + nameLength - 4, ".vrm"))
-            {
-                return kIsMyFileType;
-            }
-            break;
-        }
+        break;
     }
-    
+    case EXPORT_GLB:
+    {
+        if ((nameLength > 4) && !strcasecmp(name + nameLength - 4, ".glb"))
+        {
+            return kIsMyFileType;
+        }
+        break;
+    }
+    case EXPORT_VRM:
+    {
+        if ((nameLength > 4) && !strcasecmp(name + nameLength - 4, ".vrm"))
+        {
+            return kIsMyFileType;
+        }
+        break;
+    }
+    }
+
     return kNotMyFileType;
 }
 //////////////////////////////////////////////////////////////
-MString glTFExporter::filter()const
+MString glTFExporter::filter() const
 {
-    switch((int)this->mode_)
+    switch ((int)this->mode_)
     {
-    case EXPORT_GLTF: return "*.gltf";
-    case EXPORT_GLB: return "*.glb";
-    case EXPORT_VRM: return "*.vrm";
+    case EXPORT_GLTF:
+        return "*.gltf";
+    case EXPORT_GLB:
+        return "*.glb";
+    case EXPORT_VRM:
+        return "*.vrm";
     }
     return "*.glb";
 }
 
 //////////////////////////////////////////////////////////////
 
-static
-std::string ConvertVRMLicenseType(const std::string& type)
+static std::string ConvertVRMLicenseType(const std::string& type)
 {
-    static const struct {
+    static const struct
+    {
         const char* szSrc;
         const char* szDst;
     } LicenseType[]{
-        {"Redistribution Prohibited", "Redistribution_Prohibited" },
-        {"CC0","CC0"},
-        {"CC BY","CC_BY"},
-        {"CC BY-NC","CC_BY_NC"},
-        {"CC BY-SA","CC_BY_SA"},
-        {"CC BY-NC-SA","CC_BY_NC_SA"},
-        {"CC BY-ND","CC_BY_ND" },
-        {"CC BY-NC-ND","CC_BY_NC_ND"},
+        {"Redistribution Prohibited", "Redistribution_Prohibited"},
+        {"CC0", "CC0"},
+        {"CC BY", "CC_BY"},
+        {"CC BY-NC", "CC_BY_NC"},
+        {"CC BY-SA", "CC_BY_SA"},
+        {"CC BY-NC-SA", "CC_BY_NC_SA"},
+        {"CC BY-ND", "CC_BY_ND"},
+        {"CC BY-NC-ND", "CC_BY_NC_ND"},
         {"Other", "Other"},
-        {NULL, NULL}
-    };
+        {NULL, NULL}};
 
     int i = 0;
     while (LicenseType[i].szSrc != NULL)
@@ -628,22 +627,21 @@ std::string ConvertVRMLicenseType(const std::string& type)
     return "CC_BY";
 }
 
-
-MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, FileAccessMode mode )
+MStatus glTFExporter::writer(const MFileObject& file, const MString& options, FileAccessMode mode)
 
 {
     MStatus status;
     MString mname = file.fullName(), unitName;
-    
-#if defined (OSMac_) && defined (MAC_CONVERT_FILE)
+
+#if defined(OSMac_) && defined(MAC_CONVERT_FILE)
     char fname[MAXPATHLEN];
-    strcpy (fname, file.fullName().asChar());
+    strcpy(fname, file.fullName().asChar());
     FSRef notUsed;
     //Create a file else convertFileRep will fail.
-    createMacFile (fname, &notUsed, 0, 0);
-    convertFileRepresentation (fname, kCFURLPOSIXPathStyle, kCFURLHFSPathStyle);
+    createMacFile(fname, &notUsed, 0, 0);
+    convertFileRepresentation(fname, kCFURLPOSIXPathStyle, kCFURLHFSPathStyle);
 #else
-    const char *fname = mname.asChar();
+    const char* fname = mname.asChar();
 #endif
 
 #if 1
@@ -651,19 +649,19 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
     //
     std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
 
-    int recalc_normals = 0;            //0:no, 1:recalc
-    int output_onefile = 1;            //0:sep, 1:one file
-    int output_glb = 0;                //0:json,1:glb
-    int vrm_export = 0;             //0:gltf or glb, 1:vrm
-    int make_preload_texture = 0;    //0:off, 1:on
-    int output_buffer = 1;            //0:bin, 1:draco, 2:bin/draco
-    int convert_texture_format = 0; //0:no convert, 1:jpeg, 2:png
-    int transform_space = 1;        //0:world_space, 1:local_space
-    int freeze_skinned_mesh_transform = 1;    //0:no_bake, 1:bake veritces
-    int output_animations = 1;      //0:no output, 1: output animation
-    int output_invisible_nodes = 0; //0:
+    int recalc_normals = 0;                //0:no, 1:recalc
+    int output_onefile = 1;                //0:sep, 1:one file
+    int output_glb = 0;                    //0:json,1:glb
+    int vrm_export = 0;                    //0:gltf or glb, 1:vrm
+    int make_preload_texture = 0;          //0:off, 1:on
+    int output_buffer = 1;                 //0:bin, 1:draco, 2:bin/draco
+    int convert_texture_format = 0;        //0:no convert, 1:jpeg, 2:png
+    int transform_space = 1;               //0:world_space, 1:local_space
+    int freeze_skinned_mesh_transform = 1; //0:no_bake, 1:bake veritces
+    int output_animations = 1;             //0:no output, 1: output animation
+    int output_invisible_nodes = 0;        //0:
 
-    switch((int)this->mode_)
+    switch ((int)this->mode_)
     {
     case EXPORT_GLTF:
         output_glb = 0;
@@ -688,16 +686,16 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
     std::string vrm_product_contact_information = "";
     std::string vrm_product_reference = "";
 
-    int vrm_license_allowed_user_name = 2;      //everyone
-    int vrm_license_violent_usage = 1;          //allow
-    int vrm_license_sexual_usage = 1;           //allow
-    int vrm_license_commercial_usage = 1;       //allow
+    int vrm_license_allowed_user_name = 2; //everyone
+    int vrm_license_violent_usage = 1;     //allow
+    int vrm_license_sexual_usage = 1;      //allow
+    int vrm_license_commercial_usage = 1;  //allow
 
     std::string vrm_license_other_permission_url = "";
 
     std::string vrm_license_license_type = "CC_BY";
     std::string vrm_license_other_license_url = "";
-    
+
     if (options.length() > 0)
     {
         int i, length;
@@ -707,17 +705,19 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
         options.split(';', optionList); // break out all the options.
 
         length = optionList.length();
-        for( i = 0; i < length; ++i )
+        for (i = 0; i < length; ++i)
         {
             theOption.clear();
-            optionList[i].split( '=', theOption );
+            optionList[i].split('=', theOption);
 
             std::string debugName = optionList[i].asChar();
 
-            if( theOption[0] == MString("recalc_normals") && theOption.length() > 1 ) {
+            if (theOption[0] == MString("recalc_normals") && theOption.length() > 1)
+            {
                 recalc_normals = theOption[1].asInt();
             }
-            if (theOption[0] == MString("output_onefile") && theOption.length() > 1) {
+            if (theOption[0] == MString("output_onefile") && theOption.length() > 1)
+            {
                 output_onefile = theOption[1].asInt();
             }
             /*
@@ -728,94 +728,112 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
                 vrm_export = theOption[1].asInt();
             }
             */
-            if (theOption[0] == MString("make_preload_texture") && theOption.length() > 1) {
+            if (theOption[0] == MString("make_preload_texture") && theOption.length() > 1)
+            {
                 make_preload_texture = theOption[1].asInt();
             }
-            if (theOption[0] == MString("output_buffer") && theOption.length() > 1) {
+            if (theOption[0] == MString("output_buffer") && theOption.length() > 1)
+            {
                 output_buffer = theOption[1].asInt();
             }
-            if (theOption[0] == MString("convert_texture_format") && theOption.length() > 1) {
+            if (theOption[0] == MString("convert_texture_format") && theOption.length() > 1)
+            {
                 convert_texture_format = theOption[1].asInt();
             }
-            if (theOption[0] == MString("transform_space") && theOption.length() > 1) {
+            if (theOption[0] == MString("transform_space") && theOption.length() > 1)
+            {
                 transform_space = theOption[1].asInt();
             }
-            if (theOption[0] == MString("freeze_skinned_mesh_transform") && theOption.length() > 1) {
+            if (theOption[0] == MString("freeze_skinned_mesh_transform") && theOption.length() > 1)
+            {
                 freeze_skinned_mesh_transform = theOption[1].asInt();
             }
-            if (theOption[0] == MString("output_animations") && theOption.length() > 1) {
+            if (theOption[0] == MString("output_animations") && theOption.length() > 1)
+            {
                 output_animations = theOption[1].asInt();
             }
-            if (theOption[0] == MString("output_invisible_nodes") && theOption.length() > 1) {
+            if (theOption[0] == MString("output_invisible_nodes") && theOption.length() > 1)
+            {
                 output_invisible_nodes = theOption[1].asInt();
             }
-            if (theOption[0] == MString("generator_name") && theOption.length() > 1) {
+            if (theOption[0] == MString("generator_name") && theOption.length() > 1)
+            {
                 generator_name = theOption[1].asChar();
             }
 #ifdef ENABLE_VRM
 
-            if (theOption[0] == MString("vrm_product_title") && theOption.length() > 1) {
+            if (theOption[0] == MString("vrm_product_title") && theOption.length() > 1)
+            {
                 vrm_product_title = theOption[1].asChar();
             }
-            if (theOption[0] == MString("vrm_product_version") && theOption.length() > 1) {
+            if (theOption[0] == MString("vrm_product_version") && theOption.length() > 1)
+            {
                 vrm_product_version = theOption[1].asChar();
             }
-            if (theOption[0] == MString("vrm_product_author") && theOption.length() > 1) {
+            if (theOption[0] == MString("vrm_product_author") && theOption.length() > 1)
+            {
                 vrm_product_author = theOption[1].asChar();
             }
-            if (theOption[0] == MString("vrm_product_contact_information") && theOption.length() > 1) {
+            if (theOption[0] == MString("vrm_product_contact_information") && theOption.length() > 1)
+            {
                 vrm_product_contact_information = theOption[1].asChar();
             }
-            if (theOption[0] == MString("vrm_product_reference") && theOption.length() > 1) {
+            if (theOption[0] == MString("vrm_product_reference") && theOption.length() > 1)
+            {
                 vrm_product_reference = theOption[1].asChar();
             }
 
-            if (theOption[0] == MString("vrm_license_allowed_user_name") && theOption.length() > 1) {
+            if (theOption[0] == MString("vrm_license_allowed_user_name") && theOption.length() > 1)
+            {
                 vrm_license_allowed_user_name = theOption[1].asInt();
             }
-            if (theOption[0] == MString("vrm_license_violent_usage") && theOption.length() > 1) {
+            if (theOption[0] == MString("vrm_license_violent_usage") && theOption.length() > 1)
+            {
                 vrm_license_violent_usage = theOption[1].asInt();
             }
-            if (theOption[0] == MString("vrm_license_sexual_usage") && theOption.length() > 1) {
+            if (theOption[0] == MString("vrm_license_sexual_usage") && theOption.length() > 1)
+            {
                 vrm_license_sexual_usage = theOption[1].asInt();
             }
-            if (theOption[0] == MString("vrm_license_commercial_usage") && theOption.length() > 1) {
+            if (theOption[0] == MString("vrm_license_commercial_usage") && theOption.length() > 1)
+            {
                 vrm_license_commercial_usage = theOption[1].asInt();
             }
-            if (theOption[0] == MString("vrm_license_other_permission_url") && theOption.length() > 1) {
+            if (theOption[0] == MString("vrm_license_other_permission_url") && theOption.length() > 1)
+            {
                 vrm_license_other_permission_url = theOption[1].asChar();
             }
 
-            if (theOption[0] == MString("vrm_license_license_type") && theOption.length() > 1) {
+            if (theOption[0] == MString("vrm_license_license_type") && theOption.length() > 1)
+            {
                 vrm_license_license_type = ConvertVRMLicenseType(theOption[1].asChar());
             }
-            if (theOption[0] == MString("vrm_license_other_license_url") && theOption.length() > 1) {
+            if (theOption[0] == MString("vrm_license_other_license_url") && theOption.length() > 1)
+            {
                 vrm_license_other_license_url = theOption[1].asChar();
             }
 #endif
         }
     }
 
-    if (vrm_export) 
+    if (vrm_export)
     {
-        output_buffer = 0; // disable Draco
-        output_glb = 1;    // force GLB format
-        freeze_skinned_mesh_transform = 1;// bake mesh!
-        output_animations = 1;//
+        output_buffer = 0;                 // disable Draco
+        output_glb = 1;                    // force GLB format
+        freeze_skinned_mesh_transform = 1; // bake mesh!
+        output_animations = 1;             //
     }
 
     if (output_glb)
     {
-        output_onefile = 1;          //enforce onefile
-        make_preload_texture = 0;    //no cache texture
+        output_onefile = 1;       //enforce onefile
+        make_preload_texture = 0; //no cache texture
     }
 
 #ifdef ENABLE_VRM
     if (
-        (vrm_license_license_type != "Other" && vrm_license_license_type != "Redistribution_Prohibited")
-        && 
-        vrm_license_other_license_url.empty()
-    )
+        (vrm_license_license_type != "Other" && vrm_license_license_type != "Redistribution_Prohibited") &&
+        vrm_license_other_license_url.empty())
     {
         vrm_license_other_license_url = "https://creativecommons.org/licenses/";
     }
@@ -833,7 +851,7 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
     opts->SetInt("output_invisible_nodes", output_invisible_nodes);
 
     opts->SetString("generator_name", generator_name);
-    
+
     opts->SetInt("vrm_export", vrm_export);
 
     opts->SetString("vrm_product_title", vrm_product_title);
@@ -853,15 +871,15 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 
     /* print current linear units used as a comment in the obj file */
     //setToLongUnitName(MDistance::uiUnit(), unitName);
-    //fprintf( fp, "# This file uses %s as units for non-parametric coordinates.\n\n", unitName.asChar() ); 
+    //fprintf( fp, "# This file uses %s as units for non-parametric coordinates.\n\n", unitName.asChar() );
     //fprintf( fp, "# The units used in this file are %s.\n", unitName.asChar() );
 #endif
-    if( ( mode == MPxFileTranslator::kExportAccessMode ) ||
-        ( mode == MPxFileTranslator::kSaveAccessMode ) )
+    if ((mode == MPxFileTranslator::kExportAccessMode) ||
+        (mode == MPxFileTranslator::kSaveAccessMode))
     {
         return exportAll(fname);
     }
-    else if( mode == MPxFileTranslator::kExportActiveAccessMode )
+    else if (mode == MPxFileTranslator::kExportActiveAccessMode)
     {
         return exportSelected(fname);
     }
@@ -871,25 +889,24 @@ MStatus glTFExporter::writer ( const MFileObject& file, const MString& options, 
 
 //////////////////////////////////////////////////////////////
 
-static
-std::vector<std::string> SplitPath(const std::string& str, const std::string& delim)
+static std::vector<std::string> SplitPath(const std::string& str, const std::string& delim)
 {
     std::vector<std::string> tokens;
     size_t prev = 0, pos = 0;
     do
     {
         pos = str.find(delim, prev);
-        if (pos == std::string::npos) pos = str.length();
+        if (pos == std::string::npos)
+            pos = str.length();
         std::string token = str.substr(prev, pos - prev);
-        if (!token.empty()) tokens.push_back(token);
+        if (!token.empty())
+            tokens.push_back(token);
         prev = pos + delim.length();
     } while (pos < str.length() && prev < str.length());
     return tokens;
 }
 
-
-static
-std::vector<MDagPath> GetDagPathList(const std::string& fullPathNameh)
+static std::vector<MDagPath> GetDagPathList(const std::string& fullPathNameh)
 {
     std::vector<MDagPath> pathList;
     std::vector<std::string> tokens = SplitPath(fullPathNameh.c_str() + 1, "|");
@@ -923,15 +940,12 @@ std::vector<MDagPath> GetDagPathList(const std::string& fullPathNameh)
     return pathList;
 }
 
-
-static
-std::vector<MDagPath> GetDagPathList(const MDagPath& dagPath)
+static std::vector<MDagPath> GetDagPathList(const MDagPath& dagPath)
 {
     return GetDagPathList(dagPath.fullPathName().asChar());
 }
 
-static
-void SetTRS(const MDagPath& dagPath, std::shared_ptr<kml::Node>& node)
+static void SetTRS(const MDagPath& dagPath, std::shared_ptr<kml::Node>& node)
 {
     MFnTransform fnTransform(dagPath);
     MVector mT = fnTransform.getTranslation(MSpace::kTransform);
@@ -939,13 +953,15 @@ void SetTRS(const MDagPath& dagPath, std::shared_ptr<kml::Node>& node)
     fnTransform.getRotation(mR, MSpace::kTransform);
     MStatus ret;
     mOR = fnTransform.rotateOrientation(MSpace::kTransform, &ret); // get Rotation Axis
-    if (ret == MS::kSuccess) {
+    if (ret == MS::kSuccess)
+    {
         mR = mOR * mR;
     }
 
     MFnIkJoint fnJoint(dagPath);
     MStatus joret = fnJoint.getOrientation(mJO); // get jointOrient
-    if (joret == MS::kSuccess) {
+    if (joret == MS::kSuccess)
+    {
         mR *= mJO;
     }
 
@@ -953,13 +969,12 @@ void SetTRS(const MDagPath& dagPath, std::shared_ptr<kml::Node>& node)
     fnTransform.getScale(mS);
 
     glm::vec3 vT(mT.x, mT.y, mT.z);
-    glm::quat vR(mR.w, mR.x, mR.y, mR.z);//wxyz
+    glm::quat vR(mR.w, mR.x, mR.y, mR.z); //wxyz
     glm::vec3 vS(mS[0], mS[1], mS[2]);
     node->GetTransform()->SetTRS(vT, vR, vS);
 }
 
-static
-MObject GetOriginalMesh(const MDagPath& dagPath)
+static MObject GetOriginalMesh(const MDagPath& dagPath)
 {
     MFnDependencyNode node(dagPath.node());
     MPlugArray mpa;
@@ -980,14 +995,13 @@ MObject GetOriginalMesh(const MDagPath& dagPath)
     return vtxobj;
 }
 
-static
-std::shared_ptr<kml::Mesh> CreateMesh(const MDagPath& dagPath, const MSpace::Space& space)
+static std::shared_ptr<kml::Mesh> CreateMesh(const MDagPath& dagPath, const MSpace::Space& space)
 {
     MStatus status = MS::kSuccess;
 
     MFnMesh fnMesh(dagPath);
     MItMeshPolygon polyIter(dagPath);
-    MItMeshVertex  vtxIter(dagPath);
+    MItMeshVertex vtxIter(dagPath);
 
     // Write out the vertex table
     //
@@ -1031,7 +1045,7 @@ std::shared_ptr<kml::Mesh> CreateMesh(const MDagPath& dagPath, const MSpace::Spa
         if (stat == MStatus::kSuccess)
         {
             int normsLength = norms.length();
-            for (int t = 0; t<normsLength; t++)
+            for (int t = 0; t < normsLength; t++)
             {
                 MFloatVector tmpf = norms[t];
                 normals.push_back(glm::vec3(tmpf.x, tmpf.y, tmpf.z));
@@ -1039,9 +1053,9 @@ std::shared_ptr<kml::Mesh> CreateMesh(const MDagPath& dagPath, const MSpace::Spa
         }
     }
 
-    // For each polygon, write out: 
+    // For each polygon, write out:
     //    s  smoothing_group
-    //    sets/groups the polygon belongs to 
+    //    sets/groups the polygon belongs to
     //    f  vertex_index/uvIndex/normalIndex
     //
     //int lastSmoothingGroup = INITIALIZE_SMOOTHING;
@@ -1087,7 +1101,7 @@ std::shared_ptr<kml::Mesh> CreateMesh(const MDagPath& dagPath, const MSpace::Spa
         materials[i] = 0;
     }
 
-    std::shared_ptr < kml::Mesh > mesh(new kml::Mesh());
+    std::shared_ptr<kml::Mesh> mesh(new kml::Mesh());
     mesh->facenums.swap(facenums);
     mesh->pos_indices.swap(pos_indices);
     mesh->tex_indices.swap(tex_indices);
@@ -1101,8 +1115,7 @@ std::shared_ptr<kml::Mesh> CreateMesh(const MDagPath& dagPath, const MSpace::Spa
     return mesh;
 }
 
-static
-std::shared_ptr<kml::Mesh> GetOriginalVertices(std::shared_ptr<kml::Mesh>& mesh, MObject& orgMeshObj)
+static std::shared_ptr<kml::Mesh> GetOriginalVertices(std::shared_ptr<kml::Mesh>& mesh, MObject& orgMeshObj)
 {
     MFnMesh fnMesh(orgMeshObj);
     MPointArray vtx_pos;
@@ -1111,7 +1124,7 @@ std::shared_ptr<kml::Mesh> GetOriginalVertices(std::shared_ptr<kml::Mesh>& mesh,
     fnMesh.getNormals(norm, MSpace::kObject);
 
     std::vector<glm::vec3> positions;
-    for(int i = 0; i < vtx_pos.length(); i++)
+    for (int i = 0; i < vtx_pos.length(); i++)
     {
         MPoint p = vtx_pos[i];
 
@@ -1135,8 +1148,7 @@ std::shared_ptr<kml::Mesh> GetOriginalVertices(std::shared_ptr<kml::Mesh>& mesh,
     return mesh;
 }
 
-static
-std::shared_ptr<kml::Mesh> GetSkinWeights(std::shared_ptr<kml::Mesh>& mesh, const MDagPath& dagPath)
+static std::shared_ptr<kml::Mesh> GetSkinWeights(std::shared_ptr<kml::Mesh>& mesh, const MDagPath& dagPath)
 {
     MFnDependencyNode node(dagPath.node());
     MPlugArray mpa;
@@ -1167,7 +1179,7 @@ std::shared_ptr<kml::Mesh> GetSkinWeights(std::shared_ptr<kml::Mesh>& mesh, cons
     int jsz = skinC.influenceObjects(dpa, &stat);
     int ksz = skinC.numOutputConnections();
     //assert(ksz == 1); // maybe 1 only
-    ksz = std::min<int>(ksz, 1);//TODO
+    ksz = std::min<int>(ksz, 1); //TODO
     for (int k = 0; k < ksz; k++)
     {
         const unsigned int index = skinC.indexForOutputConnection(k);
@@ -1208,7 +1220,7 @@ std::shared_ptr<kml::Mesh> GetSkinWeights(std::shared_ptr<kml::Mesh>& mesh, cons
 
         struct StringSizeSorter
         {
-            bool operator()(const std::string& a, const std::string& b)const
+            bool operator()(const std::string& a, const std::string& b) const
             {
                 return a.size() < b.size();
             }
@@ -1238,13 +1250,12 @@ std::shared_ptr<kml::Mesh> GetSkinWeights(std::shared_ptr<kml::Mesh>& mesh, cons
                 dest[0][0], dest[0][1], dest[0][2], dest[0][3],
                 dest[1][0], dest[1][1], dest[1][2], dest[1][3],
                 dest[2][0], dest[2][1], dest[2][2], dest[2][3],
-                dest[3][0], dest[3][1], dest[3][2], dest[3][3]
-            );
+                dest[3][0], dest[3][1], dest[3][2], dest[3][3]);
             path_mat_map[joint_path] = mat;
         }
 
-        for(int j = 0; j < skin_weight->joint_paths.size(); j++)
-        { 
+        for (int j = 0; j < skin_weight->joint_paths.size(); j++)
+        {
             glm::mat4 mat = path_mat_map[skin_weight->joint_paths[j]];
             skin_weight->joint_bind_matrices.push_back(mat);
         }
@@ -1255,8 +1266,7 @@ std::shared_ptr<kml::Mesh> GetSkinWeights(std::shared_ptr<kml::Mesh>& mesh, cons
     return mesh;
 }
 
-static
-std::shared_ptr<kml::MorphTarget> GetMorphTarget(MObject& obj)
+static std::shared_ptr<kml::MorphTarget> GetMorphTarget(MObject& obj)
 {
     std::shared_ptr<kml::Mesh> mesh(new kml::Mesh());
     mesh = GetOriginalVertices(mesh, obj);
@@ -1266,8 +1276,7 @@ std::shared_ptr<kml::MorphTarget> GetMorphTarget(MObject& obj)
     return target;
 }
 
-static
-std::shared_ptr<kml::Mesh> GetMophTargets(std::shared_ptr<kml::Mesh>& mesh, const MDagPath& dagPath)
+static std::shared_ptr<kml::Mesh> GetMophTargets(std::shared_ptr<kml::Mesh>& mesh, const MDagPath& dagPath)
 {
     MStatus status;
     MFnDependencyNode node(dagPath.node(), &status);
@@ -1336,7 +1345,7 @@ std::shared_ptr<kml::Mesh> GetMophTargets(std::shared_ptr<kml::Mesh>& mesh, cons
             continue;
         }
         float weight = fnBlendShapeDeformer.weight(indexList[i]) * envelope;
-        for(unsigned int j = 0; j < targetArray.length(); j++)
+        for (unsigned int j = 0; j < targetArray.length(); j++)
         {
             MObject targetObj = targetArray[j];
             std::shared_ptr<kml::MorphTarget> target = GetMorphTarget(targetObj);
@@ -1355,8 +1364,7 @@ std::shared_ptr<kml::Mesh> GetMophTargets(std::shared_ptr<kml::Mesh>& mesh, cons
     return mesh;
 }
 
-static
-glm::vec3 Transform(const glm::mat4& mat, const glm::vec3& v)
+static glm::vec3 Transform(const glm::mat4& mat, const glm::vec3& v)
 {
     glm::vec4 t = mat * glm::vec4(v, 1.0f);
     t[0] /= t[3];
@@ -1365,8 +1373,7 @@ glm::vec3 Transform(const glm::mat4& mat, const glm::vec3& v)
     return glm::vec3(t[0], t[1], t[2]);
 }
 
-static
-std::shared_ptr<kml::Mesh> TransformMesh(std::shared_ptr<kml::Mesh>& mesh, const glm::mat4& mat)
+static std::shared_ptr<kml::Mesh> TransformMesh(std::shared_ptr<kml::Mesh>& mesh, const glm::mat4& mat)
 {
     auto& positions = mesh->positions;
     for (size_t i = 0; i < positions.size(); i++)
@@ -1385,12 +1392,10 @@ std::shared_ptr<kml::Mesh> TransformMesh(std::shared_ptr<kml::Mesh>& mesh, const
     return mesh;
 }
 
-
-static
-std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& dagPath)
+static std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& dagPath)
 {
     MStatus status = MS::kSuccess;
-    
+
     std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
     int transform_space = opts->GetInt("transform_space");
     bool freeze_skinned_mesh_transform = opts->GetInt("freeze_skinned_mesh_transform") > 0;
@@ -1401,7 +1406,7 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& dagPath)
     {
         space = MSpace::kObject;
     }
-    
+
     std::shared_ptr<kml::Mesh> mesh = CreateMesh(dagPath, space);
 
     if (!mesh.get())
@@ -1413,21 +1418,21 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& dagPath)
     {
         if (output_animations)
         {
-            MObject orgMeshObj = GetOriginalMesh(dagPath);//T-pose
+            MObject orgMeshObj = GetOriginalMesh(dagPath); //T-pose
             if (orgMeshObj.hasFn(MFn::kMesh))
             {
-                mesh = GetOriginalVertices(mesh, orgMeshObj);    //dynamic
-                mesh = GetSkinWeights(mesh, dagPath);            //dynamic
+                mesh = GetOriginalVertices(mesh, orgMeshObj); //dynamic
+                mesh = GetSkinWeights(mesh, dagPath);         //dynamic
             }
         }
 
-        mesh = GetMophTargets(mesh, dagPath);            //dynamic
+        mesh = GetMophTargets(mesh, dagPath); //dynamic
     }
 
     mesh->name = dagPath.partialPathName().asChar();
 
-    std::shared_ptr < kml::Node > node(new kml::Node());
-    
+    std::shared_ptr<kml::Node> node(new kml::Node());
+
     if (transform_space == 0)
     {
         node->GetTransform()->SetIdentity();
@@ -1435,7 +1440,7 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& dagPath)
     else if (transform_space == 1)
     {
         std::vector<MDagPath> dagPathList = GetDagPathList(dagPath);
-        dagPathList.pop_back();//shape
+        dagPathList.pop_back(); //shape
         MDagPath path = dagPathList.back();
         SetTRS(path, node);
     }
@@ -1445,7 +1450,7 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& dagPath)
     if (transform_space == 0)
     {
         std::vector<MDagPath> dagPathList = GetDagPathList(dagPath);
-        dagPathList.pop_back();//shape
+        dagPathList.pop_back(); //shape
         MDagPath transPath = dagPathList.back();
         node->SetName(transPath.partialPathName().asChar());
         node->SetPath(transPath.fullPathName().asChar());
@@ -1455,20 +1460,20 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& dagPath)
     else
     {
         std::vector<MDagPath> dagPathList = GetDagPathList(dagPath);
-        dagPathList.pop_back();//shape
+        dagPathList.pop_back(); //shape
         MDagPath transPath = dagPathList.back();
         node->SetName(transPath.partialPathName().asChar());
         node->SetPath(transPath.fullPathName().asChar());
         node->SetVisiblity(IsVisible(transPath));
 
-        dagPathList.pop_back();//transform
+        dagPathList.pop_back(); //transform
         if (dagPathList.size() > 0)
         {
-            std::vector< std::shared_ptr<kml::Node> > nodes;
+            std::vector<std::shared_ptr<kml::Node> > nodes;
             for (size_t i = 0; i < dagPathList.size(); i++)
             {
                 MDagPath path = dagPathList[i];
-                std::shared_ptr < kml::Node > n(new kml::Node());
+                std::shared_ptr<kml::Node> n(new kml::Node());
                 n->SetName(path.partialPathName().asChar());
                 n->SetPath(path.fullPathName().asChar());
                 n->SetVisiblity(IsVisible(path));
@@ -1496,22 +1501,21 @@ std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& dagPath)
 
 //////////////////////////////////////////////////////////////
 
-
-static
-void GetMaterials(std::vector<MObject>& shaders, std::vector<int>& faceIndices, const MDagPath& dagPath)
+static void GetMaterials(std::vector<MObject>& shaders, std::vector<int>& faceIndices, const MDagPath& dagPath)
 {
     typedef std::map<unsigned int, MObject> MapType;
     MapType shader_map;
     {
         MStatus status = MStatus::kSuccess;
         MFnMesh fnMesh(dagPath, &status);
-        if (MS::kSuccess != status)return;
+        if (MS::kSuccess != status)
+            return;
 
-        int numInstances = 1;// fnMesh.parentCount();
+        int numInstances = 1; // fnMesh.parentCount();
         for (int j = 0; j < numInstances; j++)
         {
             MObjectArray Shaders;
-            MIntArray    FaceIndices;
+            MIntArray FaceIndices;
             fnMesh.getConnectedShaders(j, Shaders, FaceIndices);
             for (int k = 0; k < Shaders.length(); k++)
             {
@@ -1527,8 +1531,7 @@ void GetMaterials(std::vector<MObject>& shaders, std::vector<int>& faceIndices, 
     }
 }
 
-static
-MColor getColor(MFnDependencyNode& node, const char* name)
+static MColor getColor(MFnDependencyNode& node, const char* name)
 {
     MPlug p;
     MString r = MString(name) + "R";
@@ -1548,10 +1551,7 @@ MColor getColor(MFnDependencyNode& node, const char* name)
     return color;
 }
 
-
-
-static
-bool getTextureAndColor(const MFnDependencyNode& node, const MString& name, std::shared_ptr<kml::Texture>& tex, MColor& color)
+static bool getTextureAndColor(const MFnDependencyNode& node, const MString& name, std::shared_ptr<kml::Texture>& tex, MColor& color)
 {
     color = MColor(1.0, 1.0, 1.0, 1.0);
     MStatus status;
@@ -1560,10 +1560,11 @@ bool getTextureAndColor(const MFnDependencyNode& node, const MString& name, std:
         return false;
 
     MPlugArray connectedPlugs;
-    if (paramPlug.connectedTo(connectedPlugs, true, false, &status)
-        && connectedPlugs.length()) {
+    if (paramPlug.connectedTo(connectedPlugs, true, false, &status) && connectedPlugs.length())
+    {
         MFn::Type apiType = connectedPlugs[0].node().apiType();
-        if (apiType == MFn::kFileTexture) {
+        if (apiType == MFn::kFileTexture)
+        {
             MFnDependencyNode texNode(connectedPlugs[0].node());
             MPlug texturePlug = texNode.findPlug("fileTextureName", &status);
             if (status == MS::kSuccess)
@@ -1572,20 +1573,24 @@ bool getTextureAndColor(const MFnDependencyNode& node, const MString& name, std:
                 MString tpath;
                 texturePlug.getValue(tpath);
                 std::string texpath = tpath.asChar();
-                
+
                 // project path delimitor
                 const std::string pathDelimiter = "//";
                 size_t delim = texpath.find(pathDelimiter);
-                if (delim != std::string::npos) {
+                if (delim != std::string::npos)
+                {
                     texpath.erase(0, delim + pathDelimiter.size());
                 }
                 tex->SetFilePath(texpath);
-            
-                // filter 
+
+                // filter
                 const int filterType = texNode.findPlug("filter").asInt();
-                if (filterType == 0) { // None
+                if (filterType == 0)
+                { // None
                     tex->SetFilter(kml::Texture::FILTER_NEAREST);
-                } else { // Linear
+                }
+                else
+                { // Linear
                     tex->SetFilter(kml::Texture::FILTER_LINEAR);
                 }
 
@@ -1594,7 +1599,7 @@ bool getTextureAndColor(const MFnDependencyNode& node, const MString& name, std:
                 const float repeatV = texNode.findPlug("repeatV").asFloat();
                 tex->SetRepeat(repeatU, repeatV);
 
-                // offset 
+                // offset
                 const float offsetU = texNode.findPlug("offsetU").asFloat();
                 const float offsetV = texNode.findPlug("offsetV").asFloat();
                 tex->SetRepeat(offsetU, offsetV);
@@ -1606,19 +1611,23 @@ bool getTextureAndColor(const MFnDependencyNode& node, const MString& name, std:
 
                 // UDIM
                 const int tilingMode = texNode.findPlug("uvTilingMode").asInt();
-                if (tilingMode == 0) { // OFF
+                if (tilingMode == 0)
+                { // OFF
                     tex->SetUDIMMode(false);
-                } else if (tilingMode == 3) { // UDIM
+                }
+                else if (tilingMode == 3)
+                { // UDIM
                     tex->SetUDIMMode(true);
-                    
+
                     // get <UDIM> tag filepath
                     MPlug compNamePlug = texNode.findPlug("computedFileTextureNamePattern", &status);
                     MString ctpath;
                     compNamePlug.getValue(ctpath);
                     std::string ctexpath = ctpath.asChar();
                     tex->SetUDIMFilePath(ctexpath);
-
-                } else { // Not Support
+                }
+                else
+                { // Not Support
                     fprintf(stderr, "Error: Not support texture tiling mode.\n");
                 }
 
@@ -1630,7 +1639,8 @@ bool getTextureAndColor(const MFnDependencyNode& node, const MString& name, std:
             }
             return false;
         }
-        else {
+        else
+        {
             // other type node is not supported
             return false;
         }
@@ -1658,7 +1668,8 @@ static bool getNormalAttrib(const MFnDependencyNode& node, MString& normaltexpat
         return false;
 
     MFn::Type apiType = connectedPlugs[0].node().apiType();
-    if (apiType == MFn::kBump) {
+    if (apiType == MFn::kBump)
+    {
         MFnDependencyNode bumpNode(connectedPlugs[0].node());
         MPlug bumpPlug = bumpNode.findPlug("bumpDepth", &status);
         if (status != MS::kSuccess)
@@ -1687,17 +1698,21 @@ static bool getNormalAttrib(const MFnDependencyNode& node, MString& normaltexpat
 
         return true;
     }
-    else if (apiType == MFn::kFileTexture) {
+    else if (apiType == MFn::kFileTexture)
+    {
         MFnDependencyNode texNode(connectedPlugs[0].node());
         MPlug texturePlug = texNode.findPlug("fileTextureName", &status);
-        if (status != MS::kSuccess) {
+        if (status != MS::kSuccess)
+        {
             return false;
         }
 
         texturePlug.getValue(normaltexpath);
 
         return true;
-    } else {
+    }
+    else
+    {
         return false;
     }
 }
@@ -1727,10 +1742,10 @@ static bool storeStingrayPBS(std::shared_ptr<kml::Material> mat, const MFnDepend
 static bool isAiStandardSurfaceShader(const MFnDependencyNode& materialDependencyNode)
 {
     return materialDependencyNode.hasAttribute("baseColor") &&
-        materialDependencyNode.hasAttribute("metalness") &&
-        materialDependencyNode.hasAttribute("normalCamera") &&
-        materialDependencyNode.hasAttribute("specularRoughness") &&
-        materialDependencyNode.hasAttribute("emissionColor");
+           materialDependencyNode.hasAttribute("metalness") &&
+           materialDependencyNode.hasAttribute("normalCamera") &&
+           materialDependencyNode.hasAttribute("specularRoughness") &&
+           materialDependencyNode.hasAttribute("emissionColor");
 }
 
 static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, const MFnDependencyNode& ainode)
@@ -1748,12 +1763,14 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
     const float metallic = ainode.findPlug("metalness").asFloat();
     MColor baseCol;
     std::shared_ptr<kml::Texture> baseColorTex(nullptr);
-    if (getTextureAndColor(ainode, MString("baseColor"), baseColorTex, baseCol)) {
-        if (baseColorTex) {
+    if (getTextureAndColor(ainode, MString("baseColor"), baseColorTex, baseCol))
+    {
+        if (baseColorTex)
+        {
             mat->SetTexture("ai_baseColor", baseColorTex);
         }
     }
-    
+
     mat->SetFloat("ai_baseWeight", baseWeight);
     mat->SetFloat("ai_baseColorR", baseColorR);
     mat->SetFloat("ai_baseColorG", baseColorG);
@@ -1772,8 +1789,10 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
     const float specularAnisotropy = ainode.findPlug("specularAnisotropy").asFloat();
     MColor specularCol;
     std::shared_ptr<kml::Texture> specularTex(nullptr);
-    if (getTextureAndColor(ainode, MString("specularColor"), specularTex, specularCol)) {
-        if (specularTex) {
+    if (getTextureAndColor(ainode, MString("specularColor"), specularTex, specularCol))
+    {
+        if (specularTex)
+        {
             mat->SetTexture("ai_specularColor", specularTex);
         }
     }
@@ -1798,18 +1817,22 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
     const float transmissionScatterAnisotropy = ainode.findPlug("transmissionScatterAnisotropy").asFloat();
     const float transmissionDispersion = ainode.findPlug("transmissionDispersion").asFloat();
     const float transmissionExtraRoughness = ainode.findPlug("transmissionExtraRoughness").asFloat();
-    const int   transmissionAovs = ainode.findPlug("transmissionAovs").asInt();
+    const int transmissionAovs = ainode.findPlug("transmissionAovs").asInt();
     MColor transmissionCol;
     std::shared_ptr<kml::Texture> transmissionTex(nullptr);
-    if (getTextureAndColor(ainode, MString("transmissionColor"), transmissionTex, transmissionCol)) {
-        if (transmissionTex) {
+    if (getTextureAndColor(ainode, MString("transmissionColor"), transmissionTex, transmissionCol))
+    {
+        if (transmissionTex)
+        {
             mat->SetTexture("ai_transmissionColor", transmissionTex);
         }
     }
     MColor transmissionScatterCol;
     std::shared_ptr<kml::Texture> transmissionScatterTex(nullptr);
-    if (getTextureAndColor(ainode, MString("transmissionScatter"), transmissionScatterTex, transmissionScatterCol)) {
-        if (transmissionScatterTex) {
+    if (getTextureAndColor(ainode, MString("transmissionScatter"), transmissionScatterTex, transmissionScatterCol))
+    {
+        if (transmissionScatterTex)
+        {
             mat->SetTexture("ai_transmissionScatter", transmissionScatterTex);
         }
     }
@@ -1839,15 +1862,19 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
     const float subsurfaceAnisotropy = ainode.findPlug("subsurfaceAnisotropy").asFloat();
     MColor subsurfaceCol;
     std::shared_ptr<kml::Texture> subsurfaceTex(nullptr);
-    if (getTextureAndColor(ainode, MString("subsurfaceColor"), subsurfaceTex, subsurfaceCol)) {
-        if (subsurfaceTex) {
+    if (getTextureAndColor(ainode, MString("subsurfaceColor"), subsurfaceTex, subsurfaceCol))
+    {
+        if (subsurfaceTex)
+        {
             mat->SetTexture("ai_subsurfaceColor", subsurfaceTex);
         }
     }
     MColor subsurfaceRadiusCol;
     std::shared_ptr<kml::Texture> subsurfaceRadiusTex(nullptr);
-    if (getTextureAndColor(ainode, MString("subsurfaceRadius"), subsurfaceRadiusTex, subsurfaceRadiusCol)) {
-        if (subsurfaceRadiusTex) {
+    if (getTextureAndColor(ainode, MString("subsurfaceRadius"), subsurfaceRadiusTex, subsurfaceRadiusCol))
+    {
+        if (subsurfaceRadiusTex)
+        {
             mat->SetTexture("ai_subsurfaceRadius", subsurfaceRadiusTex);
         }
     }
@@ -1874,8 +1901,10 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
     const float coatNormalZ = ainode.findPlug("coatNormalZ").asFloat();
     MColor coatCol;
     std::shared_ptr<kml::Texture> coatColorTex(nullptr);
-    if (getTextureAndColor(ainode, MString("coatColor"), coatColorTex, coatCol)) {
-        if (coatColorTex) {
+    if (getTextureAndColor(ainode, MString("coatColor"), coatColorTex, coatCol))
+    {
+        if (coatColorTex)
+        {
             mat->SetTexture("ai_coatColor", coatColorTex);
         }
     }
@@ -1896,8 +1925,10 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
     const float emissionColorB = ainode.findPlug("emissionColorB").asFloat();
     MColor emissionCol;
     std::shared_ptr<kml::Texture> emissionColorTex(nullptr);
-    if (getTextureAndColor(ainode, MString("emissionColor"), emissionColorTex, emissionCol)) {
-        if (emissionColorTex) {
+    if (getTextureAndColor(ainode, MString("emissionColor"), emissionColorTex, emissionCol))
+    {
+        if (emissionColorTex)
+        {
             mat->SetTexture("ai_emissionColor", emissionColorTex);
         }
     }
@@ -1905,7 +1936,6 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
     mat->SetFloat("ai_emissionColorR", emissionColorR);
     mat->SetFloat("ai_emissionColorG", emissionColorG);
     mat->SetFloat("ai_emissionColorB", emissionColorB);
-
 
     // Normal map
     float depth;
@@ -1926,7 +1956,8 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
     mat->SetFloat("BaseColor.G", baseCol.g * baseWeight);
     mat->SetFloat("BaseColor.B", baseCol.b * baseWeight);
     mat->SetFloat("BaseColor.A", 1.0 - transmissionWeight);
-    if (baseColorTex) {
+    if (baseColorTex)
+    {
         mat->SetTexture("BaseColor", baseColorTex);
     }
     mat->SetFloat("metallicFactor", metallic);
@@ -1935,14 +1966,14 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
     mat->SetFloat("Emission.R", emissionCol.r * emissionWeight);
     mat->SetFloat("Emission.G", emissionCol.g * emissionWeight);
     mat->SetFloat("Emission.B", emissionCol.b * emissionWeight);
-    if (emissionColorTex) {
+    if (emissionColorTex)
+    {
         mat->SetTexture("Emission", emissionColorTex);
     }
     return true;
 }
 
-static
-std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
+static std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
 {
     std::shared_ptr<kml::Material> mat = std::shared_ptr<kml::Material>(new kml::Material());
 
@@ -1960,18 +1991,20 @@ std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
         mp = node.findPlug("aiSurfaceShader"); // first check aiSurfaceShader
         mp.connectedTo(mpa, true, false);
 
-        if (mpa.length() == 0) {
-            mp = node.findPlug("surfaceShader");// next check, shader Group
+        if (mpa.length() == 0)
+        {
+            mp = node.findPlug("surfaceShader"); // next check, shader Group
             mp.connectedTo(mpa, true, false);
         }
 
         const int ksz = mpa.length();
         for (int k = 0; k < ksz; k++)
         {
-            if (mpa[k].node().hasFn(MFn::kLambert)) { // All material(Lambert, phongE)
+            if (mpa[k].node().hasFn(MFn::kLambert))
+            { // All material(Lambert, phongE)
                 MFnLambertShader shader(mpa[k].node());
                 std::string shadername = shader.name().asChar();
-                
+
                 mat->SetName(shadername);
                 mat->SetFloat("metallicFactor", 0.0f);
                 mat->SetFloat("roughnessFactor", 1.0);
@@ -2010,7 +2043,8 @@ std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
                 }
             }
 
-            if (mpa[k].node().hasFn(MFn::kPhongExplorer)) { // PhongE only
+            if (mpa[k].node().hasFn(MFn::kPhongExplorer))
+            { // PhongE only
 
                 // default value
                 float roughness = 0.0f;
@@ -2019,7 +2053,8 @@ std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
                 MFnPhongEShader pshader(mpa[k].node());
                 MStatus status;
                 MPlug roughnessPlug = pshader.findPlug("roughness", &status);
-                if (status == MS::kSuccess) {
+                if (status == MS::kSuccess)
+                {
                     roughnessPlug.getValue(roughness);
                 }
 
@@ -2027,22 +2062,22 @@ std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
                 mat->SetFloat("roughnessFactor", roughness);
             }
 
-            if (isStingrayPBS(mpa[k].node())) {
+            if (isStingrayPBS(mpa[k].node()))
+            {
                 storeStingrayPBS(mat, mpa[k].node());
             }
 
-            if (isAiStandardSurfaceShader(mpa[k].node())) {
+            if (isAiStandardSurfaceShader(mpa[k].node()))
+            {
                 storeAiStandardSurfaceShader(mat, mpa[k].node());
             }
         }
-
     }
 
     return mat;
 }
 
-static
-std::string GetCacheTexturePath(const std::string& path)
+static std::string GetCacheTexturePath(const std::string& path)
 {
 #ifdef _WIN32
     char szDrive[_MAX_DRIVE];
@@ -2064,7 +2099,7 @@ std::string GetCacheTexturePath(const std::string& path)
         strRet += szExt;
     }
     return strRet;
-#else 
+#else
     //std::string tmp = GetTempDirectory();
     std::string strRet;
     strRet += dirname(const_cast<char*>(path.c_str()));  // force const cast for error of : it would lose const qualifier
@@ -2078,8 +2113,9 @@ class TexturePathManager
 {
 public:
     typedef std::map<std::string, std::string> MapType;
+
 public:
-    bool HasOriginalPath(const std::string& path)const
+    bool HasOriginalPath(const std::string& path) const
     {
         MapType::const_iterator it = texMap_.find(path);
         if (it != texMap_.end())
@@ -2122,7 +2158,7 @@ public:
         texMap_[orgPath] = cpyPath;
         fileNameSet_.insert(GetFileName(cpyPath));
     }
-    std::set<std::string> GetOriginalPaths()const
+    std::set<std::string> GetOriginalPaths() const
     {
         std::set<std::string> s;
         for (MapType::const_iterator it = texMap_.begin(); it != texMap_.end(); it++)
@@ -2131,7 +2167,7 @@ public:
         }
         return s;
     }
-    std::set<std::string> GetCopiedPaths()const
+    std::set<std::string> GetCopiedPaths() const
     {
         std::set<std::string> s;
         for (MapType::const_iterator it = texMap_.begin(); it != texMap_.end(); it++)
@@ -2141,13 +2177,13 @@ public:
         return s;
     }
 
-    const MapType& GetPathPairs()const
+    const MapType& GetPathPairs() const
     {
         return texMap_;
     }
+
 protected:
-    static
-    std::string IToS(int n)
+    static std::string IToS(int n)
     {
         char buffer[16] = {};
 #ifdef _WIN32
@@ -2157,6 +2193,7 @@ protected:
 #endif
         return buffer;
     }
+
 private:
     MapType texMap_;
     std::set<std::string> fileNameSet_;
@@ -2165,8 +2202,7 @@ private:
 
 typedef std::map<int, std::shared_ptr<kml::Material> > MaterialMapType;
 
-static
-std::shared_ptr<kml::Node> GetLeafNode(const std::shared_ptr<kml::Node>& node)
+static std::shared_ptr<kml::Node> GetLeafNode(const std::shared_ptr<kml::Node>& node)
 {
     if (node->GetChildren().size() > 0)
     {
@@ -2178,8 +2214,7 @@ std::shared_ptr<kml::Node> GetLeafNode(const std::shared_ptr<kml::Node>& node)
     }
 }
 
-static
-std::shared_ptr<kml::Node> GetParentNode(const std::shared_ptr<kml::Node>& root_node, const std::shared_ptr<kml::Node>& node)
+static std::shared_ptr<kml::Node> GetParentNode(const std::shared_ptr<kml::Node>& root_node, const std::shared_ptr<kml::Node>& node)
 {
     if (root_node->GetChildren().size() > 0)
     {
@@ -2203,8 +2238,7 @@ std::shared_ptr<kml::Node> GetParentNode(const std::shared_ptr<kml::Node>& root_
     return std::shared_ptr<kml::Node>();
 }
 
-static
-glm::mat4 GetRootNodeGlobalMatrix(const std::shared_ptr<kml::Node>& node, const glm::mat4& mat = glm::mat4(1.0))
+static glm::mat4 GetRootNodeGlobalMatrix(const std::shared_ptr<kml::Node>& node, const glm::mat4& mat = glm::mat4(1.0))
 {
     glm::mat4 m = mat * node->GetTransform()->GetMatrix();
     if (node->GetChildren().size() > 0)
@@ -2214,8 +2248,7 @@ glm::mat4 GetRootNodeGlobalMatrix(const std::shared_ptr<kml::Node>& node, const 
     return m;
 }
 
-static
-bool IsVisibleLeafNode(const std::shared_ptr<kml::Node>& node)
+static bool IsVisibleLeafNode(const std::shared_ptr<kml::Node>& node)
 {
     if (!node->GetVisibility())
     {
@@ -2231,11 +2264,10 @@ bool IsVisibleLeafNode(const std::shared_ptr<kml::Node>& node)
     }
 }
 
-static
-MStatus WriteGLTF(
+static MStatus WriteGLTF(
     TexturePathManager& texManager,
     std::map<int, std::shared_ptr<kml::Material> >& materials,
-    std::vector< std::shared_ptr<kml::Node> >& nodes,
+    std::vector<std::shared_ptr<kml::Node> >& nodes,
     const MString& dirname, const MDagPath& dagPath)
 {
     MStatus status = MS::kSuccess;
@@ -2290,11 +2322,14 @@ MStatus WriteGLTF(
                             std::vector<std::string> texPath_vec;
 
                             // UDIM texturing
-                            if (tex->GetUDIMMode()) {
+                            if (tex->GetUDIMMode())
+                            {
                                 tex->ClearUDIM_ID();
-                                for (int udimID = 1001; udimID < 1100; udimID++) {
+                                for (int udimID = 1001; udimID < 1100; udimID++)
+                                {
                                     std::string orgPath = tex->MakeUDIMFilePath(udimID);
-                                    if (IsFileExist(orgPath)) { // find UDIM files
+                                    if (IsFileExist(orgPath))
+                                    { // find UDIM files
                                         dstTex->AddUDIM_ID(udimID);
                                         texPath_vec.push_back(orgPath);
                                     }
@@ -2315,9 +2350,9 @@ MStatus WriteGLTF(
                             dstTex->SetFilePath(dstPath);
                             mat->SetTexture(key, dstTex);
 
-
                             // if need convert, change image extension.
-                            for (size_t t = 0; t < texPath_vec.size(); ++t) {
+                            for (size_t t = 0; t < texPath_vec.size(); ++t)
+                            {
                                 const std::string tmpOrgPath = texPath_vec[t];
                                 std::string tempCopiedPath = MakeConvertTexturePath(texManager.GetCopiedPath(tmpOrgPath));
                                 if (!texManager.HasOriginalPath(tmpOrgPath))
@@ -2327,7 +2362,6 @@ MStatus WriteGLTF(
                                 }
                             }
 
-                            
                             if (make_preload_texture)
                             {
                                 std::string cachePath = GetCacheTexturePath(dstPath);
@@ -2335,7 +2369,6 @@ MStatus WriteGLTF(
                                 cacheTex->SetFilePath(cachePath);
                                 mat->SetTexture(key + "S0", cacheTex);
                             }
-                            
                         }
                     }
 
@@ -2435,13 +2468,13 @@ MStatus WriteGLTF(
         return MS::kFailure;
     }
 
-    std::vector< std::shared_ptr<kml::Node> > tnodes;
+    std::vector<std::shared_ptr<kml::Node> > tnodes;
     {
         tnodes = kml::SplitNodeByMaterialID(node);
     }
 
     {
-        std::vector< std::shared_ptr<kml::Node> > tnodes2;
+        std::vector<std::shared_ptr<kml::Node> > tnodes2;
         for (int i = 0; i < tnodes.size(); i++)
         {
             if (tnodes[i]->GetMesh()->facenums.empty())
@@ -2495,7 +2528,7 @@ MStatus WriteGLTF(
                 {
                     return MS::kFailure;
                 }
-                tnodes[i]->SetMesh(std::shared_ptr<kml::Mesh>());//Clear Mesh
+                tnodes[i]->SetMesh(std::shared_ptr<kml::Mesh>()); //Clear Mesh
             }
             nodes.push_back(tnodes[i]);
         }
@@ -2514,13 +2547,10 @@ MStatus WriteGLTF(
         nodes.push_back(root_node);
     }
 
-
     return status;
 }
 
-
-static
-void NodeToJson(picojson::object& item, const std::shared_ptr<kml::Node>& node)
+static void NodeToJson(picojson::object& item, const std::shared_ptr<kml::Node>& node)
 {
     picojson::array maxarray, minarray, childarray;
     for (int i = 0; i < node->GetChildren().size(); ++i)
@@ -2544,8 +2574,8 @@ void NodeToJson(picojson::object& item, const std::shared_ptr<kml::Node>& node)
     item["path"] = picojson::value(node->GetPath());
     item["min"] = picojson::value(minarray);
     item["max"] = picojson::value(maxarray);
-    
-    if (childarray.size() > 0) 
+
+    if (childarray.size() > 0)
     {
         double childradius = (double)glm::length(max - min); // hack radius
         item["childradius"] = picojson::value(childradius);
@@ -2553,23 +2583,21 @@ void NodeToJson(picojson::object& item, const std::shared_ptr<kml::Node>& node)
     }
 }
 
-static
-void NodesToJson(picojson::object& root, const std::vector< std::shared_ptr<kml::Node> >& nodes)
+static void NodesToJson(picojson::object& root, const std::vector<std::shared_ptr<kml::Node> >& nodes)
 {
     root["scene"] = picojson::value((double)0);
     picojson::array scenes;
-    for(size_t i = 0; i < nodes.size(); i++)
+    for (size_t i = 0; i < nodes.size(); i++)
     {
         picojson::object item;
         NodeToJson(item, nodes[i]);
         scenes.push_back(picojson::value(item));
     }
-    
+
     root["scenes"] = picojson::value(scenes);
 }
 
-static
-std::string GetFullPath(const std::string& path)
+static std::string GetFullPath(const std::string& path)
 {
 #ifdef _WIN32
     char buffer[_MAX_PATH + 2] = {};
@@ -2580,8 +2608,7 @@ std::string GetFullPath(const std::string& path)
 #endif
 }
 
-static
-void CopyTextureFiles(const TexturePathManager& texManager)
+static void CopyTextureFiles(const TexturePathManager& texManager)
 {
     std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
     bool make_preload_texture = opts->GetInt("make_preload_texture") > 0;
@@ -2602,9 +2629,7 @@ void CopyTextureFiles(const TexturePathManager& texManager)
     }
 }
 
-
-static
-void GetMeshNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const std::shared_ptr<kml::Node>& node)
+static void GetMeshNodes(std::vector<std::shared_ptr<kml::Node> >& nodes, const std::shared_ptr<kml::Node>& node)
 {
     if (node->GetChildren().size() > 0)
     {
@@ -2622,16 +2647,15 @@ void GetMeshNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const std::s
     }
 }
 
-static
-std::shared_ptr<kml::Bound> ExpandBound(std::shared_ptr<kml::Node>& node)
+static std::shared_ptr<kml::Bound> ExpandBound(std::shared_ptr<kml::Node>& node)
 {
     if (!node->GetBound().get())
     {
-        std::vector< std::shared_ptr<kml::Bound> > bounds;
+        std::vector<std::shared_ptr<kml::Bound> > bounds;
         for (size_t i = 0; i < node->GetChildren().size(); i++)
         {
             auto n = node->GetChildren()[i];
-            bounds.push_back( ExpandBound( n ) );
+            bounds.push_back(ExpandBound(n));
         }
 
         static float MIN_ = -std::numeric_limits<float>::max();
@@ -2653,8 +2677,7 @@ std::shared_ptr<kml::Bound> ExpandBound(std::shared_ptr<kml::Node>& node)
     return node->GetBound();
 }
 
-static
-void AddChildUnique(std::shared_ptr<kml::Node>& parent, std::shared_ptr<kml::Node>& child)
+static void AddChildUnique(std::shared_ptr<kml::Node>& parent, std::shared_ptr<kml::Node>& child)
 {
     auto children = parent->GetChildren();
     bool hasChild = false;
@@ -2672,9 +2695,7 @@ void AddChildUnique(std::shared_ptr<kml::Node>& parent, std::shared_ptr<kml::Nod
     }
 }
 
-
-static
-void SetNode(std::map<std::string, std::shared_ptr<kml::Node> >& pathMap, const std::string& path, const std::shared_ptr<kml::Node>& node)
+static void SetNode(std::map<std::string, std::shared_ptr<kml::Node> >& pathMap, const std::string& path, const std::shared_ptr<kml::Node>& node)
 {
     typedef std::map<std::string, std::shared_ptr<kml::Node> > PathMap;
     typedef PathMap::iterator iterator;
@@ -2699,8 +2720,7 @@ void SetNode(std::map<std::string, std::shared_ptr<kml::Node> >& pathMap, const 
     }
 }
 
-static
-void GetAllNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const std::shared_ptr<kml::Node>& node)
+static void GetAllNodes(std::vector<std::shared_ptr<kml::Node> >& nodes, const std::shared_ptr<kml::Node>& node)
 {
     if (node->GetChildren().size() > 0)
     {
@@ -2714,8 +2734,7 @@ void GetAllNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const std::sh
     }
 }
 
-static
-std::shared_ptr<kml::Node> CombineNodes(const std::vector< std::shared_ptr<kml::Node> >& nodes)
+static std::shared_ptr<kml::Node> CombineNodes(const std::vector<std::shared_ptr<kml::Node> >& nodes)
 {
     std::shared_ptr<kml::Node> node(new kml::Node());
     node->GetTransform()->SetIdentity();
@@ -2725,7 +2744,7 @@ std::shared_ptr<kml::Node> CombineNodes(const std::vector< std::shared_ptr<kml::
         //Local space
         typedef std::map<std::string, std::shared_ptr<kml::Node> > PathMap;
         std::vector<PathMap> pathMapList;
-        std::vector< std::vector<std::string> > pathList;
+        std::vector<std::vector<std::string> > pathList;
         for (size_t i = 0; i < nodes.size(); i++)
         {
             auto& node = nodes[i];
@@ -2798,14 +2817,11 @@ std::shared_ptr<kml::Node> CombineNodes(const std::vector< std::shared_ptr<kml::
         }
         ExpandBound(node);
     }
-    
 
     return node;
 }
 
-
-static
-std::string GetExportDirectory(const std::string& fname)
+static std::string GetExportDirectory(const std::string& fname)
 {
     std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
     bool glb = opts->GetInt("output_glb") > 0;
@@ -2819,16 +2835,15 @@ std::string GetExportDirectory(const std::string& fname)
     }
 }
 
-static
-std::string GetFinalPath(const std::string& path)
+static std::string GetFinalPath(const std::string& path)
 {
     std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
     bool glb = opts->GetInt("output_glb") > 0;
     bool vrm = opts->GetInt("vrm_export") > 0;
-    if( glb || vrm )
+    if (glb || vrm)
     {
         std::string filename = RemoveExt(path);
-        if(vrm)
+        if (vrm)
         {
             return filename + ".vrm";
         }
@@ -2839,12 +2854,11 @@ std::string GetFinalPath(const std::string& path)
     }
     else
     {
-        return RemoveExt(path);//directory
+        return RemoveExt(path); //directory
     }
 }
 
-static 
-MString GetResourceString(const MString& strResource)
+static MString GetResourceString(const MString& strResource)
 {
     MString command = "uiRes";
     command += MString(" \"") + strResource + MString("\"");
@@ -2852,18 +2866,17 @@ MString GetResourceString(const MString& strResource)
     return MGlobal::executeCommandStringResult(command);
 }
 
-static
-MString ReplaceSpecialCharacter(const MString& str)
+static MString ReplaceSpecialCharacter(const MString& str)
 {
     const char* c = str.asChar();
     std::string ret;
-    for(; *c; c++)
+    for (; *c; c++)
     {
-        if(*c == '\n')
+        if (*c == '\n')
         {
             ret += "\\n";
         }
-        else if(*c == '\r')
+        else if (*c == '\r')
         {
             ret += "\\r";
         }
@@ -2875,18 +2888,17 @@ MString ReplaceSpecialCharacter(const MString& str)
     return MString(ret.c_str());
 }
 
-static
-bool CheckGLTFDirectoryAlreadyExists(const std::string& path)
+static bool CheckGLTFDirectoryAlreadyExists(const std::string& path)
 {
     if (MGlobal::mayaState() == MGlobal::kInteractive)
     {
         std::shared_ptr<kml::Options> opts = kml::Options::GetGlobalOptions();
         bool glb = opts->GetInt("output_glb") > 0;
         bool vrm = opts->GetInt("vrm_export") > 0;
-        if( !(glb || vrm) )
+        if (!(glb || vrm))
         {
             std::string dirPath = RemoveExt(path);
-            if(IsFileExist(dirPath))
+            if (IsFileExist(dirPath))
             {
                 /*
                 * confirmDialog -title "Confirm" -message "Are you sure?"
@@ -2896,10 +2908,10 @@ bool CheckGLTFDirectoryAlreadyExists(const std::string& path)
                 static const char* kYes = "s_TdialogStrings.rYes";
                 static const char* kNo = "s_TdialogStrings.rNo";
                 static const char* kCouldNotSaveFileMsg = "s_TfileBrowserDialogStrings.rReplaceFileConfirm";
-                
+
                 //MStatus status;
                 static MString strYes = GetResourceString(kYes);
-                static MString strNo  = GetResourceString(kNo);
+                static MString strNo = GetResourceString(kNo);
                 static MString strFmt = GetResourceString(kCouldNotSaveFileMsg);
 
                 std::string filePath = GetFileExtName(dirPath);
@@ -2923,7 +2935,7 @@ bool CheckGLTFDirectoryAlreadyExists(const std::string& path)
                 command += MString(" -dismissString \"") + strNo + MString("\"");
                 command += ";";
                 MString result = MGlobal::executeCommandStringResult(command);
-                if(result == strNo)
+                if (result == strNo)
                 {
                     return false;
                 }
@@ -2937,7 +2949,7 @@ MStatus glTFExporter::exportSelected(const MString& fname)
 {
     MStatus status = MS::kSuccess;
 
-    if(!CheckGLTFDirectoryAlreadyExists(fname.asChar()))
+    if (!CheckGLTFDirectoryAlreadyExists(fname.asChar()))
     {
         return MS::kFailure;
     }
@@ -2945,18 +2957,18 @@ MStatus glTFExporter::exportSelected(const MString& fname)
     // Create an iterator for the active selection list
     //
     MSelectionList slist;
-    MGlobal::getActiveSelectionList( slist );
-    MItSelectionList iter( slist );
+    MGlobal::getActiveSelectionList(slist);
+    MItSelectionList iter(slist);
 
-    if (iter.isDone()) 
+    if (iter.isDone())
     {
-        fprintf(stderr,"Error: Nothing is selected.\n");
+        fprintf(stderr, "Error: Nothing is selected.\n");
         return MS::kFailure;
     }
 
-    // We will need to interate over a selected node's heirarchy 
+    // We will need to interate over a selected node's heirarchy
     // in the case where shapes are grouped, and the group is selected.
-    MItDag dagIterator( MItDag::kDepthFirst, MFn::kInvalid, &status);
+    MItDag dagIterator(MItDag::kDepthFirst, MFn::kInvalid, &status);
 
     if (MS::kSuccess != status)
     {
@@ -2964,7 +2976,7 @@ MStatus glTFExporter::exportSelected(const MString& fname)
         return MS::kFailure;
     }
 
-    std::vector< MDagPath > dagPaths;
+    std::vector<MDagPath> dagPaths;
 
     // Selection list loop
     for (; !iter.isDone(); iter.next())
@@ -2975,8 +2987,7 @@ MStatus glTFExporter::exportSelected(const MString& fname)
 
         // reset iterator's root node to be the selected node.
         status = dagIterator.reset(objectPath.node(),
-            MItDag::kDepthFirst, MFn::kInvalid);
-
+                                   MItDag::kDepthFirst, MFn::kInvalid);
 
         // DAG iteration beginning at at selected node
         for (; !dagIterator.isDone(); dagIterator.next())
@@ -2984,7 +2995,7 @@ MStatus glTFExporter::exportSelected(const MString& fname)
             MDagPath dagPath;
             status = dagIterator.getPath(dagPath);
 
-            if (!status) 
+            if (!status)
             {
                 fprintf(stderr, "Failure getting DAG path.\n");
                 return MS::kFailure;
@@ -3021,40 +3032,41 @@ MStatus glTFExporter::exportSelected(const MString& fname)
     return exportProcess(fname, dagPaths);
 }
 
-MStatus glTFExporter::exportAll     (const MString& fname)
+MStatus glTFExporter::exportAll(const MString& fname)
 {
     MStatus status = MS::kSuccess;
 
-    if(!CheckGLTFDirectoryAlreadyExists(fname.asChar()))
+    if (!CheckGLTFDirectoryAlreadyExists(fname.asChar()))
     {
         return MS::kFailure;
     }
 
-    MItDag dagIterator( MItDag::kBreadthFirst, MFn::kInvalid, &status);
+    MItDag dagIterator(MItDag::kBreadthFirst, MFn::kInvalid, &status);
 
-    if ( MS::kSuccess != status) 
+    if (MS::kSuccess != status)
     {
-        fprintf(stderr,"Failure in DAG iterator setup.\n");
+        fprintf(stderr, "Failure in DAG iterator setup.\n");
         return MS::kFailure;
     }
 
-    std::vector< MDagPath > dagPaths;
+    std::vector<MDagPath> dagPaths;
 
-    for ( ; !dagIterator.isDone(); dagIterator.next() )
+    for (; !dagIterator.isDone(); dagIterator.next())
     {
         MDagPath dagPath;
-        MObject  component = MObject::kNullObj;
+        MObject component = MObject::kNullObj;
         status = dagIterator.getPath(dagPath);
 
-        if (!status) {
-            fprintf(stderr,"Failure getting DAG path.\n");
+        if (!status)
+        {
+            fprintf(stderr, "Failure getting DAG path.\n");
             return MS::kFailure;
         }
 
         // skip over intermediate objects
         //
-        MFnDagNode dagNode( dagPath, &status );
-        if (dagNode.isIntermediateObject()) 
+        MFnDagNode dagNode(dagPath, &status);
+        if (dagNode.isIntermediateObject())
         {
             continue;
         }
@@ -3078,10 +3090,9 @@ MStatus glTFExporter::exportAll     (const MString& fname)
     return exportProcess(fname, dagPaths);
 }
 
-static
-std::vector< std::shared_ptr < kml::Node > > GetJointNodes(const std::vector< std::shared_ptr < kml::Node > >& lnodes)
+static std::vector<std::shared_ptr<kml::Node> > GetJointNodes(const std::vector<std::shared_ptr<kml::Node> >& lnodes)
 {
-    std::vector< std::shared_ptr < kml::Node > > mesh_nodes;
+    std::vector<std::shared_ptr<kml::Node> > mesh_nodes;
     for (size_t i = 0; i < lnodes.size(); i++)
     {
         GetMeshNodes(mesh_nodes, lnodes[i]);
@@ -3107,15 +3118,15 @@ std::vector< std::shared_ptr < kml::Node > > GetJointNodes(const std::vector< st
     std::sort(joint_paths.begin(), joint_paths.end());
     joint_paths.erase(std::unique(joint_paths.begin(), joint_paths.end()), joint_paths.end());
 
-    std::vector< std::shared_ptr < kml::Node > > tnodes;
+    std::vector<std::shared_ptr<kml::Node> > tnodes;
     for (size_t j = 0; j < joint_paths.size(); j++)
     {
         std::vector<MDagPath> dagPathList = GetDagPathList(joint_paths[j]);
-        std::vector< std::shared_ptr<kml::Node> > nodes;
+        std::vector<std::shared_ptr<kml::Node> > nodes;
         for (size_t i = 0; i < dagPathList.size(); i++)
         {
             MDagPath path = dagPathList[i];
-            std::shared_ptr < kml::Node > n(new kml::Node());
+            std::shared_ptr<kml::Node> n(new kml::Node());
             n->SetName(path.partialPathName().asChar());
             n->SetPath(path.fullPathName().asChar());
             n->SetVisiblity(IsVisible(path));
@@ -3138,8 +3149,7 @@ std::vector< std::shared_ptr < kml::Node > > GetJointNodes(const std::vector< st
     return tnodes;
 }
 
-static
-void GetTransformNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const std::shared_ptr<kml::Node>& node)
+static void GetTransformNodes(std::vector<std::shared_ptr<kml::Node> >& nodes, const std::shared_ptr<kml::Node>& node)
 {
     if (node->GetTransform().get())
     {
@@ -3159,13 +3169,12 @@ void GetTransformNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const s
     }
 }
 
-static
-void GetMorphNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const std::shared_ptr<kml::Node>& node)
+static void GetMorphNodes(std::vector<std::shared_ptr<kml::Node> >& nodes, const std::shared_ptr<kml::Node>& node)
 {
     if (node->GetTransform().get() && node->GetMesh().get())
     {
         const auto& mesh = node->GetMesh();
-        if(mesh->morph_targets.get())
+        if (mesh->morph_targets.get())
         {
             std::string path = node->GetPath();
             if (!path.empty() && path[0] == '|')
@@ -3184,14 +3193,12 @@ void GetMorphNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const std::
     }
 }
 
-static
-double ToDegree(double v)
+static double ToDegree(double v)
 {
     return 180.0 * v / M_PI;
 }
 
-static
-std::shared_ptr<kml::Skin> FindSkin(const std::vector< std::shared_ptr<kml::Skin> >& skins, const std::shared_ptr<kml::Node>& node)
+static std::shared_ptr<kml::Skin> FindSkin(const std::vector<std::shared_ptr<kml::Skin> >& skins, const std::shared_ptr<kml::Node>& node)
 {
     for (size_t i = 0; i < skins.size(); i++)
     {
@@ -3208,18 +3215,17 @@ std::shared_ptr<kml::Skin> FindSkin(const std::vector< std::shared_ptr<kml::Skin
     return std::shared_ptr<kml::Skin>();
 }
 
-static
-void GetAnimationsFromTransform(std::vector<std::shared_ptr<kml::Animation> >& animations, const std::shared_ptr<kml::Node>& node)
+static void GetAnimationsFromTransform(std::vector<std::shared_ptr<kml::Animation> >& animations, const std::shared_ptr<kml::Node>& node)
 {
     struct Category
     {
         std::string name;
-        std::vector< std::shared_ptr<kml::Node> > nodes;
+        std::vector<std::shared_ptr<kml::Node> > nodes;
     };
 
-    std::vector< std::shared_ptr<kml::Node> > nodes;
+    std::vector<std::shared_ptr<kml::Node> > nodes;
     GetTransformNodes(nodes, node);
-    typedef std::map<void*, Category > CategoryMapType;
+    typedef std::map<void*, Category> CategoryMapType;
     CategoryMapType categoryMap;
     {
         const auto& skins = node->GetSkins();
@@ -3242,9 +3248,9 @@ void GetAnimationsFromTransform(std::vector<std::shared_ptr<kml::Animation> >& a
         }
     }
 
-    for(CategoryMapType::iterator git = categoryMap.begin(); git != categoryMap.end(); git++)
+    for (CategoryMapType::iterator git = categoryMap.begin(); git != categoryMap.end(); git++)
     {
-        typedef std::map<std::string, std::vector< std::shared_ptr<kml::Node> > > MapType;
+        typedef std::map<std::string, std::vector<std::shared_ptr<kml::Node> > > MapType;
         MapType pathNodeMap;
         std::vector<MDagPath> pathList;
         {
@@ -3284,17 +3290,17 @@ void GetAnimationsFromTransform(std::vector<std::shared_ptr<kml::Animation> >& a
             }
 
             MFnTransform fnTransform(pathList[idx]);
-            MFnIkJoint   fnJoint(pathList[idx]);
+            MFnIkJoint fnJoint(pathList[idx]);
             MVector tt = fnTransform.getTranslation(MSpace::kTransform);
 
             MEulerRotation rr;
             fnTransform.getRotation(rr);
 
-            double ss[3] = { 1.0, 1.0, 1.0 };
+            double ss[3] = {1.0, 1.0, 1.0};
             fnTransform.getScale(ss);
 
             MQuaternion mOR, mJO;
-            
+
             mOR = fnTransform.rotateOrientation(MSpace::kTransform);
 
             MStatus joret = fnJoint.getOrientation(mJO);
@@ -3307,13 +3313,13 @@ void GetAnimationsFromTransform(std::vector<std::shared_ptr<kml::Animation> >& a
             }
 
             std::vector<double> translationKeys;
-            std::vector<MPlug>  translationPlugs;
+            std::vector<MPlug> translationPlugs;
             std::vector<double> rotationKeys;
-            std::vector<MPlug>  rotationPlugs;
+            std::vector<MPlug> rotationPlugs;
             std::vector<double> scaleKeys;
-            std::vector<MPlug>  scalePlugs;
+            std::vector<MPlug> scalePlugs;
 
-            for (int j = 0; j < numPlugs; ++j) 
+            for (int j = 0; j < numPlugs; ++j)
             {
                 MPlug plug = animatedPlugs[j];
                 MObjectArray animation;
@@ -3336,7 +3342,7 @@ void GetAnimationsFromTransform(std::vector<std::shared_ptr<kml::Animation> >& a
                     keyType = 1;
                     rotationPlugs.push_back(plug);
                 }
-                else if(typeName == "scaleX" || typeName == "scaleY" || typeName == "scaleZ")
+                else if (typeName == "scaleX" || typeName == "scaleY" || typeName == "scaleZ")
                 {
                     keyType = 2;
                     scalePlugs.push_back(plug);
@@ -3378,7 +3384,7 @@ void GetAnimationsFromTransform(std::vector<std::shared_ptr<kml::Animation> >& a
             std::shared_ptr<kml::AnimationInstruction> instruction(new kml::AnimationInstruction());
             instruction->SetTargets(pathNodeMap[pathList[idx].fullPathName().asChar()]);
 
-            if(!translationPlugs.empty())
+            if (!translationPlugs.empty())
             {
                 std::sort(translationKeys.begin(), translationKeys.end());
                 translationKeys.erase(std::unique(translationKeys.begin(), translationKeys.end()), translationKeys.end());
@@ -3402,7 +3408,7 @@ void GetAnimationsFromTransform(std::vector<std::shared_ptr<kml::Animation> >& a
                     std::string typeName = name.substr(name.find(".") + 1);
 
                     unsigned int numCurves = animation.length();
-                    for (unsigned int c = 0; c < numCurves; c++) 
+                    for (unsigned int c = 0; c < numCurves; c++)
                     {
                         MObject animCurveNode = animation[c];
                         if (!animCurveNode.hasFn(MFn::kAnimCurve))
@@ -3434,7 +3440,7 @@ void GetAnimationsFromTransform(std::vector<std::shared_ptr<kml::Animation> >& a
                 apath->SetPathType("translation");
 
                 std::shared_ptr<kml::AnimationCurve> curves[4];
-                for(int j = 0; j < 4; j++)
+                for (int j = 0; j < 4; j++)
                 {
                     curves[j] = std::shared_ptr<kml::AnimationCurve>(new kml::AnimationCurve());
                     curves[j]->SetInterpolationType(kml::AnimationInterporationType::LINEAR);
@@ -3464,13 +3470,13 @@ void GetAnimationsFromTransform(std::vector<std::shared_ptr<kml::Animation> >& a
                 {
                     values[j] = glm::vec3(rr.x, rr.y, rr.z);
                 }
-                #ifndef NDEBUG
+#ifndef NDEBUG
                 std::vector<glm::vec3> angles(rotationKeys.size());
                 for (size_t j = 0; j < rotationKeys.size(); j++)
                 {
                     angles[j] = glm::vec3(ToDegree(rr.x), ToDegree(rr.y), ToDegree(rr.z));
                 }
-                #endif  
+#endif
 
                 for (int j = 0; j < rotationPlugs.size(); j++)
                 {
@@ -3497,21 +3503,21 @@ void GetAnimationsFromTransform(std::vector<std::shared_ptr<kml::Animation> >& a
                             double second = rotationKeys[k];
                             double value = animCurve.evaluate(MTime(second, MTime::kSeconds));
 
-                            #ifndef NDEBUG
-                                double angle = ToDegree(value);
-                                if (typeName == "rotateX")
-                                {
-                                    angles[k].x = angle;
-                                }
-                                else if (typeName == "rotateY")
-                                {
-                                    angles[k].y = angle;
-                                }
-                                else if (typeName == "rotateZ")
-                                {
-                                    angles[k].z = angle;
-                                }
-                            #endif
+#ifndef NDEBUG
+                            double angle = ToDegree(value);
+                            if (typeName == "rotateX")
+                            {
+                                angles[k].x = angle;
+                            }
+                            else if (typeName == "rotateY")
+                            {
+                                angles[k].y = angle;
+                            }
+                            else if (typeName == "rotateZ")
+                            {
+                                angles[k].z = angle;
+                            }
+#endif
 
                             if (typeName == "rotateX")
                             {
@@ -3530,28 +3536,28 @@ void GetAnimationsFromTransform(std::vector<std::shared_ptr<kml::Animation> >& a
                 }
 
                 std::vector<glm::quat> values2(rotationKeys.size());
-                #ifndef NDEBUG
+#ifndef NDEBUG
                 std::vector<double> angle2(rotationKeys.size());
-                #endif
-                
+#endif
+
                 for (size_t k = 0; k < values2.size(); k++)
                 {
-                    double trot[3] = { values[k].x, values[k].y, values[k].z};
+                    double trot[3] = {values[k].x, values[k].y, values[k].z};
                     MTransformationMatrix transform;
                     transform.setRotation(trot, fnTransform.rotationOrder());
                     MQuaternion mR = transform.rotation();
                     MQuaternion q = mOR * mR * mJO;
-                    values2[k] = glm::quat(q.w, q.x, q.y, q.z);//wxyz
-                    #ifndef NDEBUG
+                    values2[k] = glm::quat(q.w, q.x, q.y, q.z); //wxyz
+#ifndef NDEBUG
                     angle2[k] = ToDegree(2.0 * acos(q.w));
-                    #endif
+#endif
                 }
 
                 std::shared_ptr<kml::AnimationPath> apath(new kml::AnimationPath());
                 apath->SetPathType("rotation");
 
                 std::shared_ptr<kml::AnimationCurve> curves[5];
-                for(int j = 0; j < 5; j++)
+                for (int j = 0; j < 5; j++)
                 {
                     curves[j] = std::shared_ptr<kml::AnimationCurve>(new kml::AnimationCurve());
                     curves[j]->SetInterpolationType(kml::AnimationInterporationType::LINEAR);
@@ -3596,7 +3602,6 @@ void GetAnimationsFromTransform(std::vector<std::shared_ptr<kml::Animation> >& a
                     std::string name = plug.name().asChar();
                     std::string typeName = name.substr(name.find(".") + 1);
 
-
                     unsigned int numCurves = animation.length();
                     for (unsigned int c = 0; c < numCurves; c++)
                     {
@@ -3630,7 +3635,7 @@ void GetAnimationsFromTransform(std::vector<std::shared_ptr<kml::Animation> >& a
                 apath->SetPathType("scale");
 
                 std::shared_ptr<kml::AnimationCurve> curves[4];
-                for(int j = 0; j < 4; j++)
+                for (int j = 0; j < 4; j++)
                 {
                     curves[j] = std::shared_ptr<kml::AnimationCurve>(new kml::AnimationCurve());
                     curves[j]->SetInterpolationType(kml::AnimationInterporationType::LINEAR);
@@ -3664,12 +3669,11 @@ void GetAnimationsFromTransform(std::vector<std::shared_ptr<kml::Animation> >& a
     }
 }
 
-static
-void GetAnimationsFromMorph(std::vector<std::shared_ptr<kml::Animation> >& animations, const std::shared_ptr<kml::Node>& node)
+static void GetAnimationsFromMorph(std::vector<std::shared_ptr<kml::Animation> >& animations, const std::shared_ptr<kml::Node>& node)
 {
-    std::vector< std::shared_ptr<kml::Node> > nodes;
+    std::vector<std::shared_ptr<kml::Node> > nodes;
     GetMorphNodes(nodes, node);
-    typedef std::map<std::string, std::vector< std::shared_ptr<kml::Node> > > MapType;
+    typedef std::map<std::string, std::vector<std::shared_ptr<kml::Node> > > MapType;
     MapType pathNodeMap;
     std::vector<MDagPath> pathList;
     {
@@ -3679,7 +3683,7 @@ void GetAnimationsFromMorph(std::vector<std::shared_ptr<kml::Animation> >& anima
             std::string path = nodes[i]->GetOriginalPath();
             pathNodeMap[path].push_back(nodes[i]);
         }
-        for(MapType::const_iterator it = pathNodeMap.begin(); it != pathNodeMap.end(); it++)
+        for (MapType::const_iterator it = pathNodeMap.begin(); it != pathNodeMap.end(); it++)
         {
             std::string path = it->first;
             selectionList.add(MString(path.c_str()));
@@ -3724,31 +3728,31 @@ void GetAnimationsFromMorph(std::vector<std::shared_ptr<kml::Animation> >& anima
 
             MStatus status;
             MFnBlendShapeDeformer fnBlendShapeDeformer(mpa[0].node(), &status);
-            if(status != MStatus::kSuccess)
+            if (status != MStatus::kSuccess)
             {
                 continue;
             }
 
             MPlug weightArrayPlug = fnBlendShapeDeformer.findPlug("weight", &status);
-            if(status != MStatus::kSuccess)
+            if (status != MStatus::kSuccess)
             {
                 continue;
             }
 
             unsigned int numWeights = weightArrayPlug.evaluateNumElements(&status);
-            if(status != MStatus::kSuccess)
+            if (status != MStatus::kSuccess)
             {
                 continue;
             }
 
-            std::shared_ptr<kml::AnimationInstruction> instruction(new kml::AnimationInstruction() );
+            std::shared_ptr<kml::AnimationInstruction> instruction(new kml::AnimationInstruction());
             instruction->SetTargets(pathNodeMap[pathList[idx].fullPathName().asChar()]);
 
             std::vector<float> keys;
-            for(int j = 0; j < numWeights; j++)
+            for (int j = 0; j < numWeights; j++)
             {
                 MPlug plug = weightArrayPlug.elementByLogicalIndex(j, &status);
-                if(status != MStatus::kSuccess)
+                if (status != MStatus::kSuccess)
                 {
                     continue;
                 }
@@ -3760,17 +3764,17 @@ void GetAnimationsFromMorph(std::vector<std::shared_ptr<kml::Animation> >& anima
                 }
 
                 //#ifndef NDEBUG
-                if(0)
+                if (0)
                 {
                     std::string name = plug.name().asChar();
-                    std::string typeName = name.substr(name.find(".") + 1);//
+                    std::string typeName = name.substr(name.find(".") + 1); //
                     std::string info1 = std::string("plug.name:") + name;
                     std::string info2 = std::string("plug.name:") + typeName;
                     MGlobal::displayInfo(MString(info1.c_str()));
                     MGlobal::displayInfo(MString(info2.c_str()));
                 }
                 //#endif
-                
+
                 unsigned int numCurves = animation.length();
                 for (unsigned int c = 0; c < numCurves; c++)
                 {
@@ -3791,12 +3795,12 @@ void GetAnimationsFromMorph(std::vector<std::shared_ptr<kml::Animation> >& anima
 
             std::sort(keys.begin(), keys.end());
             keys.erase(std::unique(keys.begin(), keys.end()), keys.end());
-                
+
             std::vector<float> values(keys.size() * numWeights);
-            for(int j = 0; j < numWeights; j++)
+            for (int j = 0; j < numWeights; j++)
             {
                 MPlug plug = weightArrayPlug.elementByLogicalIndex(j, &status);
-                if(status != MStatus::kSuccess)
+                if (status != MStatus::kSuccess)
                 {
                     continue;
                 }
@@ -3827,7 +3831,7 @@ void GetAnimationsFromMorph(std::vector<std::shared_ptr<kml::Animation> >& anima
             channel->SetPathType("weights");
 
             std::shared_ptr<kml::AnimationCurve> curves[2];
-            for(int j = 0; j < 2; j++)
+            for (int j = 0; j < 2; j++)
             {
                 curves[j] = std::shared_ptr<kml::AnimationCurve>(new kml::AnimationCurve());
                 curves[j]->SetInterpolationType(kml::AnimationInterporationType::LINEAR);
@@ -3844,8 +3848,8 @@ void GetAnimationsFromMorph(std::vector<std::shared_ptr<kml::Animation> >& anima
             channel->SetCurve("w", curves[1]);
 
             instruction->AddPath(channel);
-            
-            if(!instruction->GetPaths().empty())
+
+            if (!instruction->GetPaths().empty())
             {
                 animation->AddInstruction(instruction);
             }
@@ -3858,8 +3862,7 @@ void GetAnimationsFromMorph(std::vector<std::shared_ptr<kml::Animation> >& anima
     }
 }
 
-static
-std::vector<std::shared_ptr<kml::Animation> > GetAnimations(const std::shared_ptr<kml::Node>& node)
+static std::vector<std::shared_ptr<kml::Animation> > GetAnimations(const std::shared_ptr<kml::Node>& node)
 {
     std::vector<std::shared_ptr<kml::Animation> > animations;
     GetAnimationsFromTransform(animations, node);
@@ -3867,8 +3870,7 @@ std::vector<std::shared_ptr<kml::Animation> > GetAnimations(const std::shared_pt
     return animations;
 }
 
-static
-void GetSkinnedMeshNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const std::shared_ptr<kml::Node>& node)
+static void GetSkinnedMeshNodes(std::vector<std::shared_ptr<kml::Node> >& nodes, const std::shared_ptr<kml::Node>& node)
 {
     if (node->GetTransform().get() && node->GetMesh().get() && node->GetMesh()->GetSkinWeight().get())
     {
@@ -3884,99 +3886,97 @@ void GetSkinnedMeshNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const
     }
 }
 
-static
-void FlattenNodes(std::vector< std::shared_ptr<kml::Node> >& nodes, const std::shared_ptr<kml::Node>& node)
+static void FlattenNodes(std::vector<std::shared_ptr<kml::Node> >& nodes, const std::shared_ptr<kml::Node>& node)
 {
     nodes.push_back(node);
     const auto& children = node->GetChildren();
-    for(size_t i = 0; i < children.size(); i++)
+    for (size_t i = 0; i < children.size(); i++)
     {
         FlattenNodes(nodes, children[i]);
     }
 }
 
-static
-std::vector<std::shared_ptr<kml::Skin> > GetSkins(const std::shared_ptr<kml::Node>& node)
+static std::vector<std::shared_ptr<kml::Skin> > GetSkins(const std::shared_ptr<kml::Node>& node)
 {
     std::vector<std::shared_ptr<kml::Skin> > skins;
 
-    std::vector< std::shared_ptr<kml::Node> > jointNodes;
+    std::vector<std::shared_ptr<kml::Node> > jointNodes;
     GetTransformNodes(jointNodes, node);
     std::map<std::string, std::shared_ptr<kml::Node> > jointMap;
-    for(size_t i = 0; i < jointNodes.size(); i++)
+    for (size_t i = 0; i < jointNodes.size(); i++)
     {
         jointMap[jointNodes[i]->GetPath()] = jointNodes[i];
     }
 
-    std::vector< std::shared_ptr<kml::Node> > skinNodes;
+    std::vector<std::shared_ptr<kml::Node> > skinNodes;
     GetSkinnedMeshNodes(skinNodes, node);
-    typedef std::map<std::string, std::vector< std::shared_ptr<kml::SkinWeight> > > SkinMapType;
+    typedef std::map<std::string, std::vector<std::shared_ptr<kml::SkinWeight> > > SkinMapType;
     SkinMapType skinMap;
 
-    typedef std::map<std::string, glm::mat4 > MatMapType;
+    typedef std::map<std::string, glm::mat4> MatMapType;
     MatMapType matMap;
-    for(size_t i = 0; i < skinNodes.size(); i++)
+    for (size_t i = 0; i < skinNodes.size(); i++)
     {
         const auto& skinWeight = skinNodes[i]->GetMesh()->GetSkinWeight();
         const auto& jointPaths = skinWeight->GetJointPaths();
-        const auto& jointMats  = skinWeight->GetJointBindMatrices();
-        for(size_t j = 0; j < jointPaths.size(); j++)
+        const auto& jointMats = skinWeight->GetJointBindMatrices();
+        for (size_t j = 0; j < jointPaths.size(); j++)
         {
             skinMap[jointPaths[j]].push_back(skinWeight);
             matMap[jointPaths[j]] = jointMats[j];
         }
     }
 
-    std::vector < std::shared_ptr<kml::Node> > rootJointNodes;
+    std::vector<std::shared_ptr<kml::Node> > rootJointNodes;
     {
-        typedef std::set< std::shared_ptr<kml::Node> > JointSetType;
+        typedef std::set<std::shared_ptr<kml::Node> > JointSetType;
         JointSetType jointSet;
-        for(SkinMapType::iterator it = skinMap.begin(); it != skinMap.end(); it++)
+        for (SkinMapType::iterator it = skinMap.begin(); it != skinMap.end(); it++)
         {
-            jointSet.insert(jointMap[ it->first ]);
+            jointSet.insert(jointMap[it->first]);
         }
         JointSetType jointSet2 = jointSet;
-        for(JointSetType::iterator it = jointSet2.begin(); it != jointSet2.end(); it++)
+        for (JointSetType::iterator it = jointSet2.begin(); it != jointSet2.end(); it++)
         {
             auto n = *it;
             const auto& children = n->GetChildren();
-            for(size_t j = 0; j < children.size(); j++)
+            for (size_t j = 0; j < children.size(); j++)
             {
                 JointSetType::iterator itf = jointSet.find(children[j]);
-                if(itf != jointSet.end())
+                if (itf != jointSet.end())
                 {
                     jointSet.erase(itf);
                 }
             }
         }
-        for(JointSetType::iterator it = jointSet.begin(); it != jointSet.end(); it++)
+        for (JointSetType::iterator it = jointSet.begin(); it != jointSet.end(); it++)
         {
             rootJointNodes.push_back(*it);
         }
     }
 
-    for(size_t i = 0; i < rootJointNodes.size(); i++)
+    for (size_t i = 0; i < rootJointNodes.size(); i++)
     {
         std::shared_ptr<kml::Skin> skin(new kml::Skin());
-        std::vector < std::shared_ptr<kml::Node> > joints;
+        std::vector<std::shared_ptr<kml::Node> > joints;
         FlattenNodes(joints, rootJointNodes[i]);
         std::vector<glm::mat4> mats;
-        for(size_t j = 0; j < joints.size(); j++)
+        for (size_t j = 0; j < joints.size(); j++)
         {
             mats.push_back(matMap[joints[j]->GetPath()]);
         }
         {
-            typedef std::set< std::shared_ptr<kml::SkinWeight> > WeightSetType;
+            typedef std::set<std::shared_ptr<kml::SkinWeight> > WeightSetType;
             WeightSetType weightSet;
-            for(size_t j = 0; j < joints.size(); j++)
+            for (size_t j = 0; j < joints.size(); j++)
             {
                 const auto& weights = skinMap[joints[j]->GetPath()];
-                for(size_t k = 0; k < weights.size(); k++)
+                for (size_t k = 0; k < weights.size(); k++)
                 {
                     weightSet.insert(weights[k]);
                 }
             }
-            for(WeightSetType::iterator it = weightSet.begin(); it != weightSet.end(); it++)
+            for (WeightSetType::iterator it = weightSet.begin(); it != weightSet.end(); it++)
             {
                 skin->AddSkinWeight(*it);
             }
@@ -3991,8 +3991,7 @@ std::vector<std::shared_ptr<kml::Skin> > GetSkins(const std::shared_ptr<kml::Nod
     return skins;
 }
 
-static
-bool FreezeSkinedMeshTransform(const std::shared_ptr<kml::Node>& node, const glm::mat4& gmat = glm::mat4(1.0f))
+static bool FreezeSkinedMeshTransform(const std::shared_ptr<kml::Node>& node, const glm::mat4& gmat = glm::mat4(1.0f))
 {
     auto& mesh = node->GetMesh();
     bool bRet = false;
@@ -4017,7 +4016,7 @@ bool FreezeSkinedMeshTransform(const std::shared_ptr<kml::Node>& node, const glm
     return bRet;
 }
 
-MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDagPath >& dagPaths)
+MStatus glTFExporter::exportProcess(const MString& fname, const std::vector<MDagPath>& dagPaths)
 {
     MStatus status = MS::kSuccess;
 
@@ -4031,21 +4030,20 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
 
     std::string generator_name = opts->GetString("generator_name");
 
-
     std::string dir_path = GetExportDirectory(fname.asChar());
     MakeDirectory(dir_path);
 
-    typedef std::vector< std::shared_ptr<kml::Node> > NodeVecType;
+    typedef std::vector<std::shared_ptr<kml::Node> > NodeVecType;
     TexturePathManager texManager;
     MaterialMapType materials;
-    NodeVecType   nodes;
+    NodeVecType nodes;
     std::shared_ptr<ProgressWindow> progWindow;
     {
         int prog = 100;
         if (dagPaths.size())
         {
             int max_size = prog * dagPaths.size();
-            progWindow.reset(new ProgressWindow(generator_name, max_size) );
+            progWindow.reset(new ProgressWindow(generator_name, max_size));
             progWindow->SetProgressStatus("");
             for (int i = 0; i < (int)dagPaths.size(); i++)
             {
@@ -4085,18 +4083,18 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
     }
 
     {
-        std::vector< std::shared_ptr < kml::Node > > joint_nodes = GetJointNodes(nodes);
+        std::vector<std::shared_ptr<kml::Node> > joint_nodes = GetJointNodes(nodes);
         for (size_t i = 0; i < joint_nodes.size(); i++)
         {
             nodes.push_back(joint_nodes[i]);
         }
 
-        std::vector< std::shared_ptr < kml::Node > > all_nodes;
+        std::vector<std::shared_ptr<kml::Node> > all_nodes;
         for (size_t i = 0; i < nodes.size(); i++)
         {
             GetAllNodes(all_nodes, nodes[i]);
         }
-        typedef std::set< std::shared_ptr < kml::Node > > SetType;
+        typedef std::set<std::shared_ptr<kml::Node> > SetType;
         SetType set_nodes;
         for (size_t i = 0; i < all_nodes.size(); i++)
         {
@@ -4122,7 +4120,7 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
             for (MaterialMapType::iterator it = materials.begin(); it != materials.end(); it++)
             {
                 auto& mat = it->second;
-                mat->SetInteger("_Index", index);//
+                mat->SetInteger("_Index", index); //
                 index++;
             }
         }
@@ -4137,7 +4135,7 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
             {
                 auto& node = *it;
                 auto& mesh = node->GetMesh();
-                auto&  mat = node->GetMaterials()[0];
+                auto& mat = node->GetMaterials()[0];
                 int index = mat->GetInteger("_Index");
                 for (int j = 0; j < mesh->materials.size(); j++)
                 {
@@ -4171,7 +4169,7 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
             }
         }
 
-        if(freeze_skinned_mesh_transform)
+        if (freeze_skinned_mesh_transform)
         {
             FreezeSkinedMeshTransform(node);
         }
@@ -4184,7 +4182,7 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
             }
         }
 
-        if(output_animations)
+        if (output_animations)
         {
             std::vector<std::shared_ptr<kml::Animation> > animations = GetAnimations(node);
             for (size_t i = 0; i < animations.size(); i++)
@@ -4218,13 +4216,13 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
     if (glb || vrm)
     {
         std::string gltf_path = dir_path + "/" + GetFileName(std::string(fname.asChar())) + ".gltf";
-        
+
         std::string extname = ".glb";
-        if (vrm) 
+        if (vrm)
         {
             extname = ".vrm";
         }
-        std::string glb_path  = RemoveExt(std::string(fname.asChar())) + extname;
+        std::string glb_path = RemoveExt(std::string(fname.asChar())) + extname;
 
         if (!kml::GLTF2GLB(gltf_path, glb_path))
         {
@@ -4235,4 +4233,3 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector< MDa
 
     return status;
 }
-
