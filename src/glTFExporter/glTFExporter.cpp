@@ -1860,23 +1860,38 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
     const float subsurfaceScale = ainode.findPlug("subsurfaceScale").asFloat();
     const int subsurfaceType = ainode.findPlug("subsurfaceType").asInt();
     const float subsurfaceAnisotropy = ainode.findPlug("subsurfaceAnisotropy").asFloat();
-    MColor subsurfaceCol;
-    std::shared_ptr<kml::Texture> subsurfaceTex(nullptr);
-    if (getTextureAndColor(ainode, MString("subsurfaceColor"), subsurfaceTex, subsurfaceCol))
     {
-        if (subsurfaceTex)
-        {
-            mat->SetTexture("ai_subsurfaceColor", subsurfaceTex);
-        }
+      MColor subsurfaceCol;
+      std::shared_ptr<kml::Texture> subsurfaceTex(nullptr);
+      if (getTextureAndColor(ainode, MString("subsurfaceColor"), subsurfaceTex, subsurfaceCol))
+      {
+          if (subsurfaceTex)
+          {
+              mat->SetTexture("ai_subsurfaceColor", subsurfaceTex);
+          }
+      }
     }
-    MColor subsurfaceRadiusCol;
-    std::shared_ptr<kml::Texture> subsurfaceRadiusTex(nullptr);
-    if (getTextureAndColor(ainode, MString("subsurfaceRadius"), subsurfaceRadiusTex, subsurfaceRadiusCol))
     {
-        if (subsurfaceRadiusTex)
-        {
-            mat->SetTexture("ai_subsurfaceRadius", subsurfaceRadiusTex);
-        }
+      MColor subsurfaceRadiusCol;
+      std::shared_ptr<kml::Texture> subsurfaceRadiusTex(nullptr);
+      if (getTextureAndColor(ainode, MString("subsurfaceRadius"), subsurfaceRadiusTex, subsurfaceRadiusCol))
+      {
+          if (subsurfaceRadiusTex)
+          {
+              mat->SetTexture("ai_subsurfaceRadius", subsurfaceRadiusTex);
+          }
+      }
+    }
+    {
+      MColor subsurfaceScaleCol;
+      std::shared_ptr<kml::Texture> subsurfaceScaleTex(nullptr);
+      if (getTextureAndColor(ainode, MString("subsurfaceScale"), subsurfaceScaleTex, subsurfaceScaleCol))
+      {
+          if (subsurfaceScaleTex)
+          {
+              mat->SetTexture("ai_subsurfaceScaleTex", subsurfaceScaleTex);
+          }
+      }
     }
     mat->SetFloat("ai_subsurfaceWeight", subsurfaceWeight);
     mat->SetFloat("ai_subsurfaceColorR", subsurfaceColorR);

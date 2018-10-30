@@ -1420,28 +1420,45 @@ namespace kml
             LTE_pbr_material["subsurfaceType"] = picojson::value(stype[mat->GetInteger("ai_subsurfaceType")]);
             LTE_pbr_material["subsurfaceScale"] = picojson::value(mat->GetFloat("ai_subsurfaceScale"));
             LTE_pbr_material["subsurfaceAnisotropy"] = picojson::value(mat->GetFloat("ai_subsurfaceAnisotropy"));
-            std::shared_ptr<kml::Texture> ai_subsurfaceColorTex = mat->GetTexture("ai_subsurfaceColor");
-            if (ai_subsurfaceColorTex)
             {
-                const int nIndex = FindTextureIndex(texture_vec, ai_subsurfaceColorTex);
-                if (nIndex >= 0)
-                {
-                    picojson::object subsurfaceColorTexture;
-                    subsurfaceColorTexture["index"] = picojson::value((double)nIndex);
-                    LTE_pbr_material["subsurfaceColorTexture"] = picojson::value(subsurfaceColorTexture);
-                }
+              std::shared_ptr<kml::Texture> ai_subsurfaceColorTex = mat->GetTexture("ai_subsurfaceColor");
+              if (ai_subsurfaceColorTex)
+              {
+                  const int nIndex = FindTextureIndex(texture_vec, ai_subsurfaceColorTex);
+                  if (nIndex >= 0)
+                  {
+                      picojson::object subsurfaceColorTexture;
+                      subsurfaceColorTexture["index"] = picojson::value((double)nIndex);
+                      LTE_pbr_material["subsurfaceColorTexture"] = picojson::value(subsurfaceColorTexture);
+                  }
+              }
             }
 
-            std::shared_ptr<kml::Texture> ai_subsurfaceRadiusTex = mat->GetTexture("ai_subsurfaceRadius");
-            if (ai_subsurfaceRadiusTex)
             {
-                const int nIndex = FindTextureIndex(texture_vec, ai_subsurfaceRadiusTex);
-                if (nIndex >= 0)
-                {
-                    picojson::object subsurfaceRadiusTexture;
-                    subsurfaceRadiusTexture["index"] = picojson::value((double)nIndex);
-                    LTE_pbr_material["subsurfaceRadiusTexture"] = picojson::value(subsurfaceRadiusTexture);
-                }
+              std::shared_ptr<kml::Texture> ai_subsurfaceRadiusTex = mat->GetTexture("ai_subsurfaceRadius");
+              if (ai_subsurfaceRadiusTex)
+              {
+                  const int nIndex = FindTextureIndex(texture_vec, ai_subsurfaceRadiusTex);
+                  if (nIndex >= 0)
+                  {
+                      picojson::object subsurfaceRadiusTexture;
+                      subsurfaceRadiusTexture["index"] = picojson::value((double)nIndex);
+                      LTE_pbr_material["subsurfaceRadiusTexture"] = picojson::value(subsurfaceRadiusTexture);
+                  }
+              }
+            }
+            {
+              std::shared_ptr<kml::Texture> ai_subsurfaceScaleTex = mat->GetTexture("ai_subsurfaceScaleTex");
+              if (ai_subsurfaceScaleTex)
+              {
+                  const int nIndex = FindTextureIndex(texture_vec, ai_subsurfaceScaleTex);
+                  if (nIndex >= 0)
+                  {
+                      picojson::object subsurfaceScaleTexture;
+                      subsurfaceScaleTexture["index"] = picojson::value((double)nIndex);
+                      LTE_pbr_material["subsurfaceScaleTexture"] = picojson::value(subsurfaceScaleTexture);
+                  }
+              }
             }
 
             // Coat
