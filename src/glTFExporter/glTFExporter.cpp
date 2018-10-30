@@ -2251,7 +2251,6 @@ static std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
 
             if (isAiStandardHairShader(mpa[k].node()))
             {
-                fprintf(stderr, "DBG: aiStandardHair.\n");
                 storeAiStandardHairShader(mat, mpa[k].node());
             } else if (isAiStandardSurfaceShader(mpa[k].node()))
             {
