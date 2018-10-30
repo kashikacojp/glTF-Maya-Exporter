@@ -1,111 +1,132 @@
 #ifdef _MSC_VER
-#pragma warning(disable:4819)
+#pragma warning(disable : 4819)
 #endif
 
 #include "glTFTranslator.h"
 #include "glTFExporter.h"
 
-
 //////////////////////////////////////////////////////////////
 
-glTFTranslator::glTFTranslator ()
+typedef glTFTranslator::Mode Mode;
+
+glTFTranslator::glTFTranslator(Mode mode)
 {
-	//importer.reset( new gltfImporter() );
-	exporter.reset( new glTFExporter() );
+    glTFExporter::Mode modeEx = glTFExporter::Mode::EXPORT_GLTF;
+    switch (mode)
+    {
+    case Mode::EXPORT_GLTF:
+        modeEx = glTFExporter::Mode::EXPORT_GLTF;
+        break;
+    case Mode::EXPORT_GLB:
+        modeEx = glTFExporter::Mode::EXPORT_GLB;
+        break;
+    case Mode::EXPORT_VRM:
+        modeEx = glTFExporter::Mode::EXPORT_VRM;
+        break;
+    }
+    exporter.reset(new glTFExporter(modeEx));
 }
 
 //////////////////////////////////////////////////////////////
 
-glTFTranslator::~glTFTranslator ()
+glTFTranslator::~glTFTranslator()
 {
-	;//
+    ; //
 }
 
 //////////////////////////////////////////////////////////////
 
-void* glTFTranslator::creator()
+void* glTFTranslator::creatorGLTF()
 {
-    return new glTFTranslator();
+    return new glTFTranslator(Mode::EXPORT_GLTF);
+}
+
+void* glTFTranslator::creatorGLB()
+{
+    return new glTFTranslator(Mode::EXPORT_GLB);
+}
+
+void* glTFTranslator::creatorVRM()
+{
+    return new glTFTranslator(Mode::EXPORT_VRM);
 }
 
 //////////////////////////////////////////////////////////////
 
-MStatus glTFTranslator::reader ( const MFileObject& file,
-                                const MString& options,
-                                FileAccessMode mode)
+MStatus glTFTranslator::reader(const MFileObject& file,
+                               const MString& options,
+                               FileAccessMode mode)
 {
-    if(importer)
-	{
-		return importer->reader(file, options, mode);
-	}
-	return MS::kFailure;
+    if (importer)
+    {
+        return importer->reader(file, options, mode);
+    }
+    return MS::kFailure;
 }
 
 //////////////////////////////////////////////////////////////
 
-MStatus glTFTranslator::writer ( const MFileObject& file,
-                                const MString& options,
-                                FileAccessMode mode )
+MStatus glTFTranslator::writer(const MFileObject& file,
+                               const MString& options,
+                               FileAccessMode mode)
 
 {
-	if(exporter)
-	{
-		return exporter->writer(file, options, mode);
-	}
-	return MS::kFailure;
+    if (exporter)
+    {
+        return exporter->writer(file, options, mode);
+    }
+    return MS::kFailure;
 }
 //////////////////////////////////////////////////////////////
 
-bool glTFTranslator::haveReadMethod () const
+bool glTFTranslator::haveReadMethod() const
 {
-	if(importer)
-	{
-		return importer->haveReadMethod();
-	}
+    if (importer)
+    {
+        return importer->haveReadMethod();
+    }
     return false;
 }
 //////////////////////////////////////////////////////////////
 
-bool glTFTranslator::haveWriteMethod () const
+bool glTFTranslator::haveWriteMethod() const
 {
-	if(exporter)
-	{
-		return exporter->haveWriteMethod();
-	}
+    if (exporter)
+    {
+        return exporter->haveWriteMethod();
+    }
     return false;
 }
 //////////////////////////////////////////////////////////////
 
-MString glTFTranslator::defaultExtension () const
+MString glTFTranslator::defaultExtension() const
 {
+    if (exporter)
+    {
+        return exporter->defaultExtension();
+    }
     return "gltf";
 }
 //////////////////////////////////////////////////////////////
 
-#ifdef _WIN32
-#ifndef strcasecmp
-#define strcasecmp _stricmp
-#endif
-#endif
-
-MPxFileTranslator::MFileKind glTFTranslator::identifyFile (
-                                        const MFileObject& fileName,
-                                        const char* buffer,
-                                        short size) const
+MPxFileTranslator::MFileKind glTFTranslator::identifyFile(
+    const MFileObject& fileName,
+    const char* buffer,
+    short size) const
 {
-	if (exporter)
-	{
-		return exporter->identifyFile(fileName, buffer, size);
-	}
+    if (exporter)
+    {
+        return exporter->identifyFile(fileName, buffer, size);
+    }
 
-	return MPxFileTranslator::kNotMyFileType;
+    return MPxFileTranslator::kNotMyFileType;
 }
 
-MString         glTFTranslator::filter()const
+MString glTFTranslator::filter() const
 {
-#ifndef ENABLE_VRM 
-	return "*.gltf;*.glb";
-#else
-    return "*.vrm";
-#endif
+    if (exporter)
+    {
+        return exporter->filter();
+    }
+    return "*.gltf;*.glb;*.vrm";
 }

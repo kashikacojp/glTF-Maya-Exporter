@@ -1,0 +1,10 @@
+Standard: Cpp03
+IndentWidth: 4
+Language: Cpp
+BreakBeforeBraces: Allman
+AllowShortIfStatementsOnASingleLine: false
+IndentCaseLabels: false
+ColumnLimit: 0
+AccessModifierOffset: -4
+PointerAlignment: Left
+NamespaceIndentation: All

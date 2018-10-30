@@ -2,8 +2,8 @@
 
 namespace kml
 {
-	Mesh::Mesh()
-	{
-		;//
-	}
-}
+    Mesh::Mesh()
+    {
+        ; //
+    }
+} // namespace kml
