@@ -1733,6 +1733,13 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
 			mat->SetTexture("ai_subsurfaceRadius", subsurfaceRadiusTex);
 		}
 	}
+	MColor subsurfaceScaleCol; // dummy
+	std::shared_ptr<kml::Texture> subsurfaceScaleTex(nullptr);
+	if (getTextureAndColor(ainode, MString("subsurfaceScale"), subsurfaceScaleTex, subsurfaceScaleCol)) {
+		if (subsurfaceScaleTex) {
+			mat->SetTexture("ai_subsurfaceScaleTex", subsurfaceScaleTex);
+		}
+	}
 	mat->SetFloat("ai_subsurfaceWeight", subsurfaceWeight);
 	mat->SetFloat("ai_subsurfaceColorR", subsurfaceColorR);
 	mat->SetFloat("ai_subsurfaceColorG", subsurfaceColorG);

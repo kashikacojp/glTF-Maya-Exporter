@@ -1845,6 +1845,20 @@ namespace kml
 					LTE_pbr_material["subsurfaceRadiusTexture"] = picojson::value(subsurfaceRadiusTexture);
 				}
 			}
+
+      {
+        std::shared_ptr <kml::Texture> ai_subsurfaceScaleTex = mat->GetTexture("ai_subsurfaceScaleTex"); // with Tex suffix
+        if (ai_subsurfaceScaleTex) {
+          const std::string ai_subsurfaceScaleTexname = ai_subsurfaceScaleTex->GetFilePath();
+          const int nIndex = FindTextureIndex(texture_vec, ai_subsurfaceScaleTexname);
+          if (nIndex >= 0)
+          {
+            picojson::object subsurfaceScaleTexture;
+            subsurfaceScaleTexture["index"] = picojson::value((double)nIndex);
+            LTE_pbr_material["subsurfaceScaleTexture"] = picojson::value(subsurfaceScaleTexture);
+          }
+        }
+      }
 		
 			// Coat
 			picojson::array coatColor;
