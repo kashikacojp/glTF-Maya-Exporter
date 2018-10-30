@@ -107,8 +107,9 @@
 
 #ifdef _WIN32
 #define NOMINMAX
-#include <Shellapi.h>
 #include <windows.h>
+
+#include <Shellapi.h>
 #endif
 
 #include "ProgressWindow.h"
