@@ -468,9 +468,9 @@ namespace kml
                         }
                         for (size_t k = 0; k < in_target->normals.size(); k++)
                         {
-                            nor[3 * k + 0] = in_target->normals[k][0] - in_mesh->normals[k][0];
-                            nor[3 * k + 1] = in_target->normals[k][1] - in_mesh->normals[k][1];
-                            nor[3 * k + 2] = in_target->normals[k][2] - in_mesh->normals[k][2];
+                            nor[3 * k + 0] = in_mesh->normals[k][0];
+                            nor[3 * k + 1] = in_mesh->normals[k][1];
+                            nor[3 * k + 2] = in_mesh->normals[k][2];
                         }
 
                         std::string tarName = in_targets->names[j]; // "target_" + IToS(nTar);
