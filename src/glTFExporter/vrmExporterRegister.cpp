@@ -19,7 +19,9 @@
 
 #define VENDOR_NAME "KASHIKA,Inc."
 #define PLUGIN_NAME "VRM-Maya-Exporter"
-#define PLUGIN_VERSION "1.5.0"
+#define PLUGIN_VERSION "1.5.1"
+
+#define EXPOTER_NAME_VRM "VRM Export"
 
 const char* const gltfOptionScript = "vrmExporterOptions";
 const char* const gltfDefaultOptions =
@@ -70,7 +72,7 @@ MStatus initializePlugin(MObject obj)
 
     ShowLicense();
     // Register the translator with the system
-    return plugin.registerFileTranslator("vrmExporter", "none",
+    return plugin.registerFileTranslator(EXPOTER_NAME_VRM, "none",
                                          glTFTranslator::creatorVRM,
                                          (char*)gltfOptionScript,
                                          (char*)gltfDefaultOptions);
@@ -80,7 +82,7 @@ MStatus initializePlugin(MObject obj)
 MStatus uninitializePlugin(MObject obj)
 {
     MFnPlugin plugin(obj);
-    return plugin.deregisterFileTranslator("vrmExporter");
+    return plugin.deregisterFileTranslator(EXPOTER_NAME_VRM);
 }
 
 //////////////////////////////////////////////////////////////
