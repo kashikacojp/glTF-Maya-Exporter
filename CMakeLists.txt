@@ -148,7 +148,7 @@ endif()
 if (GLTF_MAYA_EXPORTER_BUILD_MAYA_GLTF_EXPORTER)
 
     add_library( glTFExporter SHARED
-        ./src/glTFExporter/glTFExporterRegist.cpp
+        ./src/glTFExporter/glTFExporterRegister.cpp
         ./src/glTFExporter/glTFExporter.cpp
         ./src/glTFExporter/glTFTranslator.cpp
         ./src/glTFExporter/murmur3.c
@@ -185,7 +185,7 @@ endif()
 if (GLTF_MAYA_EXPORTER_BUILD_MAYA_VRM_EXPORTER)
     
     add_library( vrmExporter SHARED
-        ./src/glTFExporter/vrmExporterRegist.cpp
+        ./src/glTFExporter/vrmExporterRegister.cpp
         ./src/glTFExporter/glTFExporter.cpp
         ./src/glTFExporter/glTFTranslator.cpp
         ./src/glTFExporter/murmur3.c
