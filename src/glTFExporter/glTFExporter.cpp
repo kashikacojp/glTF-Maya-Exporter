@@ -107,8 +107,9 @@
 
 #ifdef _WIN32
 #define NOMINMAX
-#include <Shellapi.h>
 #include <windows.h>
+
+#include <Shellapi.h>
 #endif
 
 #include "ProgressWindow.h"
@@ -1860,23 +1861,38 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
     const float subsurfaceScale = ainode.findPlug("subsurfaceScale").asFloat();
     const int subsurfaceType = ainode.findPlug("subsurfaceType").asInt();
     const float subsurfaceAnisotropy = ainode.findPlug("subsurfaceAnisotropy").asFloat();
-    MColor subsurfaceCol;
-    std::shared_ptr<kml::Texture> subsurfaceTex(nullptr);
-    if (getTextureAndColor(ainode, MString("subsurfaceColor"), subsurfaceTex, subsurfaceCol))
     {
-        if (subsurfaceTex)
-        {
-            mat->SetTexture("ai_subsurfaceColor", subsurfaceTex);
-        }
+      MColor subsurfaceCol;
+      std::shared_ptr<kml::Texture> subsurfaceTex(nullptr);
+      if (getTextureAndColor(ainode, MString("subsurfaceColor"), subsurfaceTex, subsurfaceCol))
+      {
+          if (subsurfaceTex)
+          {
+              mat->SetTexture("ai_subsurfaceColor", subsurfaceTex);
+          }
+      }
     }
-    MColor subsurfaceRadiusCol;
-    std::shared_ptr<kml::Texture> subsurfaceRadiusTex(nullptr);
-    if (getTextureAndColor(ainode, MString("subsurfaceRadius"), subsurfaceRadiusTex, subsurfaceRadiusCol))
     {
-        if (subsurfaceRadiusTex)
-        {
-            mat->SetTexture("ai_subsurfaceRadius", subsurfaceRadiusTex);
-        }
+      MColor subsurfaceRadiusCol;
+      std::shared_ptr<kml::Texture> subsurfaceRadiusTex(nullptr);
+      if (getTextureAndColor(ainode, MString("subsurfaceRadius"), subsurfaceRadiusTex, subsurfaceRadiusCol))
+      {
+          if (subsurfaceRadiusTex)
+          {
+              mat->SetTexture("ai_subsurfaceRadius", subsurfaceRadiusTex);
+          }
+      }
+    }
+    {
+      MColor subsurfaceScaleCol;
+      std::shared_ptr<kml::Texture> subsurfaceScaleTex(nullptr);
+      if (getTextureAndColor(ainode, MString("subsurfaceScale"), subsurfaceScaleTex, subsurfaceScaleCol))
+      {
+          if (subsurfaceScaleTex)
+          {
+              mat->SetTexture("ai_subsurfaceScaleTex", subsurfaceScaleTex);
+          }
+      }
     }
     mat->SetFloat("ai_subsurfaceWeight", subsurfaceWeight);
     mat->SetFloat("ai_subsurfaceColorR", subsurfaceColorR);
@@ -3809,7 +3825,13 @@ static void GetAnimationsFromMorph(std::vector<std::shared_ptr<kml::Animation> >
             std::sort(keys.begin(), keys.end());
             keys.erase(std::unique(keys.begin(), keys.end()), keys.end());
 
-            std::vector<float> values(keys.size() * numWeights);
+            int total_floats = keys.size() * numWeights;
+            if(total_floats == 0)
+            {
+                continue;
+            }
+
+            std::vector<float> values(total_floats);
             for (int j = 0; j < numWeights; j++)
             {
                 MPlug plug = weightArrayPlug.elementByLogicalIndex(j, &status);
@@ -3840,8 +3862,8 @@ static void GetAnimationsFromMorph(std::vector<std::shared_ptr<kml::Animation> >
                 }
             }
 
-            std::shared_ptr<kml::AnimationPath> channel(new kml::AnimationPath());
-            channel->SetPathType("weights");
+            std::shared_ptr<kml::AnimationPath> path(new kml::AnimationPath());
+            path->SetPathType("weights");
 
             std::shared_ptr<kml::AnimationCurve> curves[2];
             for (int j = 0; j < 2; j++)
@@ -3857,10 +3879,10 @@ static void GetAnimationsFromMorph(std::vector<std::shared_ptr<kml::Animation> >
             {
                 curves[1]->GetValues().push_back(values[k]);
             }
-            channel->SetCurve("k", curves[0]);
-            channel->SetCurve("w", curves[1]);
+            path->SetCurve("k", curves[0]);
+            path->SetCurve("w", curves[1]);
 
-            instruction->AddPath(channel);
+            instruction->AddPath(path);
 
             if (!instruction->GetPaths().empty())
             {
