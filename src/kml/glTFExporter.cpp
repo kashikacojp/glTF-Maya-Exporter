@@ -1942,9 +1942,9 @@ namespace kml
                 {"leftRingIntermediate", {"ringintermediate", "ring2", NULL, NULL, NULL}},
                 {"leftRingDistal", {"ringbdistal", "ring3", NULL, NULL, NULL}},
 
-                {"leftLittleProximal", {"littleproximal", "little1", "pinkey1", NULL, NULL}},
-                {"leftLittleIntermediate", {"littleintermediate", "little2", "pinkey1", NULL, NULL}},
-                {"leftLittleDistal", {"littledistal", "little3", "pinkey3", NULL, NULL}},
+                {"leftLittleProximal", {"littleproximal", "little1", "pinky1", NULL, NULL}},
+                {"leftLittleIntermediate", {"littleintermediate", "little2", "pinky2", NULL, NULL}},
+                {"leftLittleDistal", {"littledistal", "little3", "pinky3", NULL, NULL}},
 
                 {"rightThumbProximal", {"thumbproximal", "thumb1", NULL, NULL, NULL}},
                 {"rightThumbIntermediate", {"thumbintermediate", "thumb2", NULL, NULL, NULL}},
@@ -1962,9 +1962,9 @@ namespace kml
                 {"rightRingIntermediate", {"ringintermediate", "ring2", NULL, NULL, NULL}},
                 {"rightRingDistal", {"ringbdistal", "ring3", NULL, NULL, NULL}},
 
-                {"rightLittleProximal", {"littleproximal", "little1", "pinkey1", NULL, NULL}},
-                {"rightLittleIntermediate", {"littleintermediate", "little2", "pinkey2", NULL, NULL}},
-                {"rightLittleDistal", {"littledistal", "little3", "pinkey3", NULL, NULL}},
+                {"rightLittleProximal", {"littleproximal", "little1", "pinky1", NULL, NULL}},
+                {"rightLittleIntermediate", {"littleintermediate", "little2", "pinky2", NULL, NULL}},
+                {"rightLittleDistal", {"littledistal", "little3", "pinky3", NULL, NULL}},
 
                 {"upperChest", {"upperchest", "spine2", NULL, NULL, NULL}},
 
