@@ -2056,7 +2056,8 @@ namespace kml
 
             picojson::object VRM;
             {
-                VRM["exporterVersion"] = picojson::value("kashikaVRM-1.00");
+                auto asset = root_object["asset"].get<picojson::object>();
+                VRM["exporterVersion"] = asset["generator"];
             }
 
             {
@@ -2216,10 +2217,22 @@ namespace kml
                 firstPerson["firstPersonBone"] = picojson::value((double)FindVRNJointIndex(joint_names, "head")); //picojson::value(-1.0);
                 picojson::object firstPersonBoneOffset;
                 firstPersonBoneOffset["x"] = picojson::value(0.0);
-                firstPersonBoneOffset["y"] = picojson::value(0.0);
+                firstPersonBoneOffset["y"] = picojson::value(0.0);//head->GetGlobalMatrix()[3][1];
                 firstPersonBoneOffset["z"] = picojson::value(0.0);
                 firstPerson["firstPersonBoneOffset"] = picojson::value(firstPersonBoneOffset);
-                firstPerson["meshAnnotations"] = picojson::value(picojson::array());
+                picojson::array meshAnnotations;
+                {
+                    const auto meshes = root_object["meshes"].get<picojson::array>();
+                    for (size_t i = 0; i < meshes.size(); i++)
+                    {
+                        picojson::object ann;
+                        ann["mesh"] = picojson::value((double)i);
+                        ann["firstPersonFlag"] = picojson::value("Auto");
+                        meshAnnotations.push_back(picojson::value(ann));
+                    }
+                }
+
+                firstPerson["meshAnnotations"] = picojson::value(meshAnnotations);
                 firstPerson["lookAtTypeName"] = picojson::value("Bone");
 
                 const float curve_floats[] = {0, 0, 0, 1, 1, 1, 1, 0};
