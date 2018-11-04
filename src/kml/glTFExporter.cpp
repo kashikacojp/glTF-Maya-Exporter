@@ -2020,7 +2020,7 @@ namespace kml
                     int j = 0;
                     while (subStrs[j])
                     {
-                        std::string subKey = "_" + std::string(subStrs[j]);
+                        std::string subKey = std::string(subStrs[j]);
                         if (strstr(joint_name.c_str(), subKey.c_str()) != NULL)
                         {
                             if (key == "spine")
