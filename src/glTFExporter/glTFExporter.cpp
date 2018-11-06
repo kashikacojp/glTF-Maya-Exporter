@@ -1806,6 +1806,19 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
             mat->SetTexture("ai_specularColor", specularTex);
         }
     }
+
+    {
+      MColor dummy;
+      std::shared_ptr<kml::Texture> roughnessTex(nullptr);
+      if (getTextureAndColor(ainode, MString("specularRoughness"), roughnessTex, dummy))
+      {
+          if (roughnessTex)
+          {
+              mat->SetTexture("ai_specularRoughnessTex", roughnessTex);
+          }
+      }
+    }
+
     mat->SetFloat("ai_specularWeight", specularWeight);
     mat->SetFloat("ai_specularColorR", specularColorR);
     mat->SetFloat("ai_specularColorG", specularColorG);
@@ -1932,6 +1945,18 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
         {
             mat->SetTexture("ai_coatColor", coatColorTex);
         }
+    }
+
+    {
+      MColor dummy;
+      std::shared_ptr<kml::Texture> roughnessTex(nullptr);
+      if (getTextureAndColor(ainode, MString("coatRoughness"), roughnessTex, dummy))
+      {
+          if (roughnessTex)
+          {
+              mat->SetTexture("ai_coatRoughnessTex", roughnessTex);
+          }
+      }
     }
     mat->SetFloat("ai_coatWeight", coatWeight);
     mat->SetFloat("ai_coatColorR", coatColorR);

@@ -1361,6 +1361,19 @@ namespace kml
                     LTE_pbr_material["specularColorTexture"] = picojson::value(specularColorTexture);
                 }
             }
+            {
+              std::shared_ptr<kml::Texture> ai_specularRoughnessTex = mat->GetTexture("ai_specularRoughnessTex");
+              if (ai_specularRoughnessTex)
+              {
+                  const int nIndex = FindTextureIndex(texture_vec, ai_specularRoughnessTex);
+                  if (nIndex >= 0)
+                  {
+                      picojson::object specularRoughnessTexture;
+                      specularRoughnessTexture["index"] = picojson::value((double)nIndex);
+                      LTE_pbr_material["specularRoughnessTexture"] = picojson::value(specularRoughnessTexture);
+                  }
+              }
+            }
 
             // transmission
             picojson::array transmissionColorFactor;
@@ -1486,6 +1499,20 @@ namespace kml
                     ai_coatColorTexture["index"] = picojson::value((double)nIndex);
                     LTE_pbr_material["coatColorTexture"] = picojson::value(ai_coatColorTexture);
                 }
+            }
+
+            {
+              std::shared_ptr<kml::Texture> ai_coatRoughnessTex = mat->GetTexture("ai_coatRoughnessTex");
+              if (ai_coatRoughnessTex)
+              {
+                  const int nIndex = FindTextureIndex(texture_vec, ai_coatRoughnessTex);
+                  if (nIndex >= 0)
+                  {
+                      picojson::object coatRoughnessTexture;
+                      coatRoughnessTexture["index"] = picojson::value((double)nIndex);
+                      LTE_pbr_material["coatRoughnessTexture"] = picojson::value(coatRoughnessTexture);
+                  }
+              }
             }
 
             // Emissive
