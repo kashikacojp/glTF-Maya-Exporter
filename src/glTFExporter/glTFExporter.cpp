@@ -1632,6 +1632,16 @@ static bool getTextureAndColor(const MFnDependencyNode& node, const MString& nam
                     fprintf(stderr, "Error: Not support texture tiling mode.\n");
                 }
 
+                // Colorspace
+                MPlug colorSpacePlug = texNode.findPlug("colorSpace");
+                MString colorSpaceStr;
+                colorSpacePlug.getValue(colorSpaceStr);
+                const std::string colorSpace = colorSpaceStr.asChar();
+                if (!colorSpace.empty()) {
+                    tex->SetColorSpace(colorSpace);
+                }
+                
+
                 // if material has texture, set color(1,1,1)
                 color.r = 1.0f;
                 color.g = 1.0f;

@@ -2098,6 +2098,11 @@ namespace kml
                     //texture["target"] = picojson::value((double)GLTF_TEXTURE_TARGET_TEXTURE2D); //WebGLConstants.TEXTURE_2D;
                     //texture["type"] = picojson::value((double)GLTF_TEXTURE_TYPE_UNSIGNED_BYTE); //WebGLConstants.UNSIGNED_BYTE
 
+                    // LTE ext: colorspace as extra attribute
+                    picojson::object extras;
+                    extras["colorSpace"] = picojson::value(in_tex->GetColorSpace());
+                    texture["extras"] = picojson::value(extras);
+
                     textures.push_back(picojson::value(texture));
                 }
                 {

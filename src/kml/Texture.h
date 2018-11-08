@@ -26,7 +26,8 @@ namespace kml
         };
 
     public:
-        Texture() : m_repeatU(0.0f), m_repeatV(0.0f),
+        Texture() : m_colorSpace("sRGB"),
+                    m_repeatU(0.0f), m_repeatV(0.0f),
                     m_offsetU(0.0f), m_offsetV(0.0f),
                     m_wrapU(WRAP_REPEAT),
                     m_wrapV(WRAP_REPEAT),
@@ -40,6 +41,7 @@ namespace kml
         Texture(const Texture& rh)
         {
             m_textureFilePath = rh.m_textureFilePath;
+            m_colorSpace = rh.m_colorSpace;
             m_repeatU = rh.m_repeatU;
             m_repeatV = rh.m_repeatV;
             m_offsetU = rh.m_offsetU;
@@ -215,9 +217,18 @@ namespace kml
             m_exist = bExist;
         }
 
+        void SetColorSpace(const std::string &colorSpace) {
+            m_colorSpace = colorSpace;
+        }
+
+        const std::string &GetColorSpace() const {
+            return m_colorSpace;
+        }
+
     protected:
         std::string m_textureFilePath;
         std::string m_udimTextureFilePath;
+        std::string m_colorSpace; // sRGB, Raw, ...
         float m_repeatU, m_repeatV;
         float m_offsetU, m_offsetV;
         WrapType m_wrapU, m_wrapV;
