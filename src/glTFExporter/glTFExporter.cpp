@@ -822,7 +822,7 @@ MStatus glTFExporter::writer(const MFileObject& file, const MString& options, Fi
         output_buffer = 0;                 // disable Draco
         output_glb = 1;                    // force GLB format
         freeze_skinned_mesh_transform = 1; // bake mesh!
-        output_animations = 1;             //
+        output_animations = 0;             //
     }
 
     if (output_glb)
@@ -1401,6 +1401,7 @@ static std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& dagPath)
     int transform_space = opts->GetInt("transform_space");
     bool freeze_skinned_mesh_transform = opts->GetInt("freeze_skinned_mesh_transform") > 0;
     bool output_animations = opts->GetInt("output_animations") > 0;
+    bool vrm = opts->GetInt("vrm_export") > 0;
 
     MSpace::Space space = MSpace::kWorld;
     if (transform_space == 1)
@@ -1423,8 +1424,11 @@ static std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& dagPath)
             if (orgMeshObj.hasFn(MFn::kMesh))
             {
                 mesh = GetOriginalVertices(mesh, orgMeshObj); //dynamic
-                mesh = GetSkinWeights(mesh, dagPath);         //dynamic
             }
+        }
+        if (output_animations || vrm)
+        {
+            mesh = GetSkinWeights(mesh, dagPath);         //dynamic
         }
 
         mesh = GetMophTargets(mesh, dagPath); //dynamic
@@ -3798,7 +3802,7 @@ static void GetAnimationsFromMorph(std::vector<std::shared_ptr<kml::Animation> >
             keys.erase(std::unique(keys.begin(), keys.end()), keys.end());
 
             int total_floats = keys.size() * numWeights;
-            if(total_floats == 0)
+            if (total_floats == 0)
             {
                 continue;
             }
@@ -3998,7 +4002,7 @@ static std::vector<std::shared_ptr<kml::Skin> > GetSkins(const std::shared_ptr<k
     return skins;
 }
 
-static bool FreezeSkinedMeshTransform(const std::shared_ptr<kml::Node>& node, const glm::mat4& gmat = glm::mat4(1.0f))
+static bool FreezeSkinnedMeshTransform(const std::shared_ptr<kml::Node>& node, const glm::mat4& gmat = glm::mat4(1.0f))
 {
     auto& mesh = node->GetMesh();
     bool bRet = false;
@@ -4013,7 +4017,7 @@ static bool FreezeSkinedMeshTransform(const std::shared_ptr<kml::Node>& node, co
     {
         for (size_t i = 0; i < children.size(); i++)
         {
-            bRet |= FreezeSkinedMeshTransform(children[i], mat);
+            bRet |= FreezeSkinnedMeshTransform(children[i], mat);
         }
     }
     if (bRet)
@@ -4021,6 +4025,81 @@ static bool FreezeSkinedMeshTransform(const std::shared_ptr<kml::Node>& node, co
         node->GetTransform()->SetIdentity();
     }
     return bRet;
+}
+
+static bool FreezeSkinnedJointTransform_(const std::set<std::shared_ptr<kml::Node> >& jointsSet, const std::shared_ptr<kml::Node>& node, const glm::mat4& gmat = glm::mat4(1.0f))
+{
+    bool bRet = false;
+    glm::mat4 mat = gmat * node->GetTransform()->GetMatrix();
+    auto& children = node->GetChildren();
+    if (!children.empty())
+    {
+        for (size_t i = 0; i < children.size(); i++)
+        {
+            bRet |= FreezeSkinnedJointTransform_(jointsSet, children[i], mat);
+        }
+    }
+    //the node is joint
+    if (jointsSet.find(node) != jointsSet.end())
+    {
+        glm::vec3 T(mat[3][0] - gmat[3][0], mat[3][1] - gmat[3][1], mat[3][2] - gmat[3][2]);
+        glm::quat R(1, 0, 0, 0);
+        glm::vec3 S(1, 1, 1);
+        node->GetTransform()->SetIdentity();
+        node->GetTransform()->SetTRS(T, R, S);
+        bRet |= true;
+    }
+    else
+    {
+        if (bRet)
+        {
+            glm::vec3 T(mat[3][0] - gmat[3][0], mat[3][1] - gmat[3][1], mat[3][2] - gmat[3][2]);
+            glm::quat R(1, 0, 0, 0);
+            glm::vec3 S(1, 1, 1);
+            node->GetTransform()->SetIdentity();
+            node->GetTransform()->SetTRS(T, R, S);
+        }
+    }
+    return bRet;
+}
+
+static void GetGlobalMatrices(std::vector<glm::mat4>& mats, const std::shared_ptr<kml::Node>& node, const glm::mat4& gmat)
+{
+    glm::mat4 mat = gmat * node->GetTransform()->GetMatrix();
+    mats.push_back(mat);
+    auto& children = node->GetChildren();
+    if (!children.empty())
+    {
+        for (size_t i = 0; i < children.size(); i++)
+        {
+            GetGlobalMatrices(mats, children[i], mat);
+        }
+    }
+}
+
+static bool FreezeSkinnedJointTransform(const std::shared_ptr<kml::Node>& node)
+{
+    std::set<std::shared_ptr<kml::Node> > jointsSet;
+    auto& skins = node->GetSkins();
+    for (size_t i = 0; i < skins.size(); i++)
+    {
+        const auto& joints = skins[i]->GetJoints();
+        std::copy(joints.begin(), joints.end(), std::inserter(jointsSet, jointsSet.end()));
+    }
+    FreezeSkinnedJointTransform_(jointsSet, node, glm::mat4(1.0f));
+    for (size_t i = 0; i < skins.size(); i++)
+    {
+        const auto& joints = skins[i]->GetJoints();
+        std::vector<glm::mat4> mats;
+        GetGlobalMatrices(mats, joints[0], glm::mat4(1.0f));
+        for (size_t j = 0; j < mats.size(); j++)
+        {
+            mats[j] = glm::inverse(mats[j]);
+        }
+        skins[i]->SetJointBindMatrices(mats);
+    }
+
+    return true;
 }
 
 MStatus glTFExporter::exportProcess(const MString& fname, const std::vector<MDagPath>& dagPaths)
@@ -4178,7 +4257,7 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector<MDag
 
         if (freeze_skinned_mesh_transform)
         {
-            FreezeSkinedMeshTransform(node);
+            FreezeSkinnedMeshTransform(node);
         }
 
         {
@@ -4189,6 +4268,12 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector<MDag
             }
         }
 
+        if (vrm)
+        {
+            FreezeSkinnedJointTransform(node);
+        }
+
+        // If vrm_export option is enabled, it shouldn't output animations.
         if (output_animations)
         {
             std::vector<std::shared_ptr<kml::Animation> > animations = GetAnimations(node);
