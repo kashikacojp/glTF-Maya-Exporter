@@ -2083,7 +2083,8 @@ namespace kml
                     meta["reference"] = picojson::value(s);
                 }
 
-                meta["texture"] = picojson::value(0.0);
+                //TODO: This is a reference of a thumbnail.
+                meta["texture"] = picojson::value((double)-1);
 
                 {
                     int vrm_license_allowed_user_name = opts->GetInt("vrm_license_allowed_user_name", 2);
