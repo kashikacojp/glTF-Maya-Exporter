@@ -1237,8 +1237,8 @@ namespace kml
         {
             for (int i = 0; i < (int)v.size(); i++)
             {
-                if (v[i].get() == s.get())
-                {
+                if (v[i]->GetFilePath() == s->GetFilePath())
+				{
                     return i;
                 }
             }
@@ -2292,9 +2292,9 @@ namespace kml
                 {"leftRingIntermediate", {"ringintermediate", "ring2", NULL, NULL, NULL}},
                 {"leftRingDistal", {"ringbdistal", "ring3", NULL, NULL, NULL}},
 
-                {"leftLittleProximal", {"littleproximal", "little1", "pinkey1", NULL, NULL}},
-                {"leftLittleIntermediate", {"littleintermediate", "little2", "pinkey1", NULL, NULL}},
-                {"leftLittleDistal", {"littledistal", "little3", "pinkey3", NULL, NULL}},
+                {"leftLittleProximal", {"littleproximal", "little1", "pinky1", NULL, NULL}},
+                {"leftLittleIntermediate", {"littleintermediate", "little2", "pinky2", NULL, NULL}},
+                {"leftLittleDistal", {"littledistal", "little3", "pinky3", NULL, NULL}},
 
                 {"rightThumbProximal", {"thumbproximal", "thumb1", NULL, NULL, NULL}},
                 {"rightThumbIntermediate", {"thumbintermediate", "thumb2", NULL, NULL, NULL}},
@@ -2312,9 +2312,9 @@ namespace kml
                 {"rightRingIntermediate", {"ringintermediate", "ring2", NULL, NULL, NULL}},
                 {"rightRingDistal", {"ringbdistal", "ring3", NULL, NULL, NULL}},
 
-                {"rightLittleProximal", {"littleproximal", "little1", "pinkey1", NULL, NULL}},
-                {"rightLittleIntermediate", {"littleintermediate", "little2", "pinkey2", NULL, NULL}},
-                {"rightLittleDistal", {"littledistal", "little3", "pinkey3", NULL, NULL}},
+                {"rightLittleProximal", {"littleproximal", "little1", "pinky1", NULL, NULL}},
+                {"rightLittleIntermediate", {"littleintermediate", "little2", "pinky2", NULL, NULL}},
+                {"rightLittleDistal", {"littledistal", "little3", "pinky3", NULL, NULL}},
 
                 {"upperChest", {"upperchest", "spine2", NULL, NULL, NULL}},
 
@@ -2370,7 +2370,7 @@ namespace kml
                     int j = 0;
                     while (subStrs[j])
                     {
-                        std::string subKey = "_" + std::string(subStrs[j]);
+                        std::string subKey = std::string(subStrs[j]);
                         if (strstr(joint_name.c_str(), subKey.c_str()) != NULL)
                         {
                             if (key == "spine")
@@ -2406,7 +2406,8 @@ namespace kml
 
             picojson::object VRM;
             {
-                VRM["exporterVersion"] = picojson::value("kashikaVRM-1.00");
+                auto asset = root_object["asset"].get<picojson::object>();
+                VRM["exporterVersion"] = asset["generator"];
             }
 
             {
@@ -2432,7 +2433,8 @@ namespace kml
                     meta["reference"] = picojson::value(s);
                 }
 
-                meta["texture"] = picojson::value(0.0);
+                //TODO: This is a reference of a thumbnail.
+                meta["texture"] = picojson::value((double)-1);
 
                 {
                     int vrm_license_allowed_user_name = opts->GetInt("vrm_license_allowed_user_name", 2);
@@ -2539,6 +2541,25 @@ namespace kml
                     }
                 }
                 humanoid["humanBones"] = picojson::value(humanBones);
+                /*
+                "armStretch": 0.05,
+                "legStretch": 0.05,
+                "upperArmTwist": 0.5,
+                "lowerArmTwist": 0.5,
+                "upperLegTwist": 0.5,
+                "lowerLegTwist": 0.5,
+                "feetSpacing": 0,
+                "hasTranslationDoF": false
+                */
+                humanoid["armStretch"] = picojson::value((double)0.05);
+                humanoid["legStretch"] = picojson::value((double)0.05);
+                humanoid["upperArmTwist"] = picojson::value((double)0.05);
+                humanoid["lowerArmTwist"] = picojson::value((double)0.05);
+                humanoid["upperLegTwist"] = picojson::value((double)0.05);
+                humanoid["lowerLegTwist"] = picojson::value((double)0.05);
+                humanoid["feetSpacing"] = picojson::value((double)0);
+                humanoid["hasTranslationDoF"] = picojson::value((bool)false);     
+                
                 VRM["humanoid"] = picojson::value(humanoid);
                 /*}
 
@@ -2547,38 +2568,56 @@ namespace kml
                 firstPerson["firstPersonBone"] = picojson::value((double)FindVRNJointIndex(joint_names, "head")); //picojson::value(-1.0);
                 picojson::object firstPersonBoneOffset;
                 firstPersonBoneOffset["x"] = picojson::value(0.0);
-                firstPersonBoneOffset["y"] = picojson::value(0.0);
+                firstPersonBoneOffset["y"] = picojson::value(0.0);//head->GetGlobalMatrix()[3][1];
                 firstPersonBoneOffset["z"] = picojson::value(0.0);
                 firstPerson["firstPersonBoneOffset"] = picojson::value(firstPersonBoneOffset);
-                firstPerson["meshAnnotations"] = picojson::value(picojson::array());
+                picojson::array meshAnnotations;
+                {
+                    const auto meshes = root_object["meshes"].get<picojson::array>();
+                    for (size_t i = 0; i < meshes.size(); i++)
+                    {
+                        picojson::object ann;
+                        ann["mesh"] = picojson::value((double)i);
+                        ann["firstPersonFlag"] = picojson::value("Auto");
+                        meshAnnotations.push_back(picojson::value(ann));
+                    }
+                }
+
+                firstPerson["meshAnnotations"] = picojson::value(meshAnnotations);
                 firstPerson["lookAtTypeName"] = picojson::value("Bone");
+
+                const float curve_floats[] = {0, 0, 0, 1, 1, 1, 1, 0};
+                picojson::array curve = ConvertToArray(curve_floats, 8);
 
                 picojson::object lookAtHorizontalInner;
                 lookAtHorizontalInner["xRange"] = picojson::value(90.0);
                 lookAtHorizontalInner["yRange"] = picojson::value(10.0);
+                lookAtHorizontalInner["curve"] = picojson::value(curve);
                 firstPerson["lookAtHorizontalInner"] = picojson::value(lookAtHorizontalInner);
 
                 picojson::object lookAtHorizontalOuter;
                 lookAtHorizontalOuter["xRange"] = picojson::value(90.0);
                 lookAtHorizontalOuter["yRange"] = picojson::value(10.0);
+                lookAtHorizontalOuter["curve"] = picojson::value(curve);
                 firstPerson["lookAtHorizontalOuter"] = picojson::value(lookAtHorizontalOuter);
 
                 picojson::object lookAtVerticalDown;
                 lookAtVerticalDown["xRange"] = picojson::value(90.0);
                 lookAtVerticalDown["yRange"] = picojson::value(10.0);
+                lookAtVerticalDown["curve"] = picojson::value(curve);
                 firstPerson["lookAtVerticalDown"] = picojson::value(lookAtVerticalDown);
 
                 picojson::object lookAtVerticalUp;
                 lookAtVerticalUp["xRange"] = picojson::value(90.0);
                 lookAtVerticalUp["yRange"] = picojson::value(10.0);
-                firstPerson["lookAtVerticalDown"] = picojson::value(lookAtVerticalUp);
+                lookAtVerticalUp["curve"] = picojson::value(curve);
+                firstPerson["lookAtVerticalUp"] = picojson::value(lookAtVerticalUp);
 
                 VRM["firstPerson"] = picojson::value(firstPerson);
             }
 
             {
                 picojson::object blendShapeMaster;
-                VRM["blendShapeMaster"] = picojson::value(blendShapeMaster);
 
                 picojson::array blendShapeGroups;
                 picojson::object shapeinfo;
@@ -2592,6 +2631,7 @@ namespace kml
                     blendShapeGroups.push_back(picojson::value(shapeinfo));
                 }
                 blendShapeMaster["blendShapeGroups"] = picojson::value(blendShapeGroups);
+                VRM["blendShapeMaster"] = picojson::value(blendShapeMaster);
             }
 
             {
