@@ -1237,8 +1237,8 @@ namespace kml
         {
             for (int i = 0; i < (int)v.size(); i++)
             {
-                if (v[i].get() == s.get())
-                {
+                if (v[i]->GetFilePath() == s->GetFilePath())
+				{
                     return i;
                 }
             }
