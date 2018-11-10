@@ -2136,6 +2136,8 @@ namespace kml
                             image["extensions"] = picojson::value(extensions);
                         }
                     }
+
+                    images.push_back(picojson::value(image));
                 }
                 if (!images.empty())
                 {
