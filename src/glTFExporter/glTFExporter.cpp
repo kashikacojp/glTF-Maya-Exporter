@@ -1428,7 +1428,7 @@ static std::shared_ptr<kml::Node> CreateMeshNode(const MDagPath& dagPath)
         }
         if (output_animations || vrm)
         {
-            mesh = GetSkinWeights(mesh, dagPath);         //dynamic
+            mesh = GetSkinWeights(mesh, dagPath); //dynamic
         }
 
         mesh = GetMophTargets(mesh, dagPath); //dynamic
@@ -2573,6 +2573,11 @@ static MStatus WriteGLTF(
                             std::string dstPath = (onefile) ? "./" : "../";
                             dstPath += GetFileExtName(copiedPath);
                             dstTex->SetFilePath(dstPath);
+                            if (make_preload_texture)
+                            {
+                                std::string cachePath = GetCacheTexturePath(dstPath);
+                                dstTex->SetCacheFilePath(cachePath);
+                            }
                             mat->SetTexture(key, dstTex);
 
                             // if need convert, change image extension.
@@ -2585,14 +2590,6 @@ static MStatus WriteGLTF(
                                     tempCopiedPath = std::string(dirname.asChar()) + "/" + GetFileExtName(tempCopiedPath);
                                     texManager.SetPathPair(tmpOrgPath, tempCopiedPath); // register for texture copy
                                 }
-                            }
-
-                            if (make_preload_texture)
-                            {
-                                std::string cachePath = GetCacheTexturePath(dstPath);
-                                std::shared_ptr<kml::Texture> cacheTex(dstTex->clone());
-                                cacheTex->SetFilePath(cachePath);
-                                mat->SetTexture(key + "S0", cacheTex);
                             }
                         }
                     }

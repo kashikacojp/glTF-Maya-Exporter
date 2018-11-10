@@ -41,6 +41,7 @@ namespace kml
         Texture(const Texture& rh)
         {
             m_textureFilePath = rh.m_textureFilePath;
+            m_cacheTextureFilePath = rh.m_cacheTextureFilePath;
             m_colorSpace = rh.m_colorSpace;
             m_repeatU = rh.m_repeatU;
             m_repeatV = rh.m_repeatV;
@@ -67,6 +68,16 @@ namespace kml
         std::string GetFilePath() const
         {
             return m_textureFilePath;
+        }
+
+        void SetCacheFilePath(const std::string& filePath)
+        {
+            m_cacheTextureFilePath = filePath;
+        }
+
+        std::string GetCacheFilePath() const
+        {
+            return m_cacheTextureFilePath;
         }
 
         void SetUDIMFilePath(const std::string& filePath)
@@ -227,6 +238,7 @@ namespace kml
 
     protected:
         std::string m_textureFilePath;
+        std::string m_cacheTextureFilePath;
         std::string m_udimTextureFilePath;
         std::string m_colorSpace; // sRGB, Raw, ...
         float m_repeatU, m_repeatV;
