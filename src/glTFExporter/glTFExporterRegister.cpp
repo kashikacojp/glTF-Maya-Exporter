@@ -20,7 +20,7 @@
 
 #define VENDOR_NAME "Light Transport Entertainment, Inc."
 #define PLUGIN_NAME "glTF-Maya-Exporter-LTE"
-#define PLUGIN_VERSION "1.5.2"
+#define PLUGIN_VERSION "1.5.3"
 #define EXPOTER_NAME_GLTF "GLTF Export"
 #define EXPOTER_NAME_GLB "GLB Export"
 
