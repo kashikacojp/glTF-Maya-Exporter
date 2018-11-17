@@ -2,129 +2,134 @@
 
 #include "SaveToDraco.h"
 
-#include <vector>
-#include <string>
-#include <memory>
 #include <algorithm>
 #include <cstdint>
+#include <memory>
+#include <string>
+#include <vector>
 
 #include <glm/glm.hpp>
 
 #ifdef ENABLE_BUILD_WITH_DRACO
-#include <draco/mesh/mesh.h>
 #include <draco/compression/encode.h>
 #include <draco/core/cycle_timer.h>
 #include <draco/io/mesh_io.h>
-#include <draco/io/point_cloud_io.h>
 #include <draco/io/obj_decoder.h>
+#include <draco/io/point_cloud_io.h>
+#include <draco/mesh/mesh.h>
 #endif
 
 namespace kml
 {
-	namespace ns
-	{
-		struct Options {
-			Options();
+    namespace ns
+    {
+        struct Options
+        {
+            Options();
 
-			bool is_point_cloud;
-			int pos_quantization_bits;
-			int tex_coords_quantization_bits;
-			bool tex_coords_deleted;
-			int normals_quantization_bits;
-			bool normals_deleted;
+            bool is_point_cloud;
+            int pos_quantization_bits;
+            int tex_coords_quantization_bits;
+            bool tex_coords_deleted;
+            int normals_quantization_bits;
+            bool normals_deleted;
             int color_quantization_bits;
             int generic_quantization_bits;
-			int compression_level;
-			bool use_metadata;
-			std::string input;
-			std::string output;
-		};
+            int compression_level;
+            bool use_metadata;
+            std::string input;
+            std::string output;
+        };
 
-		Options::Options()
-			: is_point_cloud(false),
-			pos_quantization_bits(14),
-			tex_coords_quantization_bits(12),
-			tex_coords_deleted(false),
-			normals_quantization_bits(10),
-			normals_deleted(false),
-            color_quantization_bits(10),
-            generic_quantization_bits(14),
-			compression_level(7) {}
+        Options::Options()
+            : is_point_cloud(false),
+              pos_quantization_bits(14),
+              tex_coords_quantization_bits(12),
+              tex_coords_deleted(false),
+              normals_quantization_bits(10),
+              normals_deleted(false),
+              color_quantization_bits(10),
+              generic_quantization_bits(14),
+              compression_level(7) {}
 
-	}
+    } // namespace ns
 
 #ifdef ENABLE_BUILD_WITH_DRACO
 
-    template<class T>
-    struct DracoTraits {};
-
-    template<>
-    struct DracoTraits<int8_t>
+    template <class T>
+    struct DracoTraits
     {
-        static draco::DataType GetDataType(){return draco::DataType::DT_INT8;}
     };
 
-    template<>
+    template <>
+    struct DracoTraits<int8_t>
+    {
+        static draco::DataType GetDataType() { return draco::DataType::DT_INT8; }
+    };
+
+    template <>
     struct DracoTraits<uint8_t>
     {
         static draco::DataType GetDataType() { return draco::DataType::DT_UINT8; }
     };
 
-    template<>
+    template <>
     struct DracoTraits<int16_t>
     {
         static draco::DataType GetDataType() { return draco::DataType::DT_INT16; }
     };
 
-    template<>
+    template <>
     struct DracoTraits<uint16_t>
     {
         static draco::DataType GetDataType() { return draco::DataType::DT_UINT16; }
     };
 
-    template<>
+    template <>
     struct DracoTraits<int32_t>
     {
         static draco::DataType GetDataType() { return draco::DataType::DT_INT32; }
     };
 
-    template<>
+    template <>
     struct DracoTraits<uint32_t>
     {
         static draco::DataType GetDataType() { return draco::DataType::DT_UINT32; }
     };
 
-    template<>
+    template <>
     struct DracoTraits<float>
     {
         static draco::DataType GetDataType() { return draco::DataType::DT_FLOAT32; }
     };
 
-    template<>
+    template <>
     struct DracoTraits<double>
     {
         static draco::DataType GetDataType() { return draco::DataType::DT_FLOAT64; }
     };
 
-    static
-    int GetNumComponents(const std::string& type)
+    static int GetNumComponents(const std::string& type)
     {
-        if (type == "VEC2")return 2;
-        if (type == "VEC3")return 3;
-        if (type == "VEC4")return 4;
+        if (type == "VEC2")
+            return 2;
+        if (type == "VEC3")
+            return 3;
+        if (type == "VEC4")
+            return 4;
         return 1;
     }
 
-    static
-    bool GetNormalized(const std::string& attr)
+    static bool GetNormalized(const std::string& attr)
     {
-        if (attr == "NORMAL") return true;
-        if (attr == "TANGENT")return true;
+        if (attr == "NORMAL")
+            return true;
+        if (attr == "TANGENT")
+            return true;
         return false;
     }
 
-    static
-    draco::GeometryAttribute::Type GetAttributeType(const std::string& name)
+    static draco::GeometryAttribute::Type GetAttributeType(const std::string& name)
     {
         if (name == "POSITION")
         {
@@ -161,7 +166,7 @@ namespace kml
         return draco::GeometryAttribute::Type::GENERIC;
     }
 
-    template<class T>
+    template <class T>
     int CreateDracoBuffer(draco::Mesh& dracoMesh, const std::string& attr, const std::shared_ptr<gltf::Accessor>& acc)
     {
         draco::GeometryAttribute::Type attrType = GetAttributeType(attr);
@@ -224,10 +229,9 @@ namespace kml
         //Add buffers
         {
             static const char* ATTRS[] = {
-                "POSITION", "TEXCOORD_0", "TEXCOORD_1", "NORMAL", "COLOR_0", "JOINTS_0", "WEIGHTS_0", "TANGENT", NULL
-            };
-            int i = 0; 
-            while(ATTRS[i])
+                "POSITION", "TEXCOORD_0", "TEXCOORD_1", "NORMAL", "COLOR_0", "JOINTS_0", "WEIGHTS_0", "TANGENT", NULL};
+            int i = 0;
+            while (ATTRS[i])
             {
                 std::shared_ptr<gltf::Accessor> acc = mesh->GetAccessor(ATTRS[i]);
                 int attId = 0;
@@ -235,14 +239,30 @@ namespace kml
                 {
                     switch (acc->GetComponentType())
                     {
-                    case GLTF_COMPONENT_TYPE_BYTE:          attId = CreateDracoBuffer<  int8_t>(*dracoMesh, ATTRS[i], acc); break;
-                    case GLTF_COMPONENT_TYPE_UNSIGNED_BYTE: attId = CreateDracoBuffer< uint8_t>(*dracoMesh, ATTRS[i], acc); break;
-                    case GLTF_COMPONENT_TYPE_SHORT:         attId = CreateDracoBuffer< int16_t>(*dracoMesh, ATTRS[i], acc); break;
-                    case GLTF_COMPONENT_TYPE_UNSIGNED_SHORT:attId = CreateDracoBuffer<uint16_t>(*dracoMesh, ATTRS[i], acc); break;
-                    case GLTF_COMPONENT_TYPE_INT:           attId = CreateDracoBuffer< int32_t>(*dracoMesh, ATTRS[i], acc); break;
-                    case GLTF_COMPONENT_TYPE_UNSIGNED_INT:  attId = CreateDracoBuffer<uint32_t>(*dracoMesh, ATTRS[i], acc); break;
-                    case GLTF_COMPONENT_TYPE_FLOAT:         attId = CreateDracoBuffer<   float>(*dracoMesh, ATTRS[i], acc); break;
-                    case GLTF_COMPONENT_TYPE_DOUBLE:        attId = CreateDracoBuffer<  double>(*dracoMesh, ATTRS[i], acc); break;
+                    case GLTF_COMPONENT_TYPE_BYTE:
+                        attId = CreateDracoBuffer<int8_t>(*dracoMesh, ATTRS[i], acc);
+                        break;
+                    case GLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+                        attId = CreateDracoBuffer<uint8_t>(*dracoMesh, ATTRS[i], acc);
+                        break;
+                    case GLTF_COMPONENT_TYPE_SHORT:
+                        attId = CreateDracoBuffer<int16_t>(*dracoMesh, ATTRS[i], acc);
+                        break;
+                    case GLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+                        attId = CreateDracoBuffer<uint16_t>(*dracoMesh, ATTRS[i], acc);
+                        break;
+                    case GLTF_COMPONENT_TYPE_INT:
+                        attId = CreateDracoBuffer<int32_t>(*dracoMesh, ATTRS[i], acc);
+                        break;
+                    case GLTF_COMPONENT_TYPE_UNSIGNED_INT:
+                        attId = CreateDracoBuffer<uint32_t>(*dracoMesh, ATTRS[i], acc);
+                        break;
+                    case GLTF_COMPONENT_TYPE_FLOAT:
+                        attId = CreateDracoBuffer<float>(*dracoMesh, ATTRS[i], acc);
+                        break;
+                    case GLTF_COMPONENT_TYPE_DOUBLE:
+                        attId = CreateDracoBuffer<double>(*dracoMesh, ATTRS[i], acc);
+                        break;
                     }
 
                     int order = dracoMesh->attribute(attId)->unique_id();
@@ -279,5 +299,4 @@ namespace kml
         return false;
     }
 #endif
-}
-
+} // namespace kml

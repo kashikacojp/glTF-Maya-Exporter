@@ -3,126 +3,126 @@
 
 namespace kml
 {
-	Node::Node()
-	{
-		transform.reset( new Transform() );
-	}
+    Node::Node()
+    {
+        transform.reset(new Transform());
+    }
 
-	void Node::SetName(const std::string& n)
-	{
-		this->name = n;
-	}
+    void Node::SetName(const std::string& n)
+    {
+        this->name = n;
+    }
 
-	std::string Node::GetName()const
-	{
-		return this->name;
-	}
+    std::string Node::GetName() const
+    {
+        return this->name;
+    }
 
-	void Node::SetPath(const std::string& n)
-	{
-		this->path = n;
+    void Node::SetPath(const std::string& n)
+    {
+        this->path = n;
         if (this->original_path.empty())
         {
             this->original_path = n;
         }
-	}
+    }
 
-	std::string Node::GetPath()const
-	{
-		return this->path;
-	}
+    std::string Node::GetPath() const
+    {
+        return this->path;
+    }
 
     void Node::SetOriginalPath(const std::string& n)
     {
         this->original_path = n;
     }
 
-    std::string Node::GetOriginalPath()const
+    std::string Node::GetOriginalPath() const
     {
         return this->original_path;
     }
 
-	void Node::SetTransform(const std::shared_ptr<Transform>& trans)
-	{
-		this->transform = trans;
-	}
+    void Node::SetTransform(const std::shared_ptr<Transform>& trans)
+    {
+        this->transform = trans;
+    }
 
-	const std::shared_ptr<Transform>& Node::GetTransform()const
-	{
-		return this->transform;
-	}
+    const std::shared_ptr<Transform>& Node::GetTransform() const
+    {
+        return this->transform;
+    }
 
-	std::shared_ptr<Bound>&     Node::GetBound()
-	{
-		return bound;
-	}
+    std::shared_ptr<Bound>& Node::GetBound()
+    {
+        return bound;
+    }
 
-	std::shared_ptr<Mesh>&      Node::GetMesh()
-	{
-		return this->mesh;
-	}
+    std::shared_ptr<Mesh>& Node::GetMesh()
+    {
+        return this->mesh;
+    }
 
-	const std::shared_ptr<Bound>&     Node::GetBound()const
-	{
-		return bound;
-	}
+    const std::shared_ptr<Bound>& Node::GetBound() const
+    {
+        return bound;
+    }
 
-	const std::shared_ptr<Mesh>&      Node::GetMesh()const
-	{
-		return this->mesh;
-	}
+    const std::shared_ptr<Mesh>& Node::GetMesh() const
+    {
+        return this->mesh;
+    }
 
-	const std::vector< std::shared_ptr <Material> >& Node::GetMaterials()const
-	{
-		return materials;
-	}
+    const std::vector<std::shared_ptr<Material> >& Node::GetMaterials() const
+    {
+        return materials;
+    }
 
-	const std::vector< std::shared_ptr<Node> >& Node::GetChildren()const
-	{
-		return this->children;
-	}
+    const std::vector<std::shared_ptr<Node> >& Node::GetChildren() const
+    {
+        return this->children;
+    }
 
-	void Node::SetMesh(const std::shared_ptr<Mesh>& m)
-	{
-		this->mesh = m;
-	}
+    void Node::SetMesh(const std::shared_ptr<Mesh>& m)
+    {
+        this->mesh = m;
+    }
 
-	void Node::SetBound(const std::shared_ptr<Bound>& b)
-	{
-		this->bound = b;
-	}
+    void Node::SetBound(const std::shared_ptr<Bound>& b)
+    {
+        this->bound = b;
+    }
 
-	void Node::AddMaterial(const std::shared_ptr <Material>& material)
-	{
-		this->materials.push_back(material);
-	}
+    void Node::AddMaterial(const std::shared_ptr<Material>& material)
+    {
+        this->materials.push_back(material);
+    }
 
-	void Node::AddChild(const std::shared_ptr<Node>& child)
-	{
-		this->children.push_back(child);
-	}
+    void Node::AddChild(const std::shared_ptr<Node>& child)
+    {
+        this->children.push_back(child);
+    }
 
-	bool Node::IsLeaf()const
-	{
-		return this->children.empty();
-	}
+    bool Node::IsLeaf() const
+    {
+        return this->children.empty();
+    }
 
-	bool Node::HasShape()const
-	{
-		return this->mesh.get() != NULL;
-	}
+    bool Node::HasShape() const
+    {
+        return this->mesh.get() != NULL;
+    }
 
-	void Node::ClearChildren()
-	{
-		this->children.clear();
-	}
+    void Node::ClearChildren()
+    {
+        this->children.clear();
+    }
 
     void Node::SetVisiblity(bool isVisible)
     {
         this->iprops["Visiblity"] = isVisible;
     }
 
-    bool Node::GetVisibility()const
+    bool Node::GetVisibility() const
     {
         typedef std::map<std::string, int> MapType;
         typedef MapType::const_iterator iterator;
@@ -137,7 +137,7 @@ namespace kml
         }
     }
 
-    const std::vector< std::shared_ptr <Animation> >& Node::GetAnimations()const
+    const std::vector<std::shared_ptr<Animation> >& Node::GetAnimations() const
     {
         return animations;
     }
@@ -147,7 +147,7 @@ namespace kml
         animations.push_back(anim);
     }
 
-    const std::vector< std::shared_ptr <Skin> >& Node::GetSkins()const
+    const std::vector<std::shared_ptr<Skin> >& Node::GetSkins() const
     {
         return skins;
     }
@@ -157,4 +157,4 @@ namespace kml
         skins.push_back(skin);
     }
 
-}
+} // namespace kml

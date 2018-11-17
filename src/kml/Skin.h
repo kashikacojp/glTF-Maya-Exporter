@@ -12,52 +12,55 @@ namespace kml
 {
     class Node;
     class SkinWeight
-	{
-	public:
-		typedef std::map<std::string, float> WeightVertex;
+    {
     public:
-        std::string GetName()const 
+        typedef std::map<std::string, float> WeightVertex;
+
+    public:
+        std::string GetName() const
         {
             return name;
         }
-        const std::vector<WeightVertex>& GetWeightVertices()const
+        const std::vector<WeightVertex>& GetWeightVertices() const
         {
             return weights;
         }
-        const std::vector<std::string>& GetJointPaths()const
+        const std::vector<std::string>& GetJointPaths() const
         {
             return joint_paths;
         }
-        const std::vector<glm::mat4>& GetJointBindMatrices()const
+        const std::vector<glm::mat4>& GetJointBindMatrices() const
         {
             return joint_bind_matrices;
         }
+
     public:
         std::string name;
-		std::vector<WeightVertex> weights;
-		std::vector<std::string> joint_paths;
+        std::vector<WeightVertex> weights;
+        std::vector<std::string> joint_paths;
         std::vector<glm::mat4> joint_bind_matrices;
-	};
+    };
 
     class Skin
     {
     public:
-        std::string GetName()const
+        std::string GetName() const
         {
             return name_;
         }
-        const std::vector< std::shared_ptr<SkinWeight> >& GetSkinWeights()const
+        const std::vector<std::shared_ptr<SkinWeight> >& GetSkinWeights() const
         {
             return skin_weights_;
         }
-        const std::vector< std::shared_ptr<Node> >& GetJoints()const
+        const std::vector<std::shared_ptr<Node> >& GetJoints() const
         {
             return joints_;
         }
-        const std::vector<glm::mat4>& GetJointBindMatrices()const
+        const std::vector<glm::mat4>& GetJointBindMatrices() const
         {
             return joint_bind_matrices_;
         }
+
     public:
         void SetName(const std::string& name)
         {
@@ -71,11 +74,11 @@ namespace kml
         {
             joints_.push_back(n);
         }
-        void SetSkinWeights(const std::vector< std::shared_ptr<SkinWeight> >& w)
+        void SetSkinWeights(const std::vector<std::shared_ptr<SkinWeight> >& w)
         {
             skin_weights_ = w;
         }
-        void SetJoints(const std::vector< std::shared_ptr<Node> >& nodes)
+        void SetJoints(const std::vector<std::shared_ptr<Node> >& nodes)
         {
             joints_ = nodes;
         }
@@ -83,12 +86,13 @@ namespace kml
         {
             joint_bind_matrices_ = mats;
         }
+
     protected:
         std::string name_;
-        std::vector< std::shared_ptr<SkinWeight> > skin_weights_;
-        std::vector< std::shared_ptr<Node> > joints_;
+        std::vector<std::shared_ptr<SkinWeight> > skin_weights_;
+        std::vector<std::shared_ptr<Node> > joints_;
         std::vector<glm::mat4> joint_bind_matrices_;
     };
-}
+} // namespace kml
 
 #endif

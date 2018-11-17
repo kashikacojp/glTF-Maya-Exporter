@@ -2,22 +2,22 @@
 #ifndef _KML_GLTF_COMPONENTS_H_
 #define _KML_GLTF_COMPONENTS_H_
 
-
-#include <vector>
-#include <string>
-#include <memory>
 #include <algorithm>
 #include <cstdint>
 #include <fstream>
+#include <memory>
+#include <string>
+#include <vector>
+#include <map>
 
 #include <glm/glm.hpp>
 
 #include "glTFConstants.h"
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/quaternion.hpp>
-#include <glm/gtc/matrix_transform.hpp>
 
 namespace kml
 {
@@ -29,17 +29,18 @@ namespace kml
         {
         public:
             Buffer(const std::string& name, int index)
-                :name_(name), index_(index)
-            {}
-            const std::string& GetName()const
+                : name_(name), index_(index)
+            {
+            }
+            const std::string& GetName() const
             {
                 return name_;
             }
-            int GetIndex()const
+            int GetIndex() const
             {
                 return index_;
             }
-            std::string GetURI()const
+            std::string GetURI() const
             {
                 return name_ + ".bin";
             }
@@ -49,18 +50,19 @@ namespace kml
                 bytes_.resize(offset + sz);
                 memcpy(&bytes_[offset], bytes, sz);
             }
-            size_t GetSize()const
+            size_t GetSize() const
             {
                 return bytes_.size();
             }
-            size_t GetByteLength()const
+            size_t GetByteLength() const
             {
                 return GetSize();
             }
-            const unsigned char* GetBytesPtr()const
+            const unsigned char* GetBytesPtr() const
             {
                 return &bytes_[0];
             }
+
         protected:
             std::string name_;
             int index_;
@@ -71,13 +73,14 @@ namespace kml
         {
         public:
             BufferView(const std::string& name, int index)
-                :name_(name), index_(index)
-            {}
-            const std::string& GetName()const
+                : name_(name), index_(index)
+            {
+            }
+            const std::string& GetName() const
             {
                 return name_;
             }
-            int GetIndex()const
+            int GetIndex() const
             {
                 return index_;
             }
@@ -85,7 +88,7 @@ namespace kml
             {
                 buffer_ = bv;
             }
-            const std::shared_ptr<Buffer>& GetBuffer()const
+            const std::shared_ptr<Buffer>& GetBuffer() const
             {
                 return buffer_;
             }
@@ -97,11 +100,11 @@ namespace kml
             {
                 byteLength_ = sz;
             }
-            size_t GetByteOffset()const
+            size_t GetByteOffset() const
             {
                 return byteOffset_;
             }
-            size_t GetByteLength()const
+            size_t GetByteLength() const
             {
                 return byteLength_;
             }
@@ -109,10 +112,11 @@ namespace kml
             {
                 target_ = t;
             }
-            int GetTarget()const
+            int GetTarget() const
             {
                 return target_;
             }
+
         protected:
             std::string name_;
             int index_;
@@ -126,7 +130,8 @@ namespace kml
         {
         public:
             DracoTemporaryBuffer()
-            {}
+            {
+            }
             DracoTemporaryBuffer(const unsigned char bytes[], size_t sz)
             {
                 bytes_.resize(sz);
@@ -137,11 +142,11 @@ namespace kml
                 bytes_.resize(sz);
                 memcpy(&bytes_[0], bytes, sz);
             }
-            size_t GetSize()const
+            size_t GetSize() const
             {
                 return bytes_.size();
             }
-            size_t GetByteLength()const
+            size_t GetByteLength() const
             {
                 return GetSize();
             }
@@ -149,10 +154,11 @@ namespace kml
             {
                 bytes_.clear();
             }
-            const unsigned char* GetBytesPtr()const
+            const unsigned char* GetBytesPtr() const
             {
                 return &bytes_[0];
             }
+
         protected:
             std::vector<unsigned char> bytes_;
         };
@@ -161,18 +167,18 @@ namespace kml
         {
         public:
             Accessor(const std::string& name, int index)
-                :name_(name), index_(index)
+                : name_(name), index_(index)
             {
                 type_ = "SCALAR";
                 componentType_ = GLTF_COMPONENT_TYPE_FLOAT;
                 count_ = 1;
                 byteOffset_ = 0;
             }
-            const std::string& GetName()const
+            const std::string& GetName() const
             {
                 return name_;
             }
-            int GetIndex()const
+            int GetIndex() const
             {
                 return index_;
             }
@@ -180,7 +186,7 @@ namespace kml
             {
                 bufferView_ = bv;
             }
-            std::shared_ptr<BufferView> GetBufferView()const
+            std::shared_ptr<BufferView> GetBufferView() const
             {
                 if (!dracoBuffer_.get())
                 {
@@ -197,12 +203,12 @@ namespace kml
                 dracoBuffer_ = bv;
             }
 
-            std::shared_ptr<DracoTemporaryBuffer> GetDracoTemporaryBuffer()const
+            std::shared_ptr<DracoTemporaryBuffer> GetDracoTemporaryBuffer() const
             {
                 return dracoBuffer_;
             }
 
-            bool IsDraco()const
+            bool IsDraco() const
             {
                 return (dracoBuffer_.get());
             }
@@ -212,7 +218,7 @@ namespace kml
                 type_ = type;
             }
 
-            std::string GetType()const
+            std::string GetType() const
             {
                 return type_;
             }
@@ -222,7 +228,7 @@ namespace kml
                 componentType_ = c;
             }
 
-            int GetComponentType()const
+            int GetComponentType() const
             {
                 return componentType_;
             }
@@ -232,7 +238,7 @@ namespace kml
                 count_ = c;
             }
 
-            size_t GetCount()const
+            size_t GetCount() const
             {
                 return count_;
             }
@@ -242,7 +248,7 @@ namespace kml
                 byteOffset_ = offset;
             }
 
-            size_t GetByteOffset()const
+            size_t GetByteOffset() const
             {
                 return byteOffset_;
             }
@@ -256,14 +262,15 @@ namespace kml
             {
                 max_ = v;
             }
-            std::vector<float> GetMin()const
+            std::vector<float> GetMin() const
             {
                 return min_;
             }
-            std::vector<float> GetMax()const
+            std::vector<float> GetMax() const
             {
                 return max_;
             }
+
         protected:
             std::string name_;
             int index_;
@@ -281,15 +288,15 @@ namespace kml
         {
         public:
             MorphTarget(const std::string& name, int index)
-                :name_(name), index_(index)
+                : name_(name), index_(index)
             {
                 weight_ = 0;
             }
-            const std::string& GetName()const
+            const std::string& GetName() const
             {
                 return name_;
             }
-            int GetIndex()const
+            int GetIndex() const
             {
                 return index_;
             }
@@ -297,7 +304,7 @@ namespace kml
             {
                 accessors_[name] = acc;
             }
-            std::shared_ptr<Accessor> GetAccessor(const std::string& name)const
+            std::shared_ptr<Accessor> GetAccessor(const std::string& name) const
             {
                 typedef std::map<std::string, std::shared_ptr<Accessor> > MapType;
                 typedef MapType::const_iterator iterator;
@@ -315,10 +322,11 @@ namespace kml
             {
                 weight_ = w;
             }
-            float GetWeight()const
+            float GetWeight() const
             {
                 return weight_;
             }
+
         protected:
             std::string name_;
             int index_;
@@ -330,19 +338,19 @@ namespace kml
         {
         public:
             Mesh(const std::string& name, int index)
-                :name_(name), index_(index)
+                : name_(name), index_(index)
             {
                 mode_ = GLTF_MODE_TRIANGLES;
             }
-            const std::string& GetName()const
+            const std::string& GetName() const
             {
                 return name_;
             }
-            int GetIndex()const
+            int GetIndex() const
             {
                 return index_;
             }
-            int GetMode()const
+            int GetMode() const
             {
                 return mode_;
             }
@@ -354,7 +362,7 @@ namespace kml
             {
                 return materialID_;
             }
-            std::shared_ptr<Accessor> GetIndices()const
+            std::shared_ptr<Accessor> GetIndices() const
             {
                 return GetAccessor("indices");
             }
@@ -362,7 +370,7 @@ namespace kml
             {
                 accessors_[name] = acc;
             }
-            std::shared_ptr<Accessor> GetAccessor(const std::string& name)const
+            std::shared_ptr<Accessor> GetAccessor(const std::string& name) const
             {
                 typedef std::map<std::string, std::shared_ptr<Accessor> > MapType;
                 typedef MapType::const_iterator iterator;
@@ -380,7 +388,7 @@ namespace kml
             {
                 bufferViews_[name] = bv;
             }
-            std::shared_ptr<BufferView> GetBufferView(const std::string& name)const
+            std::shared_ptr<BufferView> GetBufferView(const std::string& name) const
             {
                 typedef std::map<std::string, std::shared_ptr<BufferView> > MapType;
                 typedef MapType::const_iterator iterator;
@@ -398,7 +406,7 @@ namespace kml
             {
                 morph_targets.push_back(target);
             }
-            const std::vector<std::shared_ptr<MorphTarget> > GetTargets()const
+            const std::vector<std::shared_ptr<MorphTarget> > GetTargets() const
             {
                 return morph_targets;
             }
@@ -406,7 +414,7 @@ namespace kml
             {
                 orderInDraco_[name] = order;
             }
-            int GetOrderInDraco(const std::string& name)const
+            int GetOrderInDraco(const std::string& name) const
             {
                 typedef std::map<std::string, int> MapType;
                 typedef MapType::const_iterator iterator;
@@ -420,6 +428,7 @@ namespace kml
                     return -1;
                 }
             }
+
         protected:
             std::string name_;
             int index_;
@@ -431,35 +440,76 @@ namespace kml
             mutable std::map<std::string, int> orderInDraco_;
         };
 
+        class Skin;
+
+        class Joint
+        {
+        public:
+            Joint()
+                : indexInSkin_(0)
+            {
+            }
+            void SetIndexInSkin(int index)
+            {
+                indexInSkin_ = index;
+            }
+            int GetIndexInSkin() const
+            {
+                return indexInSkin_;
+            }
+            void SetNode(const std::shared_ptr<Node>& node)
+            {
+                node_ = node;
+            }
+            std::shared_ptr<Node> GetNode() const
+            {
+                return node_.lock();
+            }
+            void SetSkin(const std::shared_ptr<Skin>& skin)
+            {
+                skin_ = skin;
+            }
+            std::shared_ptr<Skin> GetSkin() const
+            {
+                return skin_.lock();
+            }
+
+        protected:
+            int indexInSkin_;
+            std::weak_ptr<Node> node_;
+            std::weak_ptr<Skin> skin_;
+        };
+
         class Skin
         {
         public:
             typedef std::map<std::string, float> PathWeight;
             typedef std::vector<int, float> IndexWeight;
+
         public:
             Skin(const std::string& name, int index)
-                :name_(name), index_(index)
+                : name_(name), index_(index)
             {
                 ;
             }
-            const std::string& GetName()const
+            const std::string& GetName() const
             {
                 return name_;
             }
-            int GetIndex()const
+            int GetIndex() const
             {
                 return index_;
             }
 
-            const std::vector< std::shared_ptr<Node> > GetJoints()const
+            const std::vector<std::shared_ptr<Joint> > GetJoints() const
             {
                 return joints_;
             }
-            const std::shared_ptr<Node> GetRootJoint()const
+            const std::shared_ptr<Joint> GetRootJoint() const
             {
                 return joints_[0];
             }
-            void AddJoint(const std::shared_ptr<Node>& node)
+            void AddJoint(const std::shared_ptr<Joint>& node)
             {
                 joints_.push_back(node);
             }
@@ -467,7 +517,7 @@ namespace kml
             {
                 accessors_[name] = acc;
             }
-            std::shared_ptr<Accessor> GetAccessor(const std::string& name)const
+            std::shared_ptr<Accessor> GetAccessor(const std::string& name) const
             {
                 typedef std::map<std::string, std::shared_ptr<Accessor> > MapType;
                 typedef MapType::const_iterator iterator;
@@ -481,11 +531,12 @@ namespace kml
                     return std::shared_ptr<Accessor>();
                 }
             }
+
         protected:
             std::string name_;
             int index_;
             std::shared_ptr<Mesh> mesh_;
-            std::vector< std::shared_ptr<Node> > joints_;
+            std::vector<std::shared_ptr<Joint> > joints_;
             std::map<std::string, std::shared_ptr<Accessor> > accessors_;
         };
 
@@ -493,30 +544,23 @@ namespace kml
         {
         public:
             TextureSampler(int index)
-                :index_(index)
-                ,minFiler_(GLTF_TEXTURE_FILTER_LINEAR)
-                ,magFiler_(GLTF_TEXTURE_FILTER_LINEAR)
-                ,wrapS_(GLTF_TEXTURE_WRAP_CLAMP_TO_EDGE)
-                ,wrapT_(GLTF_TEXTURE_WRAP_CLAMP_TO_EDGE)
+                : index_(index), minFiler_(GLTF_TEXTURE_FILTER_LINEAR), magFiler_(GLTF_TEXTURE_FILTER_LINEAR), wrapS_(GLTF_TEXTURE_WRAP_CLAMP_TO_EDGE), wrapT_(GLTF_TEXTURE_WRAP_CLAMP_TO_EDGE)
             {
                 ;
             }
 
             TextureSampler(int index, int minFiler, int magFiler, int wrapS, int wrapT)
-                :index_(index)
-                ,minFiler_(minFiler)
-                ,magFiler_(magFiler)
-                ,wrapS_(wrapS)
-                ,wrapT_(wrapT)
+                : index_(index), minFiler_(minFiler), magFiler_(magFiler), wrapS_(wrapS), wrapT_(wrapT)
             {
                 ;
             }
+
         public:
             void SetIndex(int index)
             {
                 index_ = index;
             }
-            int GetIndex()const
+            int GetIndex() const
             {
                 return index_;
             }
@@ -536,36 +580,38 @@ namespace kml
             {
                 wrapT_ = v;
             }
+
         public:
-            int GetMagFilter()const
+            int GetMagFilter() const
             {
                 return magFiler_;
             }
-            int GetMinFilter()const
+            int GetMinFilter() const
             {
                 return minFiler_;
             }
-            int GetWrapS()const
+            int GetWrapS() const
             {
                 return wrapS_;
             }
-            int GetWrapT()const
+            int GetWrapT() const
             {
                 return wrapT_;
             }
+
         public:
             bool Equal(int minFiler, int magFiler, int wrapS, int wrapT)
             {
-                return 
-                    minFiler_ == minFiler &&
-                    magFiler_ == magFiler &&
-                    wrapS_ == wrapS &&
-                    wrapT_ == wrapT;
+                return minFiler_ == minFiler &&
+                       magFiler_ == magFiler &&
+                       wrapS_ == wrapS &&
+                       wrapT_ == wrapT;
             }
+
         protected:
             int index_;
             int minFiler_;
-            int magFiler_; 
+            int magFiler_;
             int wrapS_;
             int wrapT_;
         };
@@ -574,11 +620,11 @@ namespace kml
         {
         public:
             Transform()
-                :isTRS_(false)
+                : isTRS_(false)
             {
                 mat_ = glm::mat4(1.0f);
             }
-            const glm::mat4 GetMatrix()const
+            const glm::mat4 GetMatrix() const
             {
                 return mat_;
             }
@@ -600,13 +646,14 @@ namespace kml
 
                 isTRS_ = true;
             }
-            bool IsTRS()const
+            bool IsTRS() const
             {
                 return isTRS_;
             }
-            glm::vec3 GetT()const { return T_; }
-            glm::quat GetR()const { return R_; }
-            glm::vec3 GetS()const { return S_; }
+            glm::vec3 GetT() const { return T_; }
+            glm::quat GetR() const { return R_; }
+            glm::vec3 GetS() const { return S_; }
+
         protected:
             bool isTRS_;
             glm::mat4 mat_;
@@ -619,15 +666,15 @@ namespace kml
         {
         public:
             AnimationSampler(const std::string& name, int index)
-                :name_(name), index_(index)
+                : name_(name), index_(index)
             {
                 ;
             }
-            const std::string& GetName()const
+            const std::string& GetName() const
             {
                 return name_;
             }
-            int GetIndex()const
+            int GetIndex() const
             {
                 return index_;
             }
@@ -639,19 +686,19 @@ namespace kml
             {
                 return targetPath_;
             }
-            void SetInputAccessor(const std::shared_ptr< Accessor >& in)
+            void SetInputAccessor(const std::shared_ptr<Accessor>& in)
             {
                 in_ = in;
             }
-            const std::shared_ptr< Accessor >& GetInputAccessor()const
+            const std::shared_ptr<Accessor>& GetInputAccessor() const
             {
                 return in_;
             }
-            void SetOutputAccessor(const std::shared_ptr< Accessor >& out)
+            void SetOutputAccessor(const std::shared_ptr<Accessor>& out)
             {
                 out_ = out;
             }
-            const std::shared_ptr< Accessor >& GetOutputAccessor()const
+            const std::shared_ptr<Accessor>& GetOutputAccessor() const
             {
                 return out_;
             }
@@ -659,32 +706,33 @@ namespace kml
             {
                 interpolation_ = inter;
             }
-            std::string GetInterpolation()const
+            std::string GetInterpolation() const
             {
                 return interpolation_;
             }
+
         protected:
             std::string name_;
             int index_;
             std::string targetPath_;
             std::string interpolation_;
-            std::shared_ptr< Accessor > in_;    //key
-            std::shared_ptr< Accessor > out_;   //value
+            std::shared_ptr<Accessor> in_;  //key
+            std::shared_ptr<Accessor> out_; //value
         };
 
         class AnimationChannel
         {
         public:
             AnimationChannel(const std::string& name, int index)
-                :name_(name), index_(index)
+                : name_(name), index_(index)
             {
                 ;
             }
-            const std::string& GetName()const
+            const std::string& GetName() const
             {
                 return name_;
             }
-            int GetIndex()const
+            int GetIndex() const
             {
                 return index_;
             }
@@ -696,7 +744,7 @@ namespace kml
             {
                 targetNode_ = node;
             }
-            const std::shared_ptr<Node>& GetTargetNode()const
+            const std::shared_ptr<Node>& GetTargetNode() const
             {
                 return targetNode_;
             }
@@ -704,10 +752,11 @@ namespace kml
             {
                 sampler_ = s;
             }
-            const std::shared_ptr<AnimationSampler>& GetSampler()const
+            const std::shared_ptr<AnimationSampler>& GetSampler() const
             {
                 return sampler_;
             }
+
         protected:
             std::string name_;
             int index_;
@@ -720,15 +769,15 @@ namespace kml
         {
         public:
             Animation(const std::string& name, int index)
-                :name_(name), index_(index)
+                : name_(name), index_(index)
             {
                 ;
             }
-            const std::string& GetName()const
+            const std::string& GetName() const
             {
                 return name_;
             }
-            int GetIndex()const
+            int GetIndex() const
             {
                 return index_;
             }
@@ -740,14 +789,15 @@ namespace kml
             {
                 samplers_.push_back(s);
             }
-            const std::vector<std::shared_ptr<AnimationChannel> >& GetChannels()const
+            const std::vector<std::shared_ptr<AnimationChannel> >& GetChannels() const
             {
                 return channels_;
             }
-            const std::vector<std::shared_ptr<AnimationSampler> > GetSamplers()const
+            const std::vector<std::shared_ptr<AnimationSampler> > GetSamplers() const
             {
                 return samplers_;
             }
+
         private:
             std::string name_;
             int index_;
@@ -759,11 +809,11 @@ namespace kml
         {
         public:
             Node(const std::string& name, int index)
-                :name_(name), index_(index)
+                : name_(name), index_(index)
             {
                 trans_.reset(new Transform());
             }
-            const std::string& GetName()const
+            const std::string& GetName() const
             {
                 return name_;
             }
@@ -771,11 +821,11 @@ namespace kml
             {
                 path_ = path;
             }
-            const std::string& GetPath()const
+            const std::string& GetPath() const
             {
                 return path_;
             }
-            int GetIndex()const
+            int GetIndex() const
             {
                 return index_;
             }
@@ -783,15 +833,23 @@ namespace kml
             {
                 mesh_ = mesh;
             }
-            const std::shared_ptr<Mesh>& GetMesh()const
+            const std::shared_ptr<Mesh>& GetMesh() const
             {
                 return mesh_;
+            }
+            void SetJoint(const std::shared_ptr<Joint>& joint)
+            {
+                joint_ = joint;
+            }
+            const std::shared_ptr<Joint>& GetJoint() const
+            {
+                return joint_;
             }
             void SetSkin(const std::shared_ptr<Skin>& skin)
             {
                 skin_ = skin;
             }
-            const std::shared_ptr<Skin>& GetSkin()const
+            const std::shared_ptr<Skin>& GetSkin() const
             {
                 return skin_;
             }
@@ -799,39 +857,39 @@ namespace kml
             {
                 children_.push_back(node);
             }
-            std::vector< std::shared_ptr<Node> >& GetChildren()
+            std::vector<std::shared_ptr<Node> >& GetChildren()
             {
                 return children_;
             }
-            const std::vector< std::shared_ptr<Node> >& GetChildren()const
+            const std::vector<std::shared_ptr<Node> >& GetChildren() const
             {
                 return children_;
             }
-
             std::shared_ptr<Transform>& GetTransform()
             {
                 return trans_;
             }
-            const std::shared_ptr<Transform>& GetTransform()const
+            const std::shared_ptr<Transform>& GetTransform() const
             {
                 return trans_;
             }
 
-            glm::mat4 GetMatrix()const
+            glm::mat4 GetMatrix() const
             {
                 return trans_->GetMatrix();
             }
+
         protected:
             std::string name_;
             int index_;
             std::string path_;
             std::shared_ptr<Transform> trans_;
             std::shared_ptr<Mesh> mesh_;
+            std::shared_ptr<Joint> joint_;
             std::shared_ptr<Skin> skin_;
-            std::vector< std::shared_ptr<Node> > children_;
+            std::vector<std::shared_ptr<Node> > children_;
         };
-    }
-}
+    } // namespace gltf
+} // namespace kml
 
 #endif
-
