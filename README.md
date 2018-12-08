@@ -5,7 +5,7 @@
 The prebuild binary is here: https://kashika.co.jp/product/gltfexporter/
 
 ## Version
-1.5.1
+1.5.2
 
 ## Introduction
 This is the glTF 2.0 exporter for AUTODESK MAYA (
@@ -30,6 +30,8 @@ We support MAYA2017 and MAYA2018 on Windows and macOS, now.
 - [x] Bump mapping support (with Bump2d node)
 
 - [x] Material aiStandardSurface
+
+- [x] Material aiStandardHair
 
 - [ ] Material StingrayPBS
 
@@ -88,3 +90,4 @@ We support MAYA2017 and MAYA2018 on Windows and macOS, now.
 This software is MIT License.
 Copyright (c) 2018 Kashika, Inc.
 
+aiStanradHair and aiStandardSurface shader parameter exporter by Light Transport Entertainment, Inc.
