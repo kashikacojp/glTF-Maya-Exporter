@@ -87,6 +87,7 @@
 #include <maya/MTransformationMatrix.h>
 #include <maya/MVector.h>
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -94,7 +95,6 @@
 #include <set>
 #include <sstream>
 #include <vector>
-#include <algorithm>
 
 #include <errno.h>
 #include <string.h>
@@ -2694,15 +2694,29 @@ static void GetAllNodes(std::vector<std::shared_ptr<kml::Node> >& nodes, const s
     }
 }
 
-static std::vector< std::shared_ptr<kml::Node> > UniqueNodes(const std::vector<std::shared_ptr<kml::Node> >& nodes)
+static std::vector<std::shared_ptr<kml::Node> > UniqueNodes(const std::vector<std::shared_ptr<kml::Node> >& nodes)
 {
     typedef std::map<std::string, std::shared_ptr<kml::Node> > PathMapType;
     PathMapType pathMap;
     for (size_t i = 0; i < nodes.size(); i++)
     {
-        pathMap[nodes[i]->GetPath()] = nodes[i];
+        std::string path = nodes[i]->GetPath();
+        PathMapType::iterator it = pathMap.find(path);
+        if (it == pathMap.end())
+        {
+            pathMap[path] = nodes[i];
+        }
+        else
+        {
+            std::shared_ptr<kml::Mesh> amesh = it->second->GetMesh();
+            std::shared_ptr<kml::Mesh> bmesh = nodes[i]->GetMesh();
+            if (!amesh.get() && bmesh.get())
+            {
+                pathMap[path] = nodes[i];
+            }
+        }
     }
-    std::vector< std::shared_ptr<kml::Node> > ret;
+    std::vector<std::shared_ptr<kml::Node> > ret;
     for (PathMapType::const_iterator it = pathMap.begin(); it != pathMap.end(); it++)
     {
         ret.push_back(it->second);
@@ -2710,7 +2724,7 @@ static std::vector< std::shared_ptr<kml::Node> > UniqueNodes(const std::vector<s
     return ret;
 }
 
-static std::shared_ptr<kml::Node> FindChild(const std::vector< std::shared_ptr<kml::Node> >& children, const std::string& name)
+static std::shared_ptr<kml::Node> FindChild(const std::vector<std::shared_ptr<kml::Node> >& children, const std::string& name)
 {
     for (size_t i = 0; i < children.size(); i++)
     {
@@ -2722,7 +2736,7 @@ static std::shared_ptr<kml::Node> FindChild(const std::vector< std::shared_ptr<k
     return std::shared_ptr<kml::Node>();
 }
 
-static void SetParent(std::shared_ptr<kml::Node>& parent, const std::vector <std::string>& paths, const std::shared_ptr<kml::Node>& node)
+static void SetParent(std::shared_ptr<kml::Node>& parent, const std::vector<std::string>& paths, const std::shared_ptr<kml::Node>& node)
 {
     auto cFound = FindChild(parent->GetChildren(), paths.front());
     if (cFound.get())
@@ -2766,11 +2780,11 @@ static std::shared_ptr<kml::Node> CombineNodes(const std::vector<std::shared_ptr
     struct NodeStruct
     {
         std::shared_ptr<kml::Node> node;
-        std::vector <std::string> paths;
+        std::vector<std::string> paths;
     };
     struct NodeStructSorter
     {
-        bool operator()(const NodeStruct& l, const NodeStruct& r)const
+        bool operator()(const NodeStruct& l, const NodeStruct& r) const
         {
             if (l.paths.size() != r.paths.size())
             {
