@@ -5,7 +5,7 @@
 The prebuild binary is here: https://kashika.co.jp/product/gltfexporter/
 
 ## Version
-1.5.2
+1.5.3
 
 ## Introduction
 This is the glTF 2.0 exporter for AUTODESK MAYA (
