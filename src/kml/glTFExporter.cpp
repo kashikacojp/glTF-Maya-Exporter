@@ -978,9 +978,12 @@ namespace kml
                                     std::string path = it->first;
                                     float weight = it->second;
                                     auto nn = nodeMap_[path];
-                                    auto jj = nn->GetJoint();
-                                    int index = std::max<int>(0, jj->GetIndexInSkin());
-                                    ww.push_back(std::make_pair(index, weight));
+                                    if (nn.get())
+                                    {
+                                        auto jj = nn->GetJoint();
+                                        int index = std::max<int>(0, jj->GetIndexInSkin());
+                                        ww.push_back(std::make_pair(index, weight));
+                                    }
                                 }
                                 std::sort(ww.begin(), ww.end(), WeightSorter());
                                 unsigned short jx[4] = {};
