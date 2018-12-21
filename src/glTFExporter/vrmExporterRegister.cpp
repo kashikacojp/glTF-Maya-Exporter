@@ -19,7 +19,7 @@
 
 #define VENDOR_NAME "KASHIKA,Inc."
 #define PLUGIN_NAME "VRM-Maya-Exporter"
-#define PLUGIN_VERSION "1.5.1"
+#define PLUGIN_VERSION "1.5.3"
 
 #define EXPOTER_NAME_VRM "VRM Export"
 
@@ -62,6 +62,9 @@ static void ShowLicense()
     PrintTextLn(showText);
 }
 
+#ifdef _WIN32
+__declspec(dllexport)
+#endif // WIN32
 MStatus initializePlugin(MObject obj)
 {
     MFnPlugin plugin(obj, VENDOR_NAME, PLUGIN_VERSION, "Any");
@@ -79,6 +82,9 @@ MStatus initializePlugin(MObject obj)
 }
 //////////////////////////////////////////////////////////////
 
+#ifdef _WIN32
+__declspec(dllexport)
+#endif // WIN32
 MStatus uninitializePlugin(MObject obj)
 {
     MFnPlugin plugin(obj);
