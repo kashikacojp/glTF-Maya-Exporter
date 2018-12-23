@@ -19,7 +19,7 @@
 
 #define VENDOR_NAME "KASHIKA,Inc."
 #define PLUGIN_NAME "VRM-Maya-Exporter"
-#define PLUGIN_VERSION "1.5.3"
+#define PLUGIN_VERSION "1.5.4"
 
 #define EXPOTER_NAME_VRM "VRM Export"
 

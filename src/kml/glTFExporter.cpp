@@ -1933,7 +1933,7 @@ namespace kml
             return -1;
         }
 
-        static int FindVRNJointIndex(const std::vector<std::string>& joint_names, const std::string& key)
+        static int FindVRMJointIndex(const std::vector<std::string>& joint_names, const std::string& key)
         {
             static const JointMap JointMaps[] = {
                 {"hips", {"hip", "pelvis", NULL, NULL, NULL}},
@@ -2005,8 +2005,8 @@ namespace kml
 
                 {NULL, {NULL, NULL, NULL, NULL, NULL}}};
 
-            static const PCTR LeftKeys[] = {"l_", "left", NULL};
-            static const PCTR RightKeys[] = {"r_", "right", NULL};
+            static const PCTR LeftKeys[] = {"left", "_l",  NULL};
+            static const PCTR RightKeys[] = {"right", "_r", NULL};
 
             int key_index = FindJointKeyIndex(JointMaps, key.c_str());
             const PCTR* subStrs = JointMaps[key_index].szSubStrs;
@@ -2215,7 +2215,7 @@ namespace kml
 
                 for (int i = 0; i < sizeof(boneNames) / sizeof(const char*); ++i)
                 {
-                    int idx = FindVRNJointIndex(joint_names, boneNames[i]);
+                    int idx = FindVRMJointIndex(joint_names, boneNames[i]);
                     if (idx >= 0)
                     {
                         picojson::object info;
@@ -2225,6 +2225,7 @@ namespace kml
                         humanBones.push_back(picojson::value(info));
                     }
                 }
+
                 humanoid["humanBones"] = picojson::value(humanBones);
                 /*
                 "armStretch": 0.05,
@@ -2250,7 +2251,7 @@ namespace kml
 
             {*/
                 picojson::object firstPerson;
-                firstPerson["firstPersonBone"] = picojson::value((double)FindVRNJointIndex(joint_names, "head")); //picojson::value(-1.0);
+                firstPerson["firstPersonBone"] = picojson::value((double)FindVRMJointIndex(joint_names, "head")); //picojson::value(-1.0);
                 picojson::object firstPersonBoneOffset;
                 firstPersonBoneOffset["x"] = picojson::value(0.0);
                 firstPersonBoneOffset["y"] = picojson::value(0.0); //head->GetGlobalMatrix()[3][1];
