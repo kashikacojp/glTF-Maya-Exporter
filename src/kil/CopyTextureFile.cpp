@@ -107,7 +107,7 @@ namespace kil
 	}
 
 
-	bool CopyTextureFile(const std::string& orgPath, const std::string& dstPath)
+	bool CopyTextureFile(const std::string& orgPath, const std::string& dstPath, float quality)
 	{
 		std::string orgExt = GetExt(orgPath);
 		std::string dstExt = GetExt(dstPath);
@@ -125,12 +125,12 @@ namespace kil
 #ifdef _WIN32
 				return CopyTextureFile_GdiPlus(orgPath, dstPath);
 #else
-				return CopyTextureFile_STB(orgPath, dstPath);
+				return CopyTextureFile_STB(orgPath, dstPath, quality);
 #endif
 			}
 			else
 			{
-				return CopyTextureFile_STB(orgPath, dstPath);
+				return CopyTextureFile_STB(orgPath, dstPath, quality);
 			}
 		}
 		return true;

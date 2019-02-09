@@ -21,7 +21,7 @@ namespace kil
 		return "";
 	}
 
-	bool CopyTextureFile_STB(const std::string& orgPath, const std::string& dstPath)
+	bool CopyTextureFile_STB(const std::string& orgPath, const std::string& dstPath, float quality)
 	{
 		int width = 0;
 		int height = 0;
@@ -35,7 +35,8 @@ namespace kil
 		std::string ext = GetExt(dstPath);
 		if (ext == ".jpg" || ext == ".jpeg")
 		{
-			stbi_write_jpg(dstPath.c_str(), width, height, channels, buffer, 95);
+            int q = std::max<int>(0, std::min<int>(int(quality * 100), 100));
+			stbi_write_jpg(dstPath.c_str(), width, height, channels, buffer, q);
 		}
 		else if (ext == ".png")
 		{

@@ -6,7 +6,7 @@
 
 namespace kil
 {
-	bool CopyTextureFile(const std::string& src_path, const std::string& dst_path);
+	bool CopyTextureFile(const std::string& src_path, const std::string& dst_path, float quality = 0.9);
 }
 
 #endif

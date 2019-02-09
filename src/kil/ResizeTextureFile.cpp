@@ -1,6 +1,7 @@
 #include "ResizeTextureFile.h"
 #include "CopyTextureFile.h"
 
+#include <iostream>
 #include <algorithm>
 #include <math.h>
 #include <stdio.h>
@@ -29,7 +30,7 @@ namespace kil
 		return "";
 	}
 
-	bool ResizeTextureFile_STB(const std::string& orgPath, const std::string& dstPath, int maximum_size, int resize_size)
+	bool ResizeTextureFile_STB(const std::string& orgPath, const std::string& dstPath, int maximum_size, int resize_size, float quality)
 	{
 		int width = 0;
 		int height = 0;
@@ -46,7 +47,7 @@ namespace kil
 			{
 				stbi_image_free(buffer);
 			}
-			return false;
+			return CopyTextureFile(orgPath, dstPath, quality);
 		}
 
 		float factor = resize_size / ((float)std::max<int>(width, height));
@@ -70,7 +71,8 @@ namespace kil
 		std::string ext = GetExt(dstPath);
 		if (ext == ".jpg" || ext == ".jpeg")
 		{
-			stbi_write_jpg(dstPath.c_str(), nw, nh, channels, nbuffer, 10);//quality = 10
+            int q = std::max<int>(0, std::min<int>(int(quality * 100), 100));
+			stbi_write_jpg(dstPath.c_str(), nw, nh, channels, nbuffer, q);//quality = 90
 		}
 		else if (ext == ".png")
 		{
@@ -131,22 +133,22 @@ namespace kil
 #endif
 	}
 
-	bool ResizeTextureFile(const std::string& orgPath, const std::string& dstPath, int maximum_size, int resize_size)
+	bool ResizeTextureFile(const std::string& orgPath, const std::string& dstPath, int maximum_size, int resize_size, float quality)
 	{
 		std::string ext = GetExt(orgPath);
 		if (ext == ".tiff" || ext == ".tif")
 		{
 			std::string tmpPath = GetPngTempPath();
 			bool bRet = true;
-			bRet = CopyTextureFile(orgPath, tmpPath);
+			bRet = CopyTextureFile(orgPath, tmpPath, quality);
 			if (!bRet)return bRet;
-			bRet = ResizeTextureFile_STB(tmpPath, dstPath, maximum_size, resize_size);
+			bRet = ResizeTextureFile_STB(tmpPath, dstPath, maximum_size, resize_size, quality);
 			RemoveFile(tmpPath);
 			return bRet;
 		}
 		else
 		{
-			return ResizeTextureFile_STB(orgPath, dstPath, maximum_size, resize_size);
+			return ResizeTextureFile_STB(orgPath, dstPath, maximum_size, resize_size, quality);
 		}
 	}
 }

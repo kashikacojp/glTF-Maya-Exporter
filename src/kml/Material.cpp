@@ -6,7 +6,8 @@
 namespace kml
 {
     typedef std::map<std::string, int> IntegerMapType;
-    typedef std::map<std::string, float> ValueMapType;
+    typedef std::map<std::string, float> FloatMapType;
+    typedef std::map<std::string, std::string> StringMapType;
     typedef std::map<std::string, std::shared_ptr<Texture> > TextureMapType;
 
     Material::Material()
@@ -22,6 +23,11 @@ namespace kml
     void Material::SetFloat(const std::string& key, float val)
     {
         fmap[key] = val;
+    }
+
+    void Material::SetString(const std::string& key, const std::string& val)
+    {
+        smap[key] = val;
     }
 
     void Material::SetTexture(const std::string& key, std::shared_ptr<Texture> tex)
@@ -41,7 +47,7 @@ namespace kml
 
     float Material::GetFloat(const std::string& key) const
     {
-        ValueMapType::const_iterator it = fmap.find(key);
+        FloatMapType::const_iterator it = fmap.find(key);
         if (it != fmap.end())
         {
             return it->second;
@@ -49,25 +55,15 @@ namespace kml
         return 0;
     }
 
-    /*std::string Material::GetString(const std::string& key)const
+    std::string Material::GetString(const std::string& key)const
 	{
-		TextureMapType::const_iterator it = smap.find(key);
+		StringMapType::const_iterator it = smap.find(key);
 		if (it != smap.end())
 		{
 			return it->second;
 		}
 		return "";
 	}
-
-	std::vector<std::string> Material::GetStringKeys()const
-	{
-		std::vector<std::string> ret;
-		for (TextureMapType::const_iterator it = smap.begin(); it != smap.end(); it++)
-		{
-			ret.push_back(it->first);
-		}
-		return ret;
-	}*/
 
     std::shared_ptr<Texture> Material::GetTexture(const std::string& key) const
     {
