@@ -3,17 +3,16 @@
 
 #ifdef _WIN32
 #define NOMINMAX
-#include <windows.h>
 #include "CopyTextureFile_GdiPlus.h"
+#include <windows.h>
 #endif
-
 
 #ifndef _WIN32 // linux / macOS
 
+#include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <errno.h>
-int copyfile(const char *from, const char *to)
+int copyfile(const char* from, const char* to)
 {
     int fd_to, fd_from;
     char buf[4096];
@@ -29,9 +28,10 @@ int copyfile(const char *from, const char *to)
 
     while (nread = read(fd_from, buf, sizeof buf), nread > 0)
     {
-        char *out_ptr = buf;
+        char* out_ptr = buf;
         ssize_t nwritten;
-        do {
+        do
+        {
             nwritten = write(fd_to, out_ptr, nread);
 
             if (nwritten >= 0)
@@ -74,65 +74,61 @@ out_error:
 
 namespace kil
 {
-	static
-	std::string GetExt(const std::string& filepath)
-	{
-		if (filepath.find_last_of(".") != std::string::npos)
-			return filepath.substr(filepath.find_last_of("."));
-		return "";
-	}
+    static std::string GetExt(const std::string& filepath)
+    {
+        if (filepath.find_last_of(".") != std::string::npos)
+            return filepath.substr(filepath.find_last_of("."));
+        return "";
+    }
 
-	static
-	bool CopyTextureFile_NonConvert(const std::string& orgPath, const std::string& dstPath)
-	{
+    static bool CopyTextureFile_NonConvert(const std::string& orgPath, const std::string& dstPath)
+    {
 #ifdef _WIN32
-		if (::CopyFileA(orgPath.c_str(), dstPath.c_str(), TRUE))
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
+        if (::CopyFileA(orgPath.c_str(), dstPath.c_str(), TRUE))
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
 #else
-		if (copyfile(orgPath.c_str(), dstPath.c_str()))
-		{
-			return true;
-		}
-		else
-		{
-			return false;
-		}
+        if (copyfile(orgPath.c_str(), dstPath.c_str()))
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
 #endif
-	}
+    }
 
-
-	bool CopyTextureFile(const std::string& orgPath, const std::string& dstPath, float quality)
-	{
-		std::string orgExt = GetExt(orgPath);
-		std::string dstExt = GetExt(dstPath);
-		if (orgExt == dstExt)
-		{
-			return CopyTextureFile_NonConvert(orgPath, dstPath);
-		}
-		else
-		{
-			if (
-				orgExt == ".tiff" || orgExt == ".tif" || orgExt == ".bmp" ||
-				dstExt == ".tiff" || dstExt == ".tif" || dstExt == ".bmp"
-			)
-			{
+    bool CopyTextureFile(const std::string& orgPath, const std::string& dstPath, float quality)
+    {
+        std::string orgExt = GetExt(orgPath);
+        std::string dstExt = GetExt(dstPath);
+        if (orgExt == dstExt)
+        {
+            return CopyTextureFile_NonConvert(orgPath, dstPath);
+        }
+        else
+        {
+            if (
+                orgExt == ".tiff" || orgExt == ".tif" || orgExt == ".bmp" ||
+                dstExt == ".tiff" || dstExt == ".tif" || dstExt == ".bmp")
+            {
 #ifdef _WIN32
-				return CopyTextureFile_GdiPlus(orgPath, dstPath);
+                return CopyTextureFile_GdiPlus(orgPath, dstPath);
 #else
-				return CopyTextureFile_STB(orgPath, dstPath, quality);
+                return CopyTextureFile_STB(orgPath, dstPath, quality);
 #endif
-			}
-			else
-			{
-				return CopyTextureFile_STB(orgPath, dstPath, quality);
-			}
-		}
-		return true;
-	}
-}
+            }
+            else
+            {
+                return CopyTextureFile_STB(orgPath, dstPath, quality);
+            }
+        }
+        return true;
+    }
+} // namespace kil
