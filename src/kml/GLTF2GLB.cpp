@@ -245,11 +245,6 @@ namespace kml
 
                         bufferOffset += sz;
                     }
-                    else
-                    {
-                        std::cout << "???:" << uri << std::endl;
-                    }
-                    
                 }
             }
         }
