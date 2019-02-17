@@ -9,6 +9,8 @@
 #include <stb/stb_image_resize.h>
 #include <stb/stb_image_write.h>
 
+#include <algorithm>
+
 namespace kil
 {
     static std::string GetExt(const std::string& filepath)

@@ -3,8 +3,9 @@
 
 #ifdef _WIN32
 #define NOMINMAX
-#include "CopyTextureFile_GdiPlus.h"
 #include <windows.h>
+
+#include "CopyTextureFile_GdiPlus.h"
 #endif
 
 #ifndef _WIN32 // linux / macOS

@@ -2,10 +2,13 @@
 #include "CopyTextureFile_GdiPlus.h"
 
 #ifdef _WIN32
-#include <Gdiplusinit.h>
+//#define NOMINMAX
+#include <windows.h>
+
 #include <gdiplus.h>
 #include <shlobj.h>
-#include <windows.h>
+
+#include <Gdiplusinit.h>
 
 #pragma comment(lib, "shlwapi.lib")
 #pragma comment(lib, "gdiplus.lib")
