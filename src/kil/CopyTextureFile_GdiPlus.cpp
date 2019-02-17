@@ -2,7 +2,7 @@
 #include "CopyTextureFile_GdiPlus.h"
 
 #ifdef _WIN32
-//#define NOMINMAX
+/* Not define NOMINMAX here: GDIplus use WIN32 min/max macro */
 #include <windows.h>
 
 #include <gdiplus.h>
