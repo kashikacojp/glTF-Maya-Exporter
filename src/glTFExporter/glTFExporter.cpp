@@ -1557,6 +1557,43 @@ static MColor getColor(MFnDependencyNode& node, const char* name)
     return color;
 }
 
+static std::string GetWorkspacePath()
+{
+    MString command = "workspace -q -rd;";
+    return MGlobal::executeCommandStringResult(command).asChar();
+}
+
+static std::string GetTexturePath(const std::string& path)
+{
+    std::string texpath = path;
+    if (IsFileExist(texpath))
+    {
+        return texpath;
+    }
+
+    std::string ws = GetWorkspacePath();
+
+    // project path delimitor
+    const std::string pathDelimiter = "//";
+    size_t delim = texpath.find(pathDelimiter);
+    if (delim != std::string::npos)
+    {
+        texpath.erase(0, delim + pathDelimiter.size());
+    }
+    if (IsFileExist(texpath))
+    {
+        return texpath;
+    }
+
+    std::string wsPath = ws + texpath;
+    if (IsFileExist(wsPath))
+    {
+        return wsPath;
+    }
+
+    return "";
+}
+
 static bool getTextureAndColor(const MFnDependencyNode& node, const MString& name, std::shared_ptr<kml::Texture>& tex, MColor& color)
 {
     color = MColor(1.0, 1.0, 1.0, 1.0);
@@ -1575,73 +1612,70 @@ static bool getTextureAndColor(const MFnDependencyNode& node, const MString& nam
             MPlug texturePlug = texNode.findPlug("fileTextureName", &status);
             if (status == MS::kSuccess)
             {
-                tex = std::shared_ptr<kml::Texture>(new kml::Texture);
                 MString tpath;
                 texturePlug.getValue(tpath);
                 std::string texpath = tpath.asChar();
 
-                // project path delimitor
-                const std::string pathDelimiter = "//";
-                size_t delim = texpath.find(pathDelimiter);
-                if (delim != std::string::npos)
+                texpath = GetTexturePath(texpath);
+                if (!texpath.empty())
                 {
-                    texpath.erase(0, delim + pathDelimiter.size());
+                    tex = std::shared_ptr<kml::Texture>(new kml::Texture);
+                    tex->SetFilePath(texpath);
+
+                    // filter
+                    const int filterType = texNode.findPlug("filter").asInt();
+                    if (filterType == 0)
+                    { // None
+                        tex->SetFilter(kml::Texture::FILTER_NEAREST);
+                    }
+                    else
+                    { // Linear
+                        tex->SetFilter(kml::Texture::FILTER_LINEAR);
+                    }
+
+                    // repeart
+                    const float repeatU = texNode.findPlug("repeatU").asFloat();
+                    const float repeatV = texNode.findPlug("repeatV").asFloat();
+                    tex->SetRepeat(repeatU, repeatV);
+
+                    // offset
+                    const float offsetU = texNode.findPlug("offsetU").asFloat();
+                    const float offsetV = texNode.findPlug("offsetV").asFloat();
+                    tex->SetRepeat(offsetU, offsetV);
+
+                    // wrap
+                    const bool wrapU = texNode.findPlug("wrapU").asBool();
+                    const bool wrapV = texNode.findPlug("wrapV").asBool();
+                    tex->SetWrap(wrapU, wrapV);
+
+                    // UDIM
+                    const int tilingMode = texNode.findPlug("uvTilingMode").asInt();
+                    if (tilingMode == 0)
+                    { // OFF
+                        tex->SetUDIMMode(false);
+                    }
+                    else if (tilingMode == 3)
+                    { // UDIM
+                        tex->SetUDIMMode(true);
+
+                        // get <UDIM> tag filepath
+                        MPlug compNamePlug = texNode.findPlug("computedFileTextureNamePattern", &status);
+                        MString ctpath;
+                        compNamePlug.getValue(ctpath);
+                        std::string ctexpath = ctpath.asChar();
+                        tex->SetUDIMFilePath(ctexpath);
+                    }
+                    else
+                    { // Not Support
+                        fprintf(stderr, "Error: Not support texture tiling mode.\n");
+                    }
+                    // if material has texture, set color(1,1,1)
+                    color.r = 1.0f;
+                    color.g = 1.0f;
+                    color.b = 1.0f;
+                    return true;
                 }
-                tex->SetFilePath(texpath);
-
-                // filter
-                const int filterType = texNode.findPlug("filter").asInt();
-                if (filterType == 0)
-                { // None
-                    tex->SetFilter(kml::Texture::FILTER_NEAREST);
-                }
-                else
-                { // Linear
-                    tex->SetFilter(kml::Texture::FILTER_LINEAR);
-                }
-
-                // repeart
-                const float repeatU = texNode.findPlug("repeatU").asFloat();
-                const float repeatV = texNode.findPlug("repeatV").asFloat();
-                tex->SetRepeat(repeatU, repeatV);
-
-                // offset
-                const float offsetU = texNode.findPlug("offsetU").asFloat();
-                const float offsetV = texNode.findPlug("offsetV").asFloat();
-                tex->SetRepeat(offsetU, offsetV);
-
-                // wrap
-                const bool wrapU = texNode.findPlug("wrapU").asBool();
-                const bool wrapV = texNode.findPlug("wrapV").asBool();
-                tex->SetWrap(wrapU, wrapV);
-
-                // UDIM
-                const int tilingMode = texNode.findPlug("uvTilingMode").asInt();
-                if (tilingMode == 0)
-                { // OFF
-                    tex->SetUDIMMode(false);
-                }
-                else if (tilingMode == 3)
-                { // UDIM
-                    tex->SetUDIMMode(true);
-
-                    // get <UDIM> tag filepath
-                    MPlug compNamePlug = texNode.findPlug("computedFileTextureNamePattern", &status);
-                    MString ctpath;
-                    compNamePlug.getValue(ctpath);
-                    std::string ctexpath = ctpath.asChar();
-                    tex->SetUDIMFilePath(ctexpath);
-                }
-                else
-                { // Not Support
-                    fprintf(stderr, "Error: Not support texture tiling mode.\n");
-                }
-
-                // if material has texture, set color(1,1,1)
-                color.r = 1.0f;
-                color.g = 1.0f;
-                color.b = 1.0f;
-                return true;
+                return false;
             }
             return false;
         }
