@@ -26,6 +26,7 @@ namespace kml
         std::vector<unsigned char> facenums;
         std::vector<int> materials;
         size_t offset = 0;
+
         for (size_t i = 0; i < mesh->facenums.size(); i++)
         {
             int nf = mesh->facenums[i];
@@ -35,8 +36,14 @@ namespace kml
                 for (int j = 0; j < nf; j++)
                 {
                     pos_indices.push_back(mesh->pos_indices[offset + j]);
-                    nor_indices.push_back(mesh->nor_indices[offset + j]);
-                    tex_indices.push_back(mesh->tex_indices[offset + j]);
+                    if(mesh->nor_indices.size() > 0)
+                    {
+                        nor_indices.push_back(mesh->nor_indices[offset + j]);
+                    }
+                    if(mesh->tex_indices.size() > 0)
+                    {
+                        tex_indices.push_back(mesh->tex_indices[offset + j]);
+                    }
                 }
                 materials.push_back(mesh->materials[i]);
             }
@@ -56,22 +63,27 @@ namespace kml
                 pos_indices.push_back(mesh->pos_indices[offset + 3]);
 
                 //
-                nor_indices.push_back(mesh->nor_indices[offset + 0]);
-                nor_indices.push_back(mesh->nor_indices[offset + 1]);
-                nor_indices.push_back(mesh->nor_indices[offset + 3]);
+                if(mesh->nor_indices.size() > 0)
+                {
+                    nor_indices.push_back(mesh->nor_indices[offset + 0]);
+                    nor_indices.push_back(mesh->nor_indices[offset + 1]);
+                    nor_indices.push_back(mesh->nor_indices[offset + 3]);
 
-                nor_indices.push_back(mesh->nor_indices[offset + 1]);
-                nor_indices.push_back(mesh->nor_indices[offset + 2]);
-                nor_indices.push_back(mesh->nor_indices[offset + 3]);
-
+                    nor_indices.push_back(mesh->nor_indices[offset + 1]);
+                    nor_indices.push_back(mesh->nor_indices[offset + 2]);
+                    nor_indices.push_back(mesh->nor_indices[offset + 3]);
+                }
                 //
-                tex_indices.push_back(mesh->tex_indices[offset + 0]);
-                tex_indices.push_back(mesh->tex_indices[offset + 1]);
-                tex_indices.push_back(mesh->tex_indices[offset + 3]);
+                if(mesh->tex_indices.size() > 0)
+                {
+                    tex_indices.push_back(mesh->tex_indices[offset + 0]);
+                    tex_indices.push_back(mesh->tex_indices[offset + 1]);
+                    tex_indices.push_back(mesh->tex_indices[offset + 3]);
 
-                tex_indices.push_back(mesh->tex_indices[offset + 1]);
-                tex_indices.push_back(mesh->tex_indices[offset + 2]);
-                tex_indices.push_back(mesh->tex_indices[offset + 3]);
+                    tex_indices.push_back(mesh->tex_indices[offset + 1]);
+                    tex_indices.push_back(mesh->tex_indices[offset + 2]);
+                    tex_indices.push_back(mesh->tex_indices[offset + 3]);
+                }
 
                 materials.push_back(mesh->materials[i]);
                 materials.push_back(mesh->materials[i]);
@@ -87,13 +99,19 @@ namespace kml
                     pos_indices.push_back(mesh->pos_indices[offset + j + 1]);
                     pos_indices.push_back(mesh->pos_indices[offset + j + 2]);
 
-                    nor_indices.push_back(mesh->nor_indices[offset + 0]);
-                    nor_indices.push_back(mesh->nor_indices[offset + j + 1]);
-                    nor_indices.push_back(mesh->nor_indices[offset + j + 2]);
+                    if(mesh->nor_indices.size() > 0)
+                    {
+                        nor_indices.push_back(mesh->nor_indices[offset + 0]);
+                        nor_indices.push_back(mesh->nor_indices[offset + j + 1]);
+                        nor_indices.push_back(mesh->nor_indices[offset + j + 2]);
+                    }
 
-                    tex_indices.push_back(mesh->tex_indices[offset + 0]);
-                    tex_indices.push_back(mesh->tex_indices[offset + j + 1]);
-                    tex_indices.push_back(mesh->tex_indices[offset + j + 2]);
+                    if(mesh->tex_indices.size() > 0)
+                    {
+                        tex_indices.push_back(mesh->tex_indices[offset + 0]);
+                        tex_indices.push_back(mesh->tex_indices[offset + j + 1]);
+                        tex_indices.push_back(mesh->tex_indices[offset + j + 2]);
+                    }
                 }
             }
             offset += nf;
