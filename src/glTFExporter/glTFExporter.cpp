@@ -2480,7 +2480,13 @@ static MStatus WriteGLTF(
             }
         }
     }
-
+    if (!recalc_normals)
+    {
+        if (!kml::CalculateNormalsMesh(node->GetMesh()))
+        {
+            return MS::kFailure;
+        }
+    }
     if (!kml::TriangulateMesh(node->GetMesh()))
     {
         return MS::kFailure;
