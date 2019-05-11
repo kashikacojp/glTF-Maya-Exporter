@@ -73,7 +73,7 @@ namespace kml
         {
         public:
             BufferView(const std::string& name, int index)
-                : name_(name), index_(index)
+                : name_(name), index_(index), byteStride_(0)
             {
             }
             const std::string& GetName() const
@@ -100,6 +100,10 @@ namespace kml
             {
                 byteLength_ = sz;
             }
+            void SetByteStride(size_t bs)
+            {
+                byteStride_ = bs;
+            }
             size_t GetByteOffset() const
             {
                 return byteOffset_;
@@ -107,6 +111,10 @@ namespace kml
             size_t GetByteLength() const
             {
                 return byteLength_;
+            }
+            size_t GetByteStride() const
+            {
+                return byteStride_;
             }
             void SetTarget(int t)
             {
@@ -123,6 +131,7 @@ namespace kml
             std::shared_ptr<Buffer> buffer_;
             size_t byteOffset_;
             size_t byteLength_;
+            size_t byteStride_;
             int target_;
         };
 
@@ -233,6 +242,41 @@ namespace kml
                 return componentType_;
             }
 
+            int GetComponentByteSize() const
+            {
+                switch (componentType_)
+                {
+                case GLTF_COMPONENT_TYPE_DOUBLE:
+                    return 8;
+				case GLTF_COMPONENT_TYPE_FLOAT:
+                    return 4;
+                case GLTF_COMPONENT_TYPE_BYTE:
+                case GLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+                    return 1;
+                case GLTF_COMPONENT_TYPE_INT:
+                case GLTF_COMPONENT_TYPE_UNSIGNED_INT:
+                    return 4;
+                case GLTF_COMPONENT_TYPE_SHORT:
+                case GLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+                    return 2;
+                default:
+                    return 4;
+				}
+            }
+
+			int GetTypeElementNum() const
+			{
+                if (type_ == "SCALAR")
+                    return 1;
+                else if (type_ == "VEC4")
+                    return 4;
+                else if (type_ == "VEC3")
+                    return 3;
+                else if (type_ == "VEC2")
+                    return 2;
+                return 1;
+			}
+
             void SetCount(size_t c)
             {
                 count_ = c;
@@ -251,6 +295,11 @@ namespace kml
             size_t GetByteOffset() const
             {
                 return byteOffset_;
+            }
+
+            size_t GetByteStride() const
+            {
+                return GetTypeElementNum() * GetComponentByteSize();
             }
 
             void SetMin(const std::vector<float>& v)

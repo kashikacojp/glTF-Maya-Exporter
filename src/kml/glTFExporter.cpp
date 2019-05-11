@@ -1281,7 +1281,7 @@ namespace kml
             return -1;
         }
 
-        static int FindImageIndex(const std::vector< std::string >& image_vec, const std::string& image_path)
+        static int FindImageIndex(const std::vector<std::string>& image_vec, const std::string& image_path)
         {
             for (int i = 0; i < (int)image_vec.size(); i++)
             {
@@ -1591,7 +1591,7 @@ namespace kml
                     {
                         nd["byteOffset"] = picojson::value((double)accessor->GetByteOffset());
                     }
-                    //nd["byteStride"] = accessor->Get("byteStride");
+                    //nd["byteStride"] = picojson::value((double)accessor->GetByteStride()); // old spec
                     nd["componentType"] = picojson::value((double)accessor->GetComponentType());
                     nd["count"] = picojson::value((double)accessor->GetCount());
                     nd["type"] = picojson::value(accessor->GetType());
@@ -1605,6 +1605,12 @@ namespace kml
                     {
                         nd["max"] = picojson::value(ConvertToArray(max_));
                     }
+
+					// Now omitt set byteStride
+                    /*if (accessor->GetType() != "SCALAR") { // if not INDEX buffer
+						bufferView->SetByteStride(accessor->GetByteStride());
+					}*/
+
                     ar.push_back(picojson::value(nd));
                 }
                 root["accessors"] = picojson::value(ar);
@@ -1622,6 +1628,10 @@ namespace kml
                     nd["buffer"] = picojson::value((double)bufferView->GetBuffer()->GetIndex());
                     nd["byteOffset"] = picojson::value((double)bufferView->GetByteOffset());
                     nd["byteLength"] = picojson::value((double)bufferView->GetByteLength());
+                    if (bufferView->GetByteStride() != 0)
+                    {
+                        nd["byteStride"] = picojson::value((double)bufferView->GetByteStride());
+                    }
                     int nBufferView = bufferView->GetTarget();
                     if (nBufferView >= 0)
                     {
@@ -1754,11 +1764,12 @@ namespace kml
                     std::string imagePath = in_tex->GetFilePath();
 
                     int nIndex = FindImageIndex(image_vec, imagePath);
-                    if(nIndex >= 0)
+                    if (nIndex >= 0)
                     {
                         picojson::object texture;
                         texture["sampler"] = picojson::value((double)sampler->GetIndex());
-                        texture["source"] = picojson::value((double)nIndex);;
+                        texture["source"] = picojson::value((double)nIndex);
+                        ;
                         textures.push_back(picojson::value(texture));
                     }
                 }
@@ -2005,7 +2016,7 @@ namespace kml
 
                 {NULL, {NULL, NULL, NULL, NULL, NULL}}};
 
-            static const PCTR LeftKeys[] = {"left", "_l",  NULL};
+            static const PCTR LeftKeys[] = {"left", "_l", NULL};
             static const PCTR RightKeys[] = {"right", "_r", NULL};
 
             int key_index = FindJointKeyIndex(JointMaps, key.c_str());
