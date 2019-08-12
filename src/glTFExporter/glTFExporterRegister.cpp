@@ -24,6 +24,7 @@
 #define EXPOTER_NAME_GLTF "GLTF Export"
 #define EXPOTER_NAME_GLB "GLB Export"
 
+
 const char* const gltfOptionScript = "glTFExporterOptions";
 const char* const gltfDefaultOptions =
     "recalc_normals=0;"
@@ -46,6 +47,9 @@ static void ShowLicense()
 {
     std::string showText;
     showText += PLUGIN_NAME;
+
+    showText += " based on glTF-Maya-Exporter by Kashika, Inc.";
+
     showText += " ";
     showText += "ver";
     showText += PLUGIN_VERSION;

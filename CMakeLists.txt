@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.2.3)
 #Use solution folders.
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-project("glTF-Maya-Exporter")
+project("glTF-Maya-Exporter-LTE")
 
 # -- options ----------------------------------------------------
 option(GLTF_MAYA_EXPORTER_BUILD_WITH_DRACO          "Build with Draco"             ON)
@@ -159,8 +159,8 @@ if (GLTF_MAYA_EXPORTER_BUILD_MAYA_GLTF_EXPORTER)
     target_link_libraries( glTFExporter
                         kml
                         OpenMaya
-                        OpenMayaAnim
-                        OpenMayaUI
+                        OpenMayaAnim  # For SkinCluster
+                        OpenMayaUI # For progress window
                         Foundation
     )
     SET_TARGET_PROPERTIES(glTFExporter PROPERTIES PREFIX "")
