@@ -1,0 +1,77 @@
+# AlShaders
+
+## Refernce
+
+2018: https://support.solidangle.com/display/A5AFMUG/Standard+Surface
+
+## Naming rule
+
+diffuse -> kd
+specular, reflection coat -> kr
+refraction, transmission -> kt
+
+
+## Diffuse(Base)
+
+* Weight
+* Color
+* Diffuse roughness
+
+## Specular(Reflection)
+
+* Weight
+* Color
+* Roughness
+* IOR
+* Anisotropy
+* Rotation
+
+## Transmission(Refraction)
+
+* Weight
+* Color
+* Extra roughness
+
+## Coat(Reflection?)
+
+* Weight
+* Color
+* Roughness
+* IOR
+* Normal(image map)
+
+## Emission
+
+* Weight
+* Color
+
+## Subsurface
+
+Optional
+
+* Weight
+* Subsurface Color
+* Radius
+* Scale
+* Anisotropy
+
+
+## Bump mapping
+
+* Bump map(normalCamera)
+
+## Texture mapping
+
+* Image map(filename)
+* UDim support(boolean parameter in material?)
+* Alpha texture
+  * Transparent PNG
+  * Alpha channel image
+
+
+
+
+
+
+
+

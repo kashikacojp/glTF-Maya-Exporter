@@ -31,6 +31,8 @@ We support MAYA2017 and MAYA2018 on Windows and macOS, now.
 
 - [x] Material aiStandardSurface
 
+- [x] Material aiStandardHair
+
 - [ ] Material StingrayPBS
 
 - [x] Transform/Skeleton
@@ -88,3 +90,4 @@ We support MAYA2017 and MAYA2018 on Windows and macOS, now.
 This software is MIT License.
 Copyright (c) 2018 Kashika, Inc.
 
+aiStanradHair and aiStandardSurface shader parameter exporter by Light Transport Entertainment, Inc.
