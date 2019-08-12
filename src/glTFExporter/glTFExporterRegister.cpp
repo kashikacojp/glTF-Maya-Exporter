@@ -20,6 +20,7 @@
 #define VENDOR_NAME "KASHIKA,Inc."
 #define PLUGIN_NAME "glTF-Maya-Exporter"
 #define PLUGIN_VERSION "1.5.3"
+
 #define EXPOTER_NAME_GLTF "GLTF Export"
 #define EXPOTER_NAME_GLB "GLB Export"
 

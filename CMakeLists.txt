@@ -87,6 +87,7 @@ endif()
 set (CMAKE_CXX_STANDARD 11)
 
 include_directories(
+    ${CMAKE_BINARY_DIR}
     externals/glm/
     externals/
     src/
