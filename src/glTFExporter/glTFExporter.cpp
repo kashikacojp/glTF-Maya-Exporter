@@ -354,7 +354,8 @@ static bool RemoveFiles(const std::string& path)
     cmd += "\"";
     cmd += path;
     cmd += "\"";
-    ::system(cmd.c_str());
+    int ret = ::system(cmd.c_str());
+    (void)ret;
     return true;
 #endif
 }
@@ -378,7 +379,8 @@ static std::string GetTempDirectory()
     std::string tmpPath = ::mktemp(buffer);
     std::string cmd = "mkdir -p ";
     cmd += "\"" + tmpPath + "\"";
-    ::system(cmd.c_str());
+    int ret = ::system(cmd.c_str());
+    (void)ret;
     return tmpPath;
 #endif
 }
@@ -1675,7 +1677,22 @@ static bool getTextureAndColor(const MFnDependencyNode& node, const MString& nam
                     color.b = 1.0f;
                     return true;
                 }
-                return false;
+                
+                // Colorspace
+                MPlug colorSpacePlug = texNode.findPlug("colorSpace");
+                MString colorSpaceStr;
+                colorSpacePlug.getValue(colorSpaceStr);
+                const std::string colorSpace = colorSpaceStr.asChar();
+                if (!colorSpace.empty()) {
+                    tex->SetColorSpace(colorSpace);
+                }
+                
+
+                // if material has texture, set color(1,1,1)
+                color.r = 1.0f;
+                color.g = 1.0f;
+                color.b = 1.0f;
+                return true;
             }
             return false;
         }
@@ -1788,6 +1805,30 @@ static bool isAiStandardSurfaceShader(const MFnDependencyNode& materialDependenc
            materialDependencyNode.hasAttribute("emissionColor");
 }
 
+static bool isAiStandardHairShader(const MFnDependencyNode& materialDependencyNode)
+{
+    return materialDependencyNode.hasAttribute("baseColor") &&
+           materialDependencyNode.hasAttribute("melanin") &&
+           materialDependencyNode.hasAttribute("melaninRedness") &&
+           materialDependencyNode.hasAttribute("shift");
+}
+
+static bool addTextureIfPresent(const std::string &plugName, const std::string &texName, const MFnDependencyNode &ainode, std::shared_ptr<kml::Material> &mat) {
+
+    MColor dummy;
+    std::shared_ptr<kml::Texture> tex(nullptr);
+    if (getTextureAndColor(ainode, MString(plugName.c_str()), tex, dummy))
+    {
+        if (tex)
+        {
+            mat->SetTexture(texName, tex);
+            return true;
+        }
+    }
+
+    return false;
+}
+
 static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, const MFnDependencyNode& ainode)
 {
     // store aishader name
@@ -1818,6 +1859,10 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
     mat->SetFloat("ai_diffuseRoughness", diffuseRoughness);
     mat->SetFloat("ai_metalness", metallic);
 
+    addTextureIfPresent("base", "ai_baseWeightTex", ainode, mat);
+    addTextureIfPresent("diffuseRoughness", "ai_diffuseRoughnessTex", ainode, mat);
+    addTextureIfPresent("metalness", "ai_metalnessTex", ainode, mat);
+
     // specular
     const float specularWeight = ainode.findPlug("specular").asFloat();
     const float specularColorR = ainode.findPlug("specularColorR").asFloat();
@@ -1844,6 +1889,13 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
     mat->SetFloat("ai_specularIOR", specularIOR);
     mat->SetFloat("ai_specularRotation", specularRotation);
     mat->SetFloat("ai_specularAnisotropy", specularAnisotropy);
+
+    addTextureIfPresent("specular", "ai_specularWeightTex", ainode, mat);
+    addTextureIfPresent("specularRoughness", "ai_specularRoughnessTex", ainode, mat);
+    addTextureIfPresent("specularIOR", "ai_specularIORTex", ainode, mat);
+    addTextureIfPresent("specularRotation", "ai_specularRotationTex", ainode, mat);
+    addTextureIfPresent("specularAnisotropy", "ai_specularAnisotropyTex", ainode, mat);
+
 
     // transmission
     const float transmissionWeight = ainode.findPlug("transmission").asFloat();
@@ -1889,6 +1941,12 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
     mat->SetFloat("ai_transmissionDispersion", transmissionDispersion);
     mat->SetInteger("ai_transmissionAovs", transmissionAovs);
 
+    addTextureIfPresent("transmission", "ai_transmissionWeightTex", ainode, mat);
+    addTextureIfPresent("transmissionDepth", "ai_transmissionDepthTex", ainode, mat);
+    addTextureIfPresent("transmissionScatterAnisotropy", "ai_transmissionScatterAnisotropyTex", ainode, mat);
+    addTextureIfPresent("transmissionExtraRoughness", "ai_transmissionExtraRoughnessTex", ainode, mat);
+    addTextureIfPresent("transmissionDispersion", "ai_transmissionDispersionTex", ainode, mat);
+
     // Subsurface
     const float subsurfaceWeight = ainode.findPlug("subsurface").asFloat();
     const float subsurfaceColorR = ainode.findPlug("subsurfaceColorR").asFloat();
@@ -1900,24 +1958,19 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
     const float subsurfaceScale = ainode.findPlug("subsurfaceScale").asFloat();
     const int subsurfaceType = ainode.findPlug("subsurfaceType").asInt();
     const float subsurfaceAnisotropy = ainode.findPlug("subsurfaceAnisotropy").asFloat();
-    MColor subsurfaceCol;
-    std::shared_ptr<kml::Texture> subsurfaceTex(nullptr);
-    if (getTextureAndColor(ainode, MString("subsurfaceColor"), subsurfaceTex, subsurfaceCol))
     {
-        if (subsurfaceTex)
-        {
-            mat->SetTexture("ai_subsurfaceColor", subsurfaceTex);
-        }
+      MColor subsurfaceCol;
+      std::shared_ptr<kml::Texture> subsurfaceTex(nullptr);
+      if (getTextureAndColor(ainode, MString("subsurfaceColor"), subsurfaceTex, subsurfaceCol))
+      {
+          if (subsurfaceTex)
+          {
+              mat->SetTexture("ai_subsurfaceColor", subsurfaceTex);
+          }
+      }
     }
-    MColor subsurfaceRadiusCol;
-    std::shared_ptr<kml::Texture> subsurfaceRadiusTex(nullptr);
-    if (getTextureAndColor(ainode, MString("subsurfaceRadius"), subsurfaceRadiusTex, subsurfaceRadiusCol))
-    {
-        if (subsurfaceRadiusTex)
-        {
-            mat->SetTexture("ai_subsurfaceRadius", subsurfaceRadiusTex);
-        }
-    }
+
+
     mat->SetFloat("ai_subsurfaceWeight", subsurfaceWeight);
     mat->SetFloat("ai_subsurfaceColorR", subsurfaceColorR);
     mat->SetFloat("ai_subsurfaceColorG", subsurfaceColorG);
@@ -1928,6 +1981,11 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
     mat->SetInteger("ai_subsurfaceType", subsurfaceType);
     mat->SetFloat("ai_subsurfaceScale", subsurfaceScale);
     mat->SetFloat("ai_subsurfaceAnisotropy", subsurfaceAnisotropy);
+
+    addTextureIfPresent("subsurface", "ai_subsurfaceWeightTex", ainode, mat);
+    addTextureIfPresent("subsurfaceRadius", "ai_subsurfaceRadius", ainode, mat);
+    addTextureIfPresent("subsurfaceScale", "ai_subsurfaceScaleTex", ainode, mat);
+    addTextureIfPresent("subsurfaceAnisotropy", "ai_subsurfaceAnisotropyTex", ainode, mat);
 
     // Coat
     const float coatWeight = ainode.findPlug("coat").asFloat();
@@ -1948,6 +2006,7 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
             mat->SetTexture("ai_coatColor", coatColorTex);
         }
     }
+
     mat->SetFloat("ai_coatWeight", coatWeight);
     mat->SetFloat("ai_coatColorR", coatColorR);
     mat->SetFloat("ai_coatColorG", coatColorG);
@@ -1957,6 +2016,10 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
     mat->SetFloat("ai_coatNormalX", coatNormalX);
     mat->SetFloat("ai_coatNormalY", coatNormalY);
     mat->SetFloat("ai_coatNormalZ", coatNormalZ);
+
+    addTextureIfPresent("coat", "ai_coatWeightTex", ainode, mat);
+    addTextureIfPresent("coatRoughness", "ai_coatRoughnessTex", ainode, mat);
+    addTextureIfPresent("coatIOR", "ai_coatIORTex", ainode, mat);
 
     // Emissive
     const float emissionWeight = ainode.findPlug("emission").asFloat();
@@ -1976,6 +2039,21 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
     mat->SetFloat("ai_emissionColorR", emissionColorR);
     mat->SetFloat("ai_emissionColorG", emissionColorG);
     mat->SetFloat("ai_emissionColorB", emissionColorB);
+
+    addTextureIfPresent("emission", "ai_emissionWeightTex", ainode, mat);
+
+    // Opacity map
+    {
+        MColor opacityCol;
+        std::shared_ptr<kml::Texture> opacityColorTex(nullptr);
+        if (getTextureAndColor(ainode, MString("opacity"), opacityColorTex, opacityCol))
+        {
+            if (opacityColorTex)
+            {
+                mat->SetTexture("ai_opacity", opacityColorTex);
+            }
+        }
+    }
 
     // Normal map
     float depth;
@@ -2002,6 +2080,150 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
     }
     mat->SetFloat("metallicFactor", metallic);
     mat->SetFloat("roughnessFactor", specularRoughness);
+
+    mat->SetFloat("Emission.R", emissionCol.r * emissionWeight);
+    mat->SetFloat("Emission.G", emissionCol.g * emissionWeight);
+    mat->SetFloat("Emission.B", emissionCol.b * emissionWeight);
+    if (emissionColorTex)
+    {
+        mat->SetTexture("Emission", emissionColorTex);
+    }
+    return true;
+}
+
+static bool storeAiStandardHairShader(std::shared_ptr<kml::Material> mat, const MFnDependencyNode& ainode)
+{
+    // store aishader name
+    std::string shadername = ainode.name().asChar();
+    mat->SetName(shadername);
+
+    // Set hair flag.
+    mat->SetInteger("aiStandardHair", 1);
+
+    // base
+    const float baseWeight = ainode.findPlug("base").asFloat();
+    const float baseColorR = ainode.findPlug("baseColorR").asFloat();
+    const float baseColorG = ainode.findPlug("baseColorG").asFloat();
+    const float baseColorB = ainode.findPlug("baseColorB").asFloat();
+    const float melanin = ainode.findPlug("melanin").asFloat();
+    const float melaninRedness = ainode.findPlug("melaninRedness").asFloat();
+    const float melaninRandomize = ainode.findPlug("melaninRandomize").asFloat();
+    mat->SetFloat("ai_melanin", melanin);
+    mat->SetFloat("ai_melaninRedness", melaninRedness);
+    mat->SetFloat("ai_melaninRandomize", melaninRandomize);
+
+    MColor baseCol;
+    std::shared_ptr<kml::Texture> baseColorTex(nullptr);
+    {
+      if (getTextureAndColor(ainode, MString("baseColor"), baseColorTex, baseCol))
+      {
+          if (baseColorTex)
+          {
+              mat->SetTexture("ai_baseColor", baseColorTex);
+          }
+      }
+    }
+    mat->SetFloat("ai_baseWeight", baseWeight);
+    mat->SetFloat("ai_baseColorR", baseColorR);
+    mat->SetFloat("ai_baseColorG", baseColorG);
+    mat->SetFloat("ai_baseColorB", baseColorB);
+
+    // Specular
+    const float roughness = ainode.findPlug("roughness").asFloat();
+    const float ior = ainode.findPlug("ior").asFloat();
+    const float shift = ainode.findPlug("shift").asFloat();
+    mat->SetFloat("ai_roughness", roughness);
+    mat->SetFloat("ai_ior", ior);
+    mat->SetFloat("ai_shift", shift);
+
+    // Tint
+    {
+      const float specularTintR = ainode.findPlug("specularTintR").asFloat();
+      const float specularTintG = ainode.findPlug("specularTintG").asFloat();
+      const float specularTintB = ainode.findPlug("specularTintB").asFloat();
+      mat->SetFloat("ai_specularTintR", specularTintR);
+      mat->SetFloat("ai_specularTintG", specularTintG);
+      mat->SetFloat("ai_specularTintB", specularTintB);
+    }
+
+    {
+      const float specular2TintR = ainode.findPlug("specular2TintR").asFloat();
+      const float specular2TintG = ainode.findPlug("specular2TintG").asFloat();
+      const float specular2TintB = ainode.findPlug("specular2TintB").asFloat();
+      mat->SetFloat("ai_specular2TintR", specular2TintR);
+      mat->SetFloat("ai_specular2TintG", specular2TintG);
+      mat->SetFloat("ai_specular2TintB", specular2TintB);
+    }
+
+    {
+      const float transmissionTintR = ainode.findPlug("transmissionTintR").asFloat();
+      const float transmissionTintG = ainode.findPlug("transmissionTintG").asFloat();
+      const float transmissionTintB = ainode.findPlug("transmissionTintB").asFloat();
+      mat->SetFloat("ai_transmissionTintR", transmissionTintR);
+      mat->SetFloat("ai_transmissionTintG", transmissionTintG);
+      mat->SetFloat("ai_transmissionTintB", transmissionTintB);
+    }
+
+    // Diffuse
+    const float diffuseWeight = ainode.findPlug("diffuse").asFloat();
+    const float diffuseColorR = ainode.findPlug("diffuseColorR").asFloat();
+    const float diffuseColorG = ainode.findPlug("diffuseColorG").asFloat();
+    const float diffuseColorB = ainode.findPlug("diffuseColorB").asFloat();
+    {
+      MColor diffuseCol;
+      std::shared_ptr<kml::Texture> diffuseColorTex(nullptr);
+      if (getTextureAndColor(ainode, MString("diffuseColor"), diffuseColorTex, diffuseCol))
+      {
+          if (diffuseColorTex)
+          {
+              mat->SetTexture("ai_diffuseColor", diffuseColorTex);
+          }
+      }
+    }
+
+    // Emissive
+    const float emissionWeight = ainode.findPlug("emission").asFloat();
+    const float emissionColorR = ainode.findPlug("emissionColorR").asFloat();
+    const float emissionColorG = ainode.findPlug("emissionColorG").asFloat();
+    const float emissionColorB = ainode.findPlug("emissionColorB").asFloat();
+    MColor emissionCol;
+    std::shared_ptr<kml::Texture> emissionColorTex(nullptr);
+    if (getTextureAndColor(ainode, MString("emissionColor"), emissionColorTex, emissionCol))
+    {
+        if (emissionColorTex)
+        {
+            mat->SetTexture("ai_emissionColor", emissionColorTex);
+        }
+    }
+    mat->SetFloat("ai_emissionWeight", emissionWeight);
+    mat->SetFloat("ai_emissionColorR", emissionColorR);
+    mat->SetFloat("ai_emissionColorG", emissionColorG);
+    mat->SetFloat("ai_emissionColorB", emissionColorB);
+
+    // Opacity map
+    {
+        MColor opacityCol;
+        std::shared_ptr<kml::Texture> opacityColorTex(nullptr);
+        if (getTextureAndColor(ainode, MString("opacity"), opacityColorTex, opacityCol))
+        {
+            if (opacityColorTex)
+            {
+                mat->SetTexture("ai_opacity", opacityColorTex);
+            }
+        }
+    }
+
+    // --- store glTF standard material ---
+    mat->SetFloat("BaseColor.R", baseCol.r * baseWeight);
+    mat->SetFloat("BaseColor.G", baseCol.g * baseWeight);
+    mat->SetFloat("BaseColor.B", baseCol.b * baseWeight);
+    mat->SetFloat("BaseColor.A", 1.0f);
+    if (baseColorTex)
+    {
+        mat->SetTexture("BaseColor", baseColorTex);
+    }
+    //mat->SetFloat("metallicFactor", metallic);
+    mat->SetFloat("roughnessFactor", roughness);
 
     mat->SetFloat("Emission.R", emissionCol.r * emissionWeight);
     mat->SetFloat("Emission.G", emissionCol.g * emissionWeight);
@@ -2107,10 +2329,14 @@ static std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
                 storeStingrayPBS(mat, mpa[k].node());
             }
 
-            if (isAiStandardSurfaceShader(mpa[k].node()))
+            if (isAiStandardHairShader(mpa[k].node()))
+            {
+                storeAiStandardHairShader(mat, mpa[k].node());
+            } else if (isAiStandardSurfaceShader(mpa[k].node()))
             {
                 storeAiStandardSurfaceShader(mat, mpa[k].node());
             }
+
         }
     }
 
@@ -2480,7 +2706,13 @@ static MStatus WriteGLTF(
             }
         }
     }
-
+    if (!recalc_normals)
+    {
+        if (!kml::CalculateNormalsMesh(node->GetMesh()))
+        {
+            return MS::kFailure;
+        }
+    }
     if (!kml::TriangulateMesh(node->GetMesh()))
     {
         return MS::kFailure;
