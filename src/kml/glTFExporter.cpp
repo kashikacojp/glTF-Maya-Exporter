@@ -969,6 +969,7 @@ namespace kml
                             typedef WeightVertex::const_iterator WeightIterator;
                             std::vector<unsigned short> joints;
                             std::vector<float> weights;
+                            bool Fauire = false;
                             for (int i = 0; i < in_skin->weights.size(); i++)
                             {
                                 std::vector<std::pair<int, float> > ww;
@@ -977,13 +978,33 @@ namespace kml
                                 {
                                     std::string path = it->first;
                                     float weight = it->second;
-                                    auto nn = nodeMap_[path];
-                                    if (nn.get())
+                                    auto iter = nodeMap_.find(path);
+                                    if (iter != nodeMap_.end())
                                     {
+                                        auto nn = iter->second;
                                         auto jj = nn->GetJoint();
-                                        int index = std::max<int>(0, jj->GetIndexInSkin());
-                                        ww.push_back(std::make_pair(index, weight));
+                                        if(jj.get())
+                                        {
+                                            int index = jj->GetIndexInSkin();
+                                            if(index >= 0)
+                                            {
+                                                ww.push_back(std::make_pair(index, weight));
+                                            }
+                                        }
+                                        else
+                                        {
+                                            //std::cout << "XXX:" << path << std::endl;
+                                        }
                                     }
+                                }
+                                if(Fauire)
+                                {
+                                    typedef std::map<std::string, std::shared_ptr<Node> > MapType;
+                                    typedef MapType::const_iterator Iterator;
+                                    //for(Iterator it = nodeMap_.begin();it != nodeMap_.end();it++)
+                                    //{
+                                    //    std::cout << "???:" << it->first << std::endl;
+                                    //}
                                 }
                                 std::sort(ww.begin(), ww.end(), WeightSorter());
                                 unsigned short jx[4] = {};
