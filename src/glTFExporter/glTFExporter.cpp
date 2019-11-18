@@ -664,6 +664,7 @@ MStatus glTFExporter::writer(const MFileObject& file, const MString& options, Fi
     int freeze_skinned_mesh_transform = 1; //0:no_bake, 1:bake veritces
     int output_animations = 1;             //0:no output, 1: output animation
     int output_invisible_nodes = 0;        //0:
+    int output_single_animation = 0;       //0:off, 1:on
 
     switch ((int)this->mode_)
     {
@@ -755,6 +756,10 @@ MStatus glTFExporter::writer(const MFileObject& file, const MString& options, Fi
             if (theOption[0] == MString("output_animations") && theOption.length() > 1)
             {
                 output_animations = theOption[1].asInt();
+            }
+            if (theOption[0] == MString("output_single_animation") && theOption.length() > 1)
+            {
+                output_single_animation = theOption[1].asInt();
             }
             if (theOption[0] == MString("output_invisible_nodes") && theOption.length() > 1)
             {
@@ -852,6 +857,7 @@ MStatus glTFExporter::writer(const MFileObject& file, const MString& options, Fi
     opts->SetInt("transform_space", transform_space);
     opts->SetInt("freeze_skinned_mesh_transform", freeze_skinned_mesh_transform);
     opts->SetInt("output_animations", output_animations);
+    opts->SetInt("output_single_animation", output_single_animation);
     opts->SetInt("output_invisible_nodes", output_invisible_nodes);
 
     opts->SetString("generator_name", generator_name);
@@ -4169,6 +4175,26 @@ static std::vector<std::shared_ptr<kml::Animation> > GetAnimations(const std::sh
     return animations;
 }
 
+static std::vector<std::shared_ptr<kml::Animation> > MergeSingleAnimation(std::vector<std::shared_ptr<kml::Animation> >& animations)
+{
+    std::vector<std::shared_ptr<kml::Animation> > tanims;
+    if(animations.size() > 0)
+    {
+        std::shared_ptr<kml::Animation> tanim(new kml::Animation());
+        tanim->SetName(animations[0]->GetName());
+        for(size_t i = 0; i < animations.size(); i++)
+        {
+            const std::vector<std::shared_ptr<kml::AnimationInstruction> >& insts = animations[i]->GetInstructions();
+            for(size_t j = 0; j < insts.size(); j++)
+            {
+                tanim->AddInstruction(insts[j]);
+            }
+        }
+        tanims.push_back(tanim);
+    }
+    return tanims;
+}
+
 static void GetSkinnedMeshNodes(std::vector<std::shared_ptr<kml::Node> >& nodes, const std::shared_ptr<kml::Node>& node)
 {
     if (node->GetTransform().get() && node->GetMesh().get() && node->GetMesh()->GetSkinWeight().get())
@@ -4406,6 +4432,7 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector<MDag
     bool vrm = opts->GetInt("vrm_export") > 0;
     bool output_invisible_nodes = opts->GetInt("output_invisible_nodes") > 0;
     bool output_animations = opts->GetInt("output_animations") > 0;
+    bool output_single_animation = opts->GetInt("output_single_animation") > 0;
     bool freeze_skinned_mesh_transform = opts->GetInt("freeze_skinned_mesh_transform") > 0;
 
     std::string generator_name = opts->GetString("generator_name");
@@ -4584,6 +4611,11 @@ MStatus glTFExporter::exportProcess(const MString& fname, const std::vector<MDag
         if (output_animations)
         {
             std::vector<std::shared_ptr<kml::Animation> > animations = GetAnimations(node);
+            if(output_single_animation)
+            {
+                animations = MergeSingleAnimation(animations);
+            }
+
             for (size_t i = 0; i < animations.size(); i++)
             {
                 node->AddAnimation(animations[i]);
