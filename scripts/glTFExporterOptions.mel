@@ -43,6 +43,11 @@ global proc int glTFExporterOptions ( string $parent,
 				-label "Output animations"
 				-nrb 2	-cw3 190 45 45
 				-labelArray2 $on $off objOutputAnimations;
+			radioButtonGrp
+				-label "Output single animation"
+				-nrb 2	-cw3 190 45 45
+				-labelArray2 $on $off objOutputSingleAnimation;
+
 				
 				
 		radioButtonGrp -e -sl 2 objRecalcNormals;		//off
@@ -50,6 +55,7 @@ global proc int glTFExporterOptions ( string $parent,
 		radioButtonGrp -e -sl 2 objOutputBuffer;		//draco
 		radioButtonGrp -e -sl 1 objConvertTextureFormat;//N/A
 		radioButtonGrp -e -sl 1 objOutputAnimations;	//on
+		radioButtonGrp -e -sl 2 objOutputSingleAnimation;	//off
 
 		// Now set to current settings.
 		$currentOptions = $initialSettings;
@@ -90,6 +96,12 @@ global proc int glTFExporterOptions ( string $parent,
 					} else {
 						radioButtonGrp -e -sl 1 objOutputAnimations;
 					}
+				} else if ($optionBreakDown[0] == "output_single_animation") {
+					if ($optionBreakDown[1] == "0") {
+						radioButtonGrp -e -sl 2 objOutputSingleAnimation;
+					} else {
+						radioButtonGrp -e -sl 1 objOutputSingleAnimation;
+					}
 				}
 			}
 		}
@@ -126,6 +138,12 @@ global proc int glTFExporterOptions ( string $parent,
 			$currentOptions = $currentOptions + ";output_animations=1";
 		} else {
 			$currentOptions = $currentOptions + ";output_animations=0";
+		}
+
+		if (`radioButtonGrp -q -sl objOutputSingleAnimation` == 1) {
+			$currentOptions = $currentOptions + ";output_single_animation=1";
+		} else {
+			$currentOptions = $currentOptions + ";output_single_animation=0";
 		}
 
 		eval($resultCallback+" \""+$currentOptions+"\"");
