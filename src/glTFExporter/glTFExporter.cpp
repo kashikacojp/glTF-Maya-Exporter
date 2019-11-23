@@ -2092,6 +2092,10 @@ static bool storeAiStandardSurfaceShader(std::shared_ptr<kml::Material> mat, con
     mat->SetFloat("Emission.B", emissionCol.b * emissionWeight);
     if (emissionColorTex)
     {
+        mat->SetFloat("Emission.R", emissionWeight);
+        mat->SetFloat("Emission.G", emissionWeight);
+        mat->SetFloat("Emission.B", emissionWeight);
+
         mat->SetTexture("Emission", emissionColorTex);
     }
     return true;
