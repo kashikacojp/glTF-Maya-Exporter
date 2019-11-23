@@ -114,6 +114,7 @@ add_library( kil STATIC
     ./src/KashikaNativeLib/src/kil/CopyTextureFile_GdiPlus.cpp
     ./src/KashikaNativeLib/src/kil/CopyTextureFile_STB.cpp
     ./src/KashikaNativeLib/src/kil/ResizeTextureFile.cpp
+    ./src/KashikaNativeLib/src/kil/HasAlphaChannel.cpp
 )
 
 # -- KML lib ------------------------------------

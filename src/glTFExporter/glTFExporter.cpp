@@ -2240,9 +2240,27 @@ static bool storeAiStandardHairShader(std::shared_ptr<kml::Material> mat, const 
     mat->SetFloat("Emission.B", emissionCol.b * emissionWeight);
     if (emissionColorTex)
     {
+        mat->SetFloat("Emission.R", emissionWeight);
+        mat->SetFloat("Emission.G", emissionWeight);
+        mat->SetFloat("Emission.B", emissionWeight);
+
         mat->SetTexture("Emission", emissionColorTex);
     }
     return true;
+}
+
+static bool HasTextureAlpha(const std::shared_ptr<kml::Texture>& tex)
+{
+    if(tex)
+    {
+        std::string texPath = tex->GetFilePath();
+        std::string texExt = GetExt(texPath);
+        if(texExt == ".png")
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 static std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
@@ -2319,7 +2337,7 @@ static std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
 			{
                 // set unlit mode
                 //mat->SetExtraMode("UNLIT"); // TODO!! create unlit interface
-
+                mat->SetString("ShadingMode", "UNLIT");
                 const MFnDependencyNode& ssnode = mpa[k].node();
                 MColor col;
                 float alpha = 1.0f;
@@ -2379,8 +2397,46 @@ static std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
                 storeAiStandardSurfaceShader(mat, mpa[k].node());
             }
 
+            {
+                std::string alphaMode = "OPAQUE";
+                MStatus stat = MS::kSuccess;
+                const MFnDependencyNode& ssnode = mpa[k].node();
+                MPlug plugAlphaMask = ssnode.findPlug("alphaMask", &stat);
+                bool alphaMask = false;
+                if(stat == MS::kSuccess)
+                {
+                    plugAlphaMask.getValue(alphaMask);
+                }
+
+                if(alphaMask)
+                {
+                    //if a shader has extra attribute  
+                    alphaMode = "MASK";
+                    float alphaCutoff = 0.5f;
+                    MPlug plugAlphaCutoff = ssnode.findPlug("alphaCutoff", &stat);
+                    if(stat == MS::kSuccess)
+                    {
+                        plugAlphaCutoff.getValue(alphaCutoff);
+                    }
+                    mat->SetFloat("AlphaCutoff", alphaCutoff);
+                }
+                else
+                {
+                    float A = mat->GetFloat("BaseColor.A");
+                    std::shared_ptr<kml::Texture> baseColorTex = mat->GetTexture("BaseColor");
+                    if(A < 1.0f || HasTextureAlpha(baseColorTex))
+                    {
+                        alphaMode = "BLEND";
+                    }
+                }
+                mat->SetString("AlphaMode", alphaMode);
+            }
+
         }
     }
+
+    //BlendMode
+    
 
     return mat;
 }
