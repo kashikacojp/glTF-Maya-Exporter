@@ -2332,6 +2332,38 @@ static std::shared_ptr<kml::Material> ConvertMaterial(MObject& shaderObject)
                     }
                 }
             }
+			
+			if (mpa[k].node().hasFn(MFn::kSurfaceShader)) // This is "SurfaceShader" node
+			{
+                // set unlit mode
+                //mat->SetExtraMode("UNLIT"); // TODO!! create unlit interface
+
+                const MFnDependencyNode& ssnode = mpa[k].node();
+                MColor col;
+                float alpha = 1.0f;
+                {
+                    const float tR = ssnode.findPlug("outTransparencyR").asFloat();
+                    const float tG = ssnode.findPlug("outTransparencyG").asFloat();
+                    const float tB = ssnode.findPlug("outTransparencyB").asFloat();
+                    alpha = ((1.0f - tR) + (1.0f - tG) + (1.0f - tB)) * 0.333333333f; 
+                }
+				std::shared_ptr<kml::Texture> coltex(nullptr);
+                if (getTextureAndColor(ssnode, MString("outColor"), coltex, col))
+                {
+                    if (coltex)
+                    {
+                        mat->SetTexture("BaseColor", coltex);
+                    }
+                    else
+                    {
+                        mat->SetFloat("BaseColor.R", col.r);
+                        mat->SetFloat("BaseColor.G", col.g);
+                        mat->SetFloat("BaseColor.B", col.b);
+                        mat->SetFloat("BaseColor.A", alpha);
+                    }
+                }
+			}
+            
 
             if (mpa[k].node().hasFn(MFn::kPhongExplorer))
             { // PhongE only
